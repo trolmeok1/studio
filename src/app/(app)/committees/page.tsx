@@ -33,11 +33,11 @@ const matchData = {
   vocalTeam: 'Galaxy Gliders',
   teamA: {
     ...teams.find(t => t.id === '1')!,
-    players: players.filter(p => p.teamId === '1').slice(0, 18),
+    players: players.filter(p => p.teamId === '1').slice(0, 30),
   },
   teamB: {
     ...teams.find(t => t.id === '2')!,
-     players: players.filter(p => p.teamId === '2').slice(0, 18),
+     players: players.filter(p => p.teamId === '2').slice(0, 30),
   },
 };
 
@@ -60,7 +60,7 @@ const PhysicalMatchSheet = () => {
             <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
             <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
             <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
-            <TableCell className="border text-center font-bold p-1 w-[40px]">{String(index + 1).padStart(2, '0')}</TableCell>
+            <TableCell className="border text-center font-bold p-1 w-[40px]">{String(player.id).slice(-2)}</TableCell>
             <TableCell className="border p-1">{player.name}</TableCell>
         </TableRow>
     );
@@ -340,6 +340,7 @@ const DigitalMatchSheet = () => {
 
 
 export default function CommitteesPage() {
+  const [activeTab, setActiveTab] = useState('physical');
   const handlePrint = () => {
     window.print();
   };
@@ -350,25 +351,23 @@ export default function CommitteesPage() {
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           Hoja de Vocalía
         </h2>
-         <Tabs defaultValue="physical">
-            <TabsList>
-                <TabsTrigger value="physical" onClick={() => {
-                    const printButton = document.getElementById('print-button');
-                    if (printButton) printButton.style.display = 'block';
-                }}>Vocalía Física (Imprimir)</TabsTrigger>
-                <TabsTrigger value="digital" onClick={() => {
-                     const printButton = document.getElementById('print-button');
-                    if (printButton) printButton.style.display = 'none';
-                }}>Vocalía Digital (Registrar)</TabsTrigger>
-            </TabsList>
-        </Tabs>
-        <Button onClick={handlePrint} id="print-button">
-          <Printer className="mr-2" />
-          Imprimir Vocalía
-        </Button>
+        <div className="flex items-center gap-4">
+             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="physical">
+                <TabsList>
+                    <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
+                    <TabsTrigger value="digital">Vocalía Digital (Registrar)</TabsTrigger>
+                </TabsList>
+            </Tabs>
+            {activeTab === 'physical' && (
+                <Button onClick={handlePrint} id="print-button">
+                    <Printer className="mr-2" />
+                    Imprimir Vocalía
+                </Button>
+            )}
+        </div>
       </div>
 
-       <Tabs defaultValue="physical" className="space-y-4">
+       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="physical" className="space-y-4">
           <TabsContent value="physical" className="mt-0">
             <PhysicalMatchSheet />
           </TabsContent>
@@ -406,14 +405,17 @@ export default function CommitteesPage() {
           #print-area {
             box-shadow: none !important;
             border: none !important;
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 1cm;
           }
         }
          @page {
             size: A4 portrait;
-            margin: 1cm;
+            margin: 0;
         }
       `}</style>
     </div>
   );
 }
-
