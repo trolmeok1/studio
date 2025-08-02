@@ -144,30 +144,32 @@ export default function AiCardsPage() {
             print-color-adjust: exact !important;
           }
           .flex-1.space-y-4 {
-            padding: 0;
-            margin: 0;
+            padding: 0 !important;
+            margin: 0 !important;
           }
           #card-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 0.5cm;
-            height: 100%;
-            width: 100%;
+            gap: 0.25cm;
+            height: calc(100vh - 1cm);
+            width: calc(100vw - 1cm);
+            position: fixed;
+            top: 0.5cm;
+            left: 0.5cm;
           }
           .id-card-wrapper {
-             padding: 0;
-             margin: 0;
              width: 100%; 
              height: 100%;
              display: flex;
              align-items: center;
              justify-content: center;
+             overflow: hidden;
           }
           .id-card-wrapper .max-w-\\[300px\\] {
             width: 100% !important;
             max-width: none !important;
-            height: 100%;
+            height: 100% !important;
             transform: scale(0.98);
             transform-origin: center;
           }
