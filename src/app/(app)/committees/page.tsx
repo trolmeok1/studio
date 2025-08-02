@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,11 +18,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { players, teams, type Player, updatePlayerStats, addSanction } from '@/lib/mock-data';
+import { players, teams, type Player, updatePlayerStats, addSanction, type Category } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 // Mock data - we'll replace this with dynamic data later
@@ -196,20 +197,45 @@ const DigitalMatchSheet = () => {
     const { toast } = useToast();
     const canEdit = user.role === 'admin' || user.role === 'secretary';
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+    const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+    const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
     const [events, setEvents] = useState<MatchEvent[]>([]);
     const [finalScore, setFinalScore] = useState({ teamA: 0, teamB: 0 });
 
+    const categories = useMemo(() => [...new Set(teams.map((t) => t.category))], []);
+    const filteredTeams = useMemo(() => {
+        if (!selectedCategory) return [];
+        return teams.filter((team) => team.category === selectedCategory);
+    }, [selectedCategory]);
+
+    const handleCategoryChange = (value: string) => {
+        setSelectedCategory(value as Category);
+        setSelectedTeamId(null);
+        setPlayerNumber('');
+        setSearchResults([]);
+    };
+
+    const handleTeamChange = (value: string) => {
+        setSelectedTeamId(value);
+        setPlayerNumber('');
+        setSearchResults([]);
+    };
+
     const handleSearch = () => {
-        if (searchTerm.trim() === '') {
-            setSearchResults([]);
+        if (!selectedTeamId || !playerNumber) {
+            toast({ title: "Información incompleta", description: "Por favor, selecciona equipo y número de camiseta.", variant: "destructive" });
             return;
         }
         const results = players.filter(p => 
-            p.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            p.name.toLowerCase().includes(searchTerm.toLowerCase())
+            p.teamId === selectedTeamId &&
+            p.id.slice(-2) === playerNumber.padStart(2, '0') // Assuming player number is last 2 digits of ID
         );
+
+        if (results.length === 0) {
+            toast({ title: "No encontrado", description: "No se encontró ningún jugador con ese número en el equipo seleccionado.", variant: "destructive" });
+        }
         setSearchResults(results);
     };
 
@@ -223,7 +249,6 @@ const DigitalMatchSheet = () => {
         };
         setEvents(prevEvents => [newEvent, ...prevEvents]);
 
-        // Update player stats
         const statsUpdate = {
             goals: eventType === 'goal' ? 1 : 0,
             yellowCards: eventType === 'yellow_card' ? 1 : 0,
@@ -254,7 +279,6 @@ const DigitalMatchSheet = () => {
             description: toastMessage,
         });
 
-        setSearchTerm('');
         setSearchResults([]);
     };
     
@@ -262,7 +286,6 @@ const DigitalMatchSheet = () => {
         const eventToRemove = events.find(e => e.id === eventId);
         if (!eventToRemove) return;
 
-        // Revert player stats
         const statsUpdate = {
             goals: eventToRemove.event === 'goal' ? -1 : 0,
             yellowCards: eventToRemove.event === 'yellow_card' ? -1 : 0,
@@ -270,7 +293,6 @@ const DigitalMatchSheet = () => {
         };
         updatePlayerStats(eventToRemove.playerId, statsUpdate);
 
-        // Remove the event
         setEvents(events.filter((e) => e.id !== eventId));
         
         toast({
@@ -295,7 +317,6 @@ const DigitalMatchSheet = () => {
                 <div className="space-y-4">
                     <h3 className="text-xl font-bold">Registro de Eventos</h3>
                     
-                    {/* Evidence upload */}
                     <div>
                          <Label>Evidencia de Vocalía Física</Label>
                         <div className="flex items-center gap-2 mt-1">
@@ -304,19 +325,40 @@ const DigitalMatchSheet = () => {
                         </div>
                     </div>
                     
-                    {/* Player search */}
                     <div>
-                        <Label htmlFor="player-search">Buscar Jugador (por Nombre o ID)</Label>
-                        <div className="flex items-center gap-2 mt-1">
+                        <Label>Buscar Jugador</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-1">
+                            <Select onValueChange={handleCategoryChange} disabled={!canEdit}>
+                                <SelectTrigger className="md:col-span-2">
+                                    <SelectValue placeholder="1. Elige Categoría..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={handleTeamChange} value={selectedTeamId || ''} disabled={!selectedCategory || !canEdit}>
+                                <SelectTrigger className="md:col-span-2">
+                                    <SelectValue placeholder="2. Elige Equipo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {filteredTeams.map((team) => (
+                                        <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <Input 
-                                id="player-search" 
-                                placeholder="Ej: '101' o 'Leo Astral'" 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                id="player-number" 
+                                placeholder="3. No. Camiseta" 
+                                value={playerNumber}
+                                onChange={(e) => setPlayerNumber(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                disabled={!canEdit}
+                                disabled={!selectedTeamId || !canEdit}
+                                className="md:col-span-3"
+                                type="number"
                             />
-                            <Button onClick={handleSearch} disabled={!canEdit}><Search className="mr-2" /> Buscar</Button>
+                            <Button onClick={handleSearch} disabled={!selectedTeamId || !playerNumber || !canEdit}><Search className="mr-2" /> Buscar</Button>
                         </div>
                     </div>
 
