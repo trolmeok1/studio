@@ -16,7 +16,9 @@ export default function TeamRosterPage() {
     notFound();
   }
 
-  const players = getPlayersByTeamId(teamId);
+  const allPlayers = getPlayersByTeamId(teamId);
+  const incomingPlayers = allPlayers.filter(p => p.status === 'activo');
+  const outgoingPlayers = allPlayers.filter(p => p.status === 'inactivo');
 
   const splitName = (fullName: string) => {
     const parts = fullName.split(' ');
@@ -24,6 +26,53 @@ export default function TeamRosterPage() {
     const lastName = parts.slice(Math.ceil(parts.length / 2)).join(' ');
     return { firstName, lastName };
   };
+
+  const PlayerTable = ({ title, players, startIndex = 0 }: { title: string, players: typeof allPlayers, startIndex?: number }) => (
+    <div className="mb-8">
+        <h2 className="bg-gray-300 text-black font-bold text-center p-1 text-md mb-2 border border-black">{title}</h2>
+        <table className="w-full border-collapse border border-black text-xs text-center">
+            <thead className="bg-gray-200 font-bold">
+                <tr>
+                    <th className="border border-black p-1 w-8">N-</th>
+                    <th className="border border-black p-1">NOMBRES</th>
+                    <th className="border border-black p-1">APELLIDOS</th>
+                    <th className="border border-black p-1">FECHA DE NACIMIENTO</th>
+                    <th className="border border-black p-1">N° CEDULA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {players.map((player, index) => {
+                     const { firstName, lastName } = splitName(player.name);
+                     return (
+                        <tr key={player.id} className="[&>td]:p-1">
+                            <td className="border border-black">{startIndex + index + 1}</td>
+                            <td className="border border-black text-left pl-2">{firstName}</td>
+                            <td className="border border-black text-left pl-2">{lastName}</td>
+                            <td className="border border-black text-left pl-2">{player.birthDate}</td>
+                            <td className="border border-black">{player.idNumber}</td>
+                        </tr>
+                    )
+                })}
+                 {Array.from({ length: Math.max(0, (title.includes('ENTRANTES') ? 25 : 5) - players.length) }).map((_, index) => (
+                     <tr key={`empty-${index}`} className="h-6 [&>td]:p-1">
+                        <td className="border border-black"></td>
+                        <td className="border border-black"></td>
+                        <td className="border border-black"></td>
+                        <td className="border border-black"></td>
+                        <td className="border border-black"></td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+         {title.includes('SALIENTES') && (
+            <div className="border border-black border-t-0 p-1">
+                <p className="font-bold text-xs">MOTIVO:</p>
+                <div className="h-12"></div>
+            </div>
+        )}
+    </div>
+);
+
 
   return (
     <div className="bg-background min-h-screen p-4 md:p-8 print:p-0">
@@ -61,42 +110,10 @@ export default function TeamRosterPage() {
                         <span className="p-1 flex-grow text-center">{team.category}</span>
                     </div>
                 </div>
+                
+                <PlayerTable title="JUGADORES ENTRANTES (ACTIVOS)" players={incomingPlayers} />
+                <PlayerTable title="JUGADORES SALIENTES (INACTIVOS)" players={outgoingPlayers} startIndex={incomingPlayers.length} />
 
-                <table className="w-full border-collapse border border-black text-xs text-center">
-                    <thead className="bg-gray-200 font-bold">
-                        <tr>
-                            <th className="border border-black p-1 w-8">N-</th>
-                            <th className="border border-black p-1">NOMBRES</th>
-                            <th className="border border-black p-1">APELLIDOS</th>
-                            <th className="border border-black p-1">FECHA DE NACIMIENTO</th>
-                            <th className="border border-black p-1">N° CEDULA</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {players.map((player, index) => {
-                             const { firstName, lastName } = splitName(player.name);
-                             return (
-                                <tr key={player.id} className="[&>td]:p-1">
-                                    <td className="border border-black">{index + 1}</td>
-                                    <td className="border border-black text-left pl-2">{firstName}</td>
-                                    <td className="border border-black text-left pl-2">{lastName}</td>
-                                    <td className="border border-black text-left pl-2">{player.birthDate}</td>
-                                    <td className="border border-black">{player.idNumber}</td>
-                                </tr>
-                            )
-                        })}
-                        {/* Add empty rows to fill the page if needed */}
-                        {Array.from({ length: Math.max(0, 30 - players.length) }).map((_, index) => (
-                             <tr key={`empty-${index}`} className="h-6 [&>td]:p-1">
-                                <td className="border border-black"></td>
-                                <td className="border border-black"></td>
-                                <td className="border border-black"></td>
-                                <td className="border border-black"></td>
-                                <td className="border border-black"></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
             </main>
         </div>
         <style jsx global>{`

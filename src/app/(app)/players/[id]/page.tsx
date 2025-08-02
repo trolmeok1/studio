@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt } from 'lucide-react';
+import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX } from 'lucide-react';
 
 export default function PlayerProfilePage({ params }: { params: { id: string } }) {
   const player = getPlayerById(params.id);
@@ -14,6 +14,8 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
   if (!player) {
     notFound();
   }
+  
+  const statusIsActive = player.status === 'activo';
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -38,7 +40,7 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
                 </div>
             </div>
             <CardContent className="p-6 text-center">
-              <Button asChild size="lg" className="w-full mt-6">
+              <Button asChild size="lg" className="w-full">
                 <Link href={`/players/${player.id}/id-card`}>
                   <CreditCard className="mr-2 h-5 w-5" />
                   Ver Carnet Digital
@@ -71,6 +73,18 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
                         <p className="font-semibold">{player.position}</p>
                     </div>
                 </div>
+              </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: statusIsActive ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--destructive) / 0.1)' }}>
+                  {statusIsActive ? <UserCheck className="h-6 w-6 text-primary mt-1" /> : <UserX className="h-6 w-6 text-destructive mt-1" />}
+                  <div>
+                      <p className="text-sm text-muted-foreground">Estado</p>
+                      <p className="font-semibold">{statusIsActive ? 'Activo (Entrante)' : 'Inactivo (Saliente)'}</p>
+                      {!statusIsActive && player.statusReason && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                              <strong>Razón:</strong> {player.statusReason}
+                          </p>
+                      )}
+                  </div>
               </div>
             </CardContent>
           </Card>

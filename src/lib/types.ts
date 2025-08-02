@@ -2,6 +2,7 @@
 
 export type Category = 'Copa' | 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
+export type PlayerStatus = 'activo' | 'inactivo';
 
 export interface Player {
   id: string;
@@ -14,6 +15,8 @@ export interface Player {
   teamId: string;
   category: Category;
   position: PlayerPosition;
+  status: PlayerStatus;
+  statusReason?: string;
   stats: {
     goals: number;
     assists: number;

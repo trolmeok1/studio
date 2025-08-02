@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 
 const initialNewPlayerState = {
     firstName: '',
@@ -30,6 +32,8 @@ const initialNewPlayerState = {
     birthDate: undefined as Date | undefined,
     position: '' as PlayerPosition | '',
     jerseyNumber: '',
+    status: 'activo' as 'activo' | 'inactivo',
+    statusReason: '',
 };
 
 export default function TeamDetailsPage() {
@@ -72,6 +76,8 @@ export default function TeamDetailsPage() {
         idNumber: newPlayer.idNumber,
         birthDate: newPlayer.birthDate.toISOString().split('T')[0],
         jerseyNumber: parseInt(newPlayer.jerseyNumber) || 0,
+        status: newPlayer.status,
+        statusReason: newPlayer.statusReason,
       };
       setPlayers([...players, newPlayerData]);
       setNewPlayer(initialNewPlayerState);
@@ -241,7 +247,34 @@ export default function TeamDetailsPage() {
                                     </div>
                                     <p className="text-xs text-muted-foreground">Imagen rectangular. Visible solo para administradores.</p>
                               </div>
-
+                              <div className="space-y-2">
+                                <Label>Estado del Jugador</Label>
+                                <RadioGroup
+                                    value={newPlayer.status}
+                                    onValueChange={(value: 'activo' | 'inactivo') => setNewPlayer({ ...newPlayer, status: value })}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="activo" id="status-active" />
+                                        <Label htmlFor="status-active">Entrante (Activo)</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="inactivo" id="status-inactive" />
+                                        <Label htmlFor="status-inactive">Saliente (Inactivo)</Label>
+                                    </div>
+                                </RadioGroup>
+                                </div>
+                                {newPlayer.status === 'inactivo' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="statusReason">Razón de Salida</Label>
+                                        <Textarea
+                                            id="statusReason"
+                                            value={newPlayer.statusReason}
+                                            onChange={(e) => setNewPlayer({ ...newPlayer, statusReason: e.target.value })}
+                                            placeholder="Ej: Transferencia a otro club, retiro, etc."
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <Button onClick={handleAddPlayer} className="w-full" size="lg">Guardar Jugador</Button>
                           </DialogContent>
@@ -253,7 +286,7 @@ export default function TeamDetailsPage() {
                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {players.map((player) => (
                       <Card key={player.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg">
-                        <CardHeader className="p-0">
+                        <CardHeader className="p-0 relative">
                            <Link href={`/players/${player.id}`}>
                             <Image
                               src={player.photoUrl}
@@ -264,6 +297,12 @@ export default function TeamDetailsPage() {
                               data-ai-hint="player portrait"
                             />
                            </Link>
+                           <Badge className={cn(
+                               "absolute top-2 right-2",
+                               player.status === 'activo' ? 'bg-green-600' : 'bg-destructive'
+                           )}>
+                                {player.status === 'activo' ? 'Activo' : 'Inactivo'}
+                           </Badge>
                         </CardHeader>
                         <CardContent className="p-4 flex-grow">
                           <h3 className="text-xl font-bold font-headline mt-2">{player.name}</h3>
@@ -338,5 +377,3 @@ export default function TeamDetailsPage() {
     </div>
   );
 }
-
-    
