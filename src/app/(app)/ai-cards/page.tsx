@@ -135,7 +135,7 @@ export default function AiCardsPage() {
         }
         @media print {
           @page {
-            size: A4;
+            size: A4 landscape;
             margin: 0.5cm;
           }
           body {
@@ -149,17 +149,24 @@ export default function AiCardsPage() {
           }
           #card-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 0.5cm;
-            width: 100%;
+            width: 28.7cm; /* A4 landscape width - margins */
+            height: 20cm; /* A4 landscape height - margins */
           }
           .id-card-wrapper {
              padding: 0;
              margin: 0;
-             transform: scale(0.48);
-             transform-origin: top left;
-             width: 6.3cm; 
-             height: 10cm;
+             width: 100%; 
+             height: 100%;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+          }
+          .id-card-wrapper .max-w-\\[300px\\] { /* The card itself */
+            transform: scale(0.95);
+            transform-origin: center;
           }
           .print\:hidden {
               display: none !important;
