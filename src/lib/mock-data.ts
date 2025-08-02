@@ -2,6 +2,7 @@
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry } from './types';
 
 export let teams: Team[] = [
+  // Máxima Category - 12 teams
   { 
     id: '1', 
     name: 'Cosmic Comets', 
@@ -28,150 +29,50 @@ export let teams: Team[] = [
     secretary: { name: 'Secretary Name' },
     treasurer: { name: 'Treasurer Name' },
     vocal: { name: 'Vocal Name' },
-    delegates: [
-        { name: 'Delegate 1' },
-    ]
+    delegates: [ { name: 'Delegate 1' } ]
   },
-  { 
-    id: '3', 
-    name: 'Galaxy Gliders', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Máxima', 
-    president: { name: 'Jane Smith', phone: '0993334455' },
-  },
-  { 
-    id: '4', 
-    name: 'Orion Stars', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Máxima', 
-    president: { name: 'Peter Jones' } 
-  },
-  { 
-    id: '5', 
-    name: 'Vortex Voyagers', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Primera', 
-    president: { name: 'Mary Johnson' } 
-  },
-  { 
-    id: '6', 
-    name: 'Pulsar Pioneers', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Primera', 
-    president: { name: 'James Brown' } 
-  },
-  { 
-    id: '7', 
-    name: 'Quasar Quest', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Patricia Taylor' } 
-  },
-  { 
-    id: '8', 
-    name: 'Nebula Nomads', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Robert Wilson' } 
-  },
-  { 
-    id: '9', 
-    name: 'Asteroide FC', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Linda Garcia' } 
-  },
-  { 
-    id: '10', 
-    name: 'Supernova SC', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Michael Miller' } 
-  },
-  { 
-    id: '11', 
-    name: 'Blackhole United', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Barbara Davis' } 
-  },
-  { 
-    id: '12', 
-    name: 'Rocket Rangers', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'William Rodriguez' } 
-  },
-  { 
-    id: '13', 
-    name: 'Mars Rovers', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Elizabeth Martinez' } 
-  },
-  { 
-    id: '14', 
-    name: 'Jupiter Giants', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'David Hernandez' } 
-  },
-  { 
-    id: '15', 
-    name: 'Saturn Rings', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Jennifer Lopez' } 
-  },
-  { 
-    id: '16', 
-    name: 'Neptune Knights', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Richard Gonzalez' } 
-  },
-  { 
-    id: '17', 
-    name: 'Pluto Pups', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Susan Perez' } 
-  },
-  { 
-    id: '18', 
-    name: 'Mercury Meteors', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Joseph Sanchez' } 
-  },
-  { 
-    id: '19', 
-    name: 'Venus Vipers', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Thomas Ramirez' } 
-  },
-  { 
-    id: '20', 
-    name: 'Earth Eagles', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Charles Torres' } 
-  },
-  { 
-    id: '21', 
-    name: 'Alpha Centauri', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Daniel Clark' } 
-  },
-  { 
-    id: '22', 
-    name: 'Proxima Centauri', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Segunda', 
-    president: { name: 'Nancy Lewis' } 
-  }
+  { id: '3', name: 'Galaxy Gliders', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Jane Smith', phone: '0993334455' } },
+  { id: '4', name: 'Orion Stars', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Peter Jones' } },
+  { id: 't-max-5', name: 'Andromeda Avengers', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Alex Ray' } },
+  { id: 't-max-6', name: 'Meteor Monarchs', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Sue Storm' } },
+  { id: 't-max-7', name: 'Gravity Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Ben Grimm' } },
+  { id: 't-max-8', name: 'Starship Strikers', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Reed Richards' } },
+  { id: 't-max-9', name: 'Celestial FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Victor Von Doom' } },
+  { id: 't-max-10', name: 'Eclipse Enforcers', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Tony Stark' } },
+  { id: 't-max-11', name: 'Dark Matter Dynamos', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Bruce Banner' } },
+  { id: 't-max-12', name: 'Lightyear Legends', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Steve Rogers' } },
+
+  // Primera Category - 12 teams
+  { id: '5', name: 'Vortex Voyagers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Mary Johnson' } },
+  { id: '6', name: 'Pulsar Pioneers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'James Brown' } },
+  { id: 't-pri-3', name: 'Equinox FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Chris Evans' } },
+  { id: 't-pri-4', name: 'Solstice Spirits', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Scarlett Johansson' } },
+  { id: 't-pri-5', name: 'Orbital Outlaws', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Mark Ruffalo' } },
+  { id: 't-pri-6', name: 'Comet Crusaders', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Chris Hemsworth' } },
+  { id: 't-pri-7', name: 'Asteroid Aces', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Jeremy Renner' } },
+  { id: 't-pri-8', name: 'Zenith Zephyrs', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Tom Hiddleston' } },
+  { id: 't-pri-9', name: 'Nadir Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Samuel L. Jackson' } },
+  { id: 't-pri-10', name: 'Infinity FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Cobie Smulders' } },
+  { id: 't-pri-11', name: 'Quantum Questers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Clark Gregg' } },
+  { id: 't-pri-12', name: 'Dimension Drifters', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Gwyneth Paltrow' } },
+
+  // Segunda Category - 16 teams
+  { id: '7', name: 'Quasar Quest', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Patricia Taylor' } },
+  { id: '8', name: 'Nebula Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Robert Wilson' } },
+  { id: '9', name: 'Asteroide FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Linda Garcia' } },
+  { id: '10', name: 'Supernova SC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Michael Miller' } },
+  { id: '11', name: 'Blackhole United', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Barbara Davis' } },
+  { id: '12', name: 'Rocket Rangers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'William Rodriguez' } },
+  { id: '13', name: 'Mars Rovers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Elizabeth Martinez' } },
+  { id: '14', name: 'Jupiter Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'David Hernandez' } },
+  { id: '15', name: 'Saturn Rings', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Jennifer Lopez' } },
+  { id: '16', name: 'Neptune Knights', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Richard Gonzalez' } },
+  { id: '17', name: 'Pluto Pups', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Susan Perez' } },
+  { id: '18', name: 'Mercury Meteors', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Joseph Sanchez' } },
+  { id: '19', name: 'Venus Vipers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Thomas Ramirez' } },
+  { id: '20', name: 'Earth Eagles', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Charles Torres' } },
+  { id: '21', name: 'Alpha Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Daniel Clark' } },
+  { id: '22', name: 'Proxima Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Nancy Lewis' } }
 ];
 
 export let players: Player[] = [
@@ -185,23 +86,24 @@ export let players: Player[] = [
     { id: 'p-008', name: 'Erling Haaland', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 35, assists: 5, yellowCards: 1, redCards: 0 }, idNumber: '1712345685', birthDate: '2000-07-21', jerseyNumber: 9, status: 'activo' },
     { id: 'p-009', name: 'Mohamed Salah', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 0, redCards: 0 }, idNumber: '1712345686', birthDate: '1992-06-15', jerseyNumber: 11, status: 'activo' },
     { id: 'p-010', name: 'Alisson Becker', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Quasar Quest', teamId: '7', category: 'Segunda', position: 'Portero', stats: { goals: 0, assists: 1, yellowCards: 1, redCards: 0 }, idNumber: '1712345687', birthDate: '1992-10-02', jerseyNumber: 1, status: 'activo' },
+    { id: 'p-011', name: 'Robert Lewandowski', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Andromeda Avengers', teamId: 't-max-5', category: 'Máxima', position: 'Delantero', stats: { goals: 30, assists: 3, yellowCards: 2, redCards: 0 }, idNumber: '1712345688', birthDate: '1988-08-21', jerseyNumber: 9, status: 'activo' },
+    { id: 'p-012', name: 'Sadio Mané', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Equinox FC', teamId: 't-pri-3', category: 'Primera', position: 'Delantero', stats: { goals: 20, assists: 8, yellowCards: 3, redCards: 0 }, idNumber: '1712345689', birthDate: '1992-04-10', jerseyNumber: 10, status: 'activo' },
+    { id: 'p-013', name: 'Joshua Kimmich', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Asteroide FC', teamId: '9', category: 'Segunda', position: 'Mediocampista', stats: { goals: 7, assists: 15, yellowCards: 5, redCards: 0 }, idNumber: '1712345690', birthDate: '1995-02-08', jerseyNumber: 6, status: 'activo' },
 ];
 
 
-export let standings: Standing[] = [
-  { rank: 1, teamId: '9', teamName: 'Asteroide FC', played: 10, wins: 8, draws: 1, losses: 1, points: 25, goalsFor: 20, goalsAgainst: 5 },
-  { rank: 2, teamId: '10', teamName: 'Supernova SC', played: 10, wins: 7, draws: 2, losses: 1, points: 23, goalsFor: 25, goalsAgainst: 10 },
-  { rank: 3, teamId: '11', teamName: 'Blackhole United', played: 10, wins: 7, draws: 1, losses: 2, points: 22, goalsFor: 18, goalsAgainst: 8 },
-  { rank: 4, teamId: '12', teamName: 'Rocket Rangers', played: 10, wins: 6, draws: 2, losses: 2, points: 20, goalsFor: 22, goalsAgainst: 12 },
-  { rank: 5, teamId: '13', teamName: 'Mars Rovers', played: 10, wins: 5, draws: 2, losses: 3, points: 17, goalsFor: 15, goalsAgainst: 15 },
-  { rank: 6, teamId: '14', teamName: 'Jupiter Giants', played: 10, wins: 4, draws: 3, losses: 3, points: 15, goalsFor: 13, goalsAgainst: 13 },
-  { rank: 7, teamId: '15', teamName: 'Saturn Rings', played: 10, wins: 3, draws: 3, losses: 4, points: 12, goalsFor: 10, goalsAgainst: 14 },
-  { rank: 8, teamId: '16', teamName: 'Neptune Knights', played: 10, wins: 2, draws: 4, losses: 4, points: 10, goalsFor: 8, goalsAgainst: 16 },
-  { rank: 9, teamId: '17', teamName: 'Pluto Pups', played: 10, wins: 2, draws: 2, losses: 6, points: 8, goalsFor: 7, goalsAgainst: 20 },
-  { rank: 10, teamId: '18', teamName: 'Mercury Meteors', played: 10, wins: 1, draws: 3, losses: 6, points: 6, goalsFor: 9, goalsAgainst: 22 },
-  { rank: 11, teamId: '19', teamName: 'Venus Vipers', played: 10, wins: 1, draws: 2, losses: 7, points: 5, goalsFor: 5, goalsAgainst: 19 },
-  { rank: 12, teamId: '20', teamName: 'Earth Eagles', played: 10, wins: 0, draws: 3, losses: 7, points: 3, goalsFor: 4, goalsAgainst: 25 },
-];
+export let standings: Standing[] = teams.map((team, index) => ({
+    rank: index + 1,
+    teamId: team.id,
+    teamName: team.name,
+    played: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    points: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+}));
 
 
 export const getTopScorers = (): Scorer[] => players
