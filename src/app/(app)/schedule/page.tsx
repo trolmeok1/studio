@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, setSeconds, parse, addHours } from 'date-fns';
+import { format, addDays, setHours, setMinutes, setSeconds, parse, addHours, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -165,35 +165,48 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
         const categoryTeams = getTeamsByCategory(category);
         setTeams(categoryTeams);
     }, [category]);
+    
+    const isGrouped = category === 'Segunda' && teams.length >= 16;
+    const groups: (('A' | 'B') | undefined)[] = isGrouped ? ['A', 'B'] : [undefined];
 
     const standings = useMemo(() => {
         if (teams.length === 0) return [];
-        const categoryStandings = [...mockStandings].filter(s => teams.some(t => t.id === s.teamId));
+        
+        return groups.map(group => {
+            const groupTeams = teams.filter(t => isGrouped ? t.group === group : true);
+            const categoryStandings = [...mockStandings].filter(s => groupTeams.some(t => t.id === s.teamId));
 
-        const teamsWithLogos = categoryStandings.map(s => {
-            const teamData = teams.find(t => t.id === s.teamId);
+            const teamsWithLogos = categoryStandings.map(s => {
+                const teamData = groupTeams.find(t => t.id === s.teamId);
+                return {
+                    ...s,
+                    teamLogoUrl: teamData?.logoUrl || 'https://placehold.co/100x100.png',
+                    group: teamData?.group
+                };
+            });
             return {
-                ...s,
-                teamLogoUrl: teamData?.logoUrl || 'https://placehold.co/100x100.png'
+                group,
+                standings: teamsWithLogos.sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
             };
         });
-        return teamsWithLogos
-            .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
-    }, [teams]);
+        
+    }, [teams, groups, isGrouped]);
     
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true) }, []);
 
     const groupedMatches = useMemo(() => {
-        const teamCount = teams.length;
-        if (teamCount === 0 || generatedMatches.length === 0) return {};
+        if (teams.length === 0 || generatedMatches.length === 0) return {};
 
         return generatedMatches
             .filter(m => m.category === category)
             .reduce((acc, match) => {
-                const roundSize = Math.floor(teams.filter(t => t.category === category).length / 2);
-                const categoryMatches = generatedMatches.filter(m => m.category === category);
-                const totalRounds = (teams.filter(t => t.category === category).length - (teams.filter(t => t.category === category).length % 2 === 0 ? 0 : 1) -1);
+                const categoryTeams = teams.filter(t => t.category === category && (isGrouped ? t.group === match.group : true));
+                const roundSize = Math.floor(categoryTeams.length / 2);
+                if (roundSize === 0) return acc;
+                
+                const categoryMatches = generatedMatches.filter(m => m.category === category && (isGrouped ? m.group === match.group : true));
+                const totalRounds = (categoryTeams.length - (categoryTeams.length % 2 === 0 ? 0 : 1) -1);
 
                 const matchIndexInSchedule = categoryMatches.indexOf(match);
 
@@ -205,7 +218,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                     currentRound = currentRound - totalRounds;
                 }
                 
-                const dateKey = `Fecha ${currentRound} (${leg})`;
+                const dateKey = `Fecha ${currentRound} (${leg})` + (isGrouped ? ` - Grupo ${match.group}` : '');
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = {
@@ -216,7 +229,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                 acc[dateKey].matches.push(match);
                 return acc;
             }, {} as Record<string, { date: string, matches: GeneratedMatch[] }>);
-    }, [generatedMatches, isClient, teams, category]);
+    }, [generatedMatches, isClient, teams, category, isGrouped]);
 
 
     if(teams.length === 0) {
@@ -237,7 +250,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
             <CardHeader className="flex-row items-center justify-between">
                 <div>
                     <CardTitle>Torneo {category}</CardTitle>
-                    <CardDescription>Partidos de ida y vuelta. Los dos primeros clasifican a la final.</CardDescription>
+                    <CardDescription>Partidos de ida y vuelta. Los dos primeros de cada grupo (si aplica) o de la tabla general clasifican a la siguiente fase.</CardDescription>
                 </div>
             </CardHeader>
             <CardContent>
@@ -247,64 +260,51 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                         <TabsTrigger value="schedule">Calendario de Partidos</TabsTrigger>
                     </TabsList>
                     <TabsContent value="standings">
-                        <Table className="mt-4">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[50px]">#</TableHead>
-                                    <TableHead>Equipo</TableHead>
-                                    <TableHead className="text-center">PJ</TableHead>
-                                    <TableHead className="text-center">G</TableHead>
-                                    <TableHead className="text-center">E</TableHead>
-                                    <TableHead className="text-center">P</TableHead>
-                                    <TableHead className="text-center">GF</TableHead>
-                                    <TableHead className="text-center">GC</TableHead>
-                                    <TableHead className="text-center">GD</TableHead>
-                                    <TableHead className="text-center">PTS</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {standings.map((s, index) => (
-                                    <TableRow key={s.teamId} className={index < 2 ? 'bg-primary/10' : ''}>
-                                        <TableCell className="font-bold">{index + 1}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Image src={s.teamLogoUrl} alt={s.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                                <span>{s.teamName}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">{s.played}</TableCell>
-                                        <TableCell className="text-center">{s.wins}</TableCell>
-                                        <TableCell className="text-center">{s.draws}</TableCell>
-                                        <TableCell className="text-center">{s.losses}</TableCell>
-                                        <TableCell className="text-center">{s.goalsFor}</TableCell>
-                                        <TableCell className="text-center">{s.goalsAgainst}</TableCell>
-                                        <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
-                                        <TableCell className="text-center font-bold">{s.points}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                         {standings.length >= 2 && (
-                            <div className="mt-8 flex justify-around">
-                                <div className="text-center">
-                                    <h4 className="font-bold font-headline text-lg text-primary">FINAL</h4>
-                                    <div className="mt-2 p-4 rounded-lg bg-muted/50 flex items-center gap-4">
-                                        <div className="flex items-center gap-2">
-                                            <Image src={standings[0]?.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={standings[0]?.teamName || 'Primero'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                            <span>{standings[0]?.teamName || 'Primero'}</span>
-                                        </div>
-                                        <span className="font-bold text-primary">VS</span>
-                                        <div className="flex items-center gap-2">
-                                            <Image src={standings[1]?.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={standings[1]?.teamName || 'Segundo'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                            <span>{standings[1]?.teamName || 'Segundo'}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                        {standings.map(({ group, standings: groupStandings }) => (
+                            <div key={group || 'general'} className="mt-4">
+                                {isGrouped && <h3 className="text-xl font-bold mb-2">Grupo {group}</h3>}
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">#</TableHead>
+                                            <TableHead>Equipo</TableHead>
+                                            <TableHead className="text-center">PJ</TableHead>
+                                            <TableHead className="text-center">G</TableHead>
+                                            <TableHead className="text-center">E</TableHead>
+                                            <TableHead className="text-center">P</TableHead>
+                                            <TableHead className="text-center">GF</TableHead>
+                                            <TableHead className="text-center">GC</TableHead>
+                                            <TableHead className="text-center">GD</TableHead>
+                                            <TableHead className="text-center">PTS</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {groupStandings.map((s, index) => (
+                                            <TableRow key={s.teamId} className={index < 2 ? 'bg-primary/10' : ''}>
+                                                <TableCell className="font-bold">{index + 1}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Image src={s.teamLogoUrl} alt={s.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                                        <span>{s.teamName}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">{s.played}</TableCell>
+                                                <TableCell className="text-center">{s.wins}</TableCell>
+                                                <TableCell className="text-center">{s.draws}</TableCell>
+                                                <TableCell className="text-center">{s.losses}</TableCell>
+                                                <TableCell className="text-center">{s.goalsFor}</TableCell>
+                                                <TableCell className="text-center">{s.goalsAgainst}</TableCell>
+                                                <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
+                                                <TableCell className="text-center font-bold">{s.points}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
-                        )}
+                        ))}
                     </TabsContent>
                     <TabsContent value="schedule" className="space-y-6 mt-6">
-                        {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches).map(([roundName, roundData]) => (
+                        {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches).sort().map(([roundName, roundData]) => (
                             <div key={roundName}>
                                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{roundName} - <span className="font-normal">{roundData.date}</span></h3>
                                 <div className="space-y-2">
@@ -325,15 +325,16 @@ const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate
     const [startDate, setStartDate] = useState<Date | undefined>(new Date());
     const [numberOfFields, setNumberOfFields] = useState(1);
     const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
-        '0': true, // Sunday
-        '4': false, '5': false, 
+        '4': false, 
+        '5': false, 
         '6': true, // Saturday
+        '0': true, // Sunday
     });
      const [dayConfigs, setDayConfigs] = useState<Record<string, { start: string; end: string }>>({
-        '0': { start: '09:00', end: '17:00' }, 
         '4': { start: '08:00', end: '18:00' },
         '5': { start: '08:00', end: '18:00' },
         '6': { start: '10:00', end: '18:00' },
+        '0': { start: '09:00', end: '17:00' }, 
     });
     
     const daysOfWeek = [
@@ -486,88 +487,133 @@ export default function SchedulePage() {
       setResetAlertStep(0);
   }
 
-  const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string, end: string }>, numberOfFields: number) => {
-    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-    let finalSchedule: GeneratedMatch[] = [];
-    const matchDurationHours = 2;
+  const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string; end: string }>, numberOfFields: number) => {
+    
+    let allGeneratedMatches: GeneratedMatch[] = [];
+    let currentDate = new Date(startDate);
     const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
-    let matchQueue: GeneratedMatch[] = [];
+    if (enabledPlayDays.length === 0) return;
+
+    let weekCounter = 0;
+    
+    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+    let categoryMatchesQueue: { [key in Category]?: GeneratedMatch[] } = {};
 
     categories.forEach(category => {
-        let teams = getTeamsByCategory(category).map(t => t.id);
-        if (teams.length < 2) return;
+        let teamsForScheduling: Team[] = getTeamsByCategory(category);
         
-        teams.sort(() => 0.5 - Math.random());
-        
-        if (teams.length % 2 !== 0) teams.push("BYE");
+        teamsForScheduling.sort(() => 0.5 - Math.random());
 
-        const rounds = teams.length - 1;
-        const half = teams.length / 2;
+        if (category === 'Segunda' && teamsForScheduling.length >= 16) {
+            const groupA = teamsForScheduling.slice(0, Math.ceil(teamsForScheduling.length / 2));
+            const groupB = teamsForScheduling.slice(Math.ceil(teamsForScheduling.length / 2));
+            groupA.forEach(t => t.group = 'A');
+            groupB.forEach(t => t.group = 'B');
+            
+            categoryMatchesQueue[category] = [
+                ...generateRoundRobinMatches(groupA, category, 'A'),
+                ...generateRoundRobinMatches(groupB, category, 'B')
+            ];
+        } else {
+            categoryMatchesQueue[category] = generateRoundRobinMatches(teamsForScheduling, category);
+        }
+    });
+    
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+        let matches: GeneratedMatch[] = [];
+        let teamIds = teams.map(t => t.id);
+        if (teamIds.length < 2) return [];
 
-        for (let leg = 0; leg < 2; leg++) { // Two legs: home and away
-            let teamsForScheduling = [...teams];
+        if (teamIds.length % 2 !== 0) teamIds.push("BYE");
+
+        const rounds = teamIds.length - 1;
+        const half = teamIds.length / 2;
+
+        for (let leg = 0; leg < 2; leg++) { // Two legs
+            let currentTeams = [...teamIds];
             for (let i = 0; i < rounds; i++) {
                 for (let j = 0; j < half; j++) {
                     let home, away;
                     if (leg === 0) {
-                        home = teamsForScheduling[j];
-                        away = teamsForScheduling[teamsForScheduling.length - 1 - j];
+                        home = currentTeams[j];
+                        away = currentTeams[currentTeams.length - 1 - j];
                     } else {
-                        away = teamsForScheduling[j];
-                        home = teamsForScheduling[teamsForScheduling.length - 1 - j];
+                        away = currentTeams[j];
+                        home = currentTeams[currentTeams.length - 1 - j];
                     }
                     if (home !== "BYE" && away !== "BYE") {
-                        matchQueue.push({ home, away, category });
+                        matches.push({ home, away, category, group });
                     }
                 }
-                const lastTeam = teamsForScheduling.pop();
-                if(lastTeam) teamsForScheduling.splice(1, 0, lastTeam);
+                const lastTeam = currentTeams.pop();
+                if(lastTeam) currentTeams.splice(1, 0, lastTeam);
             }
         }
-    });
+        return matches;
+    };
 
-    let currentDate = new Date(startDate);
-    let matchIndex = 0;
-    while (matchIndex < matchQueue.length) {
+
+    const maxMatches = Math.max(...Object.values(categoryMatchesQueue).map(m => m?.length || 0));
+
+    for (let i = 0; i < maxMatches * 2; i++) { // Loop until all matches are scheduled
+        
+        const isSegundaWeek = weekCounter % 2 !== 0;
+        
+        const categoriesToSchedule: Category[] = isSegundaWeek ? ['Segunda'] : ['Máxima', 'Primera'];
+
+        let matchesScheduledInDay = false;
+        
+        // Find next available day
         while (!enabledPlayDays.includes(currentDate.getDay())) {
             currentDate = addDays(currentDate, 1);
         }
-
+        
         const dayOfWeek = currentDate.getDay();
         const config = dayConfigs[dayOfWeek];
-        if (!config) { // Should not happen if playDays are filtered correctly
-             currentDate = addDays(currentDate, 1);
-             continue;
-        }
-
         const [startHour, startMinute] = config.start.split(':').map(Number);
-        const [endHour] = config.end.split(':').map(Number);
+        const [endHour, endMinute] = config.end.split(':').map(Number);
 
         let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
-        const endTime = setMinutes(setHours(new Date(currentDate), endHour), 0);
+        const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
 
-        while (matchTime.getTime() < endTime.getTime() && matchIndex < matchQueue.length) {
+        while (matchTime.getTime() < endTime.getTime()) {
             for (let field = 1; field <= numberOfFields; field++) {
-                if (matchIndex < matchQueue.length) {
-                    const match = matchQueue[matchIndex];
-                    finalSchedule.push({
-                        ...match,
-                        date: new Date(matchTime),
-                        time: format(matchTime, 'HH:mm'),
-                        field
-                    });
-                    matchIndex++;
+                let scheduled = false;
+                for (const category of categoriesToSchedule) {
+                    if (categoryMatchesQueue[category] && categoryMatchesQueue[category]!.length > 0) {
+                        const match = categoryMatchesQueue[category]!.shift();
+                        if (match) {
+                            allGeneratedMatches.push({
+                                ...match,
+                                date: new Date(matchTime),
+                                time: format(matchTime, 'HH:mm'),
+                                field
+                            });
+                            scheduled = true;
+                            matchesScheduledInDay = true;
+                            break; 
+                        }
+                    }
                 }
+                if (!scheduled) break;
             }
-            matchTime = addHours(matchTime, matchDurationHours);
+             matchTime = addHours(matchTime, 2);
         }
+        
+        const allQueuesEmpty = Object.values(categoryMatchesQueue).every(q => q?.length === 0);
+        if (allQueuesEmpty) break;
+
         currentDate = addDays(currentDate, 1);
+        if (currentDate.getDay() === 1) { // Monday marks start of new week
+             weekCounter++;
+        }
     }
     
-    setGeneratedMatches(finalSchedule);
+    setGeneratedMatches(allGeneratedMatches);
     setIsDrawDialogOpen(false);
     setIsSuccessDialogOpen(true);
 };
+
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

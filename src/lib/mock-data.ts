@@ -158,6 +158,20 @@ export let teams: Team[] = [
     category: 'Segunda', 
     president: { name: 'Charles Torres' } 
   },
+  { 
+    id: '21', 
+    name: 'Alpha Centauri', 
+    logoUrl: 'https://placehold.co/100x100.png', 
+    category: 'Segunda', 
+    president: { name: 'Daniel Clark' } 
+  },
+  { 
+    id: '22', 
+    name: 'Proxima Centauri', 
+    logoUrl: 'https://placehold.co/100x100.png', 
+    category: 'Segunda', 
+    president: { name: 'Nancy Lewis' } 
+  }
 ];
 
 export let players: Player[] = [
@@ -345,7 +359,11 @@ export const matchData: MatchData = {
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
 export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
 export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
-export const getTeamsByCategory = (category: Category): Team[] => teams.filter(t => t.category === category);
+export const getTeamsByCategory = (category: Category, group?: 'A' | 'B'): Team[] => teams.filter(t => {
+    const categoryMatch = t.category === category;
+    if (!group) return categoryMatch;
+    return categoryMatch && t.group === group;
+});
 
 // Function to update player stats
 export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number, yellowCards: number, redCards: number }) => {

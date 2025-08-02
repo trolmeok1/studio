@@ -3,6 +3,7 @@
 
 
 
+
 export type Category = 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -39,6 +40,7 @@ export interface Team {
   name: string;
   logoUrl: string;
   category: Category;
+  group?: 'A' | 'B';
   president?: Person;
   vicePresident?: Person;
   secretary?: Person;
@@ -82,6 +84,7 @@ export interface GeneratedMatch {
     home: string; // teamId
     away: string; // teamId
     category: Category;
+    group?: 'A' | 'B';
     date?: Date;
     time?: string;
     field?: number;
@@ -112,6 +115,7 @@ export interface Standing {
   teamId: string;
   teamName: string;
   teamLogoUrl?: string;
+  group?: 'A' | 'B';
   played: number;
   wins: number;
   draws: number;
