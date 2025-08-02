@@ -29,9 +29,19 @@ export interface Team {
   manager?: string;
 }
 
+export interface VocalPaymentDetails {
+    referee: number;
+    fee: number;
+    yellowCardFine: number;
+    redCardFine: number;
+    otherFines: number;
+    otherFinesDescription: string;
+    total: number;
+}
+
 export interface MatchTeam extends Team {
     attended: boolean;
-    vocalPayment?: number;
+    vocalPaymentDetails?: VocalPaymentDetails;
 }
 
 export interface Match {
@@ -53,7 +63,7 @@ export interface MatchDataTeam extends Team {
     players: Player[];
     score: number;
     attended: boolean;
-    vocalPayment: number;
+    vocalPaymentDetails: VocalPaymentDetails;
 }
 
 export interface MatchData {
@@ -133,4 +143,14 @@ export interface DashboardStats {
         new: number;
         rejected: number;
     };
+}
+
+export type MatchEventType = 'goal' | 'yellow_card' | 'red_card';
+
+export interface MatchEvent {
+  id: string;
+  playerId: string;
+  playerName: string;
+  teamName: string;
+  event: MatchEventType;
 }

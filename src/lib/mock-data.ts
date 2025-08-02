@@ -1,6 +1,5 @@
 
-import { getPlayerById as getPlayerByIdFromAll } from './mock-data-internal';
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, PlayerPosition, MatchData } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails } from './types';
 
 export let teams: Team[] = [
   { id: '1', name: 'Cosmic Comets', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', abbreviation: 'COS', foundationDate: '2015-03-12', manager: 'Danilo Guano' },
@@ -28,6 +27,8 @@ export let teams: Team[] = [
 export let players: Player[] = [
     { id: '101', name: 'Cosmic Player 1', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 22, assists: 10, yellowCards: 3, redCards: 0 } },
     { id: '102', name: 'Cosmic Player 2', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 15, yellowCards: 2, redCards: 0 } },
+    { id: '103', name: 'Cosmic Player 3', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 1, assists: 5, yellowCards: 4, redCards: 1 } },
+    { id: '104', name: 'Cosmic Player 4', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Portero', stats: { goals: 0, assists: 1, yellowCards: 0, redCards: 0 } },
     { id: '201', name: 'Solar Player 1', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 18, assists: 8, yellowCards: 5, redCards: 1 } },
     { id: '301', name: 'Alex Comet', photoUrl: 'https://placehold.co/400x400.png', team: 'Galaxy Gliders', teamId: '3', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 20, yellowCards: 1, redCards: 0 } },
     { id: '401', name: 'Sam Meteor', photoUrl: 'https://placehold.co/400x400.png', team: 'Orion Stars', teamId: '4', category: 'Máxima', position: 'Defensa', stats: { goals: 12, assists: 8, yellowCards: 7, redCards: 0 } },
@@ -120,16 +121,21 @@ export const dashboardStats: DashboardStats = {
     }
 }
 
-const getPlayersForTeam = (teamId: string) => {
-    return players.filter(p => p.teamId === teamId);
-}
-
 const today = new Date();
 const tomorrow = new Date(today);
 tomorrow.setDate(tomorrow.getDate() + 1);
 const yesterday = new Date(today);
 yesterday.setDate(yesterday.getDate() - 1);
 
+const defaultVocalPayment: VocalPaymentDetails = {
+    referee: 11.00,
+    fee: 2.00,
+    yellowCardFine: 0,
+    redCardFine: 0,
+    otherFines: 0,
+    otherFinesDescription: '',
+    total: 13.00,
+}
 
 export const upcomingMatches: Match[] = [
     {
@@ -137,8 +143,8 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Máxima',
         teams: {
-            home: { ...teams[0], attended: true, vocalPayment: 15 }, // Cosmic Comets
-            away: { ...teams[1], attended: true, vocalPayment: 15 }  // Solar Flares
+            home: { ...teams[0], attended: true, vocalPaymentDetails: {...defaultVocalPayment, redCardFine: 5, total: 18} },
+            away: { ...teams[1], attended: true, vocalPaymentDetails: {...defaultVocalPayment, yellowCardFine: 2, total: 15}  }
         },
         status: 'finished',
         score: { home: 2, away: 1 }
@@ -148,8 +154,8 @@ export const upcomingMatches: Match[] = [
         date: tomorrow.toISOString(),
         category: 'Primera',
         teams: {
-            home: { ...teams[4], attended: true, vocalPayment: 0 }, // Vortex Voyagers
-            away: { ...teams[5], attended: true, vocalPayment: 0 }  // Pulsar Pioneers
+            home: { ...teams[4], attended: true, vocalPaymentDetails: defaultVocalPayment },
+            away: { ...teams[5], attended: true, vocalPaymentDetails: defaultVocalPayment }
         },
         status: 'future'
     },
@@ -158,8 +164,8 @@ export const upcomingMatches: Match[] = [
         date: today.toISOString(),
         category: 'Copa',
         teams: {
-            home: { ...teams[6], attended: true, vocalPayment: 15 }, // Quasar Quest
-            away: { ...teams[7], attended: false, vocalPayment: 0 }  // Nebula Nomads
+            home: { ...teams[6], attended: true, vocalPaymentDetails: defaultVocalPayment },
+            away: { ...teams[7], attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0} }
         },
         status: 'in-progress'
     },
@@ -168,8 +174,8 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Segunda',
         teams: {
-            home: { ...teams[8], attended: true, vocalPayment: 10 },
-            away: { ...teams[9], attended: true, vocalPayment: 10 }
+            home: { ...teams[8], attended: true, vocalPaymentDetails: defaultVocalPayment },
+            away: { ...teams[9], attended: true, vocalPaymentDetails: defaultVocalPayment }
         },
         status: 'finished',
         score: { home: 0, away: 0 }
@@ -189,14 +195,14 @@ export const matchData: MatchData = {
     players: players.filter(p => p.teamId === '1').slice(0, 30),
     score: 0,
     attended: true,
-    vocalPayment: 15
+    vocalPaymentDetails: defaultVocalPayment,
   },
   teamB: {
     ...teams.find(t => t.id === '2')!,
      players: players.filter(p => p.teamId === '2').slice(0, 30),
      score: 0,
      attended: true,
-     vocalPayment: 15
+     vocalPaymentDetails: defaultVocalPayment,
   },
 };
 

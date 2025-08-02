@@ -17,8 +17,8 @@ export default function TreasuryPage() {
     }, []);
 
     const totalVocalIncome = upcomingMatches.reduce((acc, match) => {
-        const homePayment = match.teams.home.attended ? (match.teams.home.vocalPayment || 0) : 0;
-        const awayPayment = match.teams.away.attended ? (match.teams.away.vocalPayment || 0) : 0;
+        const homePayment = match.teams.home.vocalPaymentDetails?.total || 0;
+        const awayPayment = match.teams.away.vocalPaymentDetails?.total || 0;
         return acc + homePayment + awayPayment;
     }, 0);
 
@@ -34,6 +34,13 @@ export default function TreasuryPage() {
         }
         return absentees;
     });
+
+    const VocalPaymentDetailRow = ({ label, value }: { label: string, value: number }) => (
+        <div className="flex justify-between text-xs py-0.5">
+            <span className="text-muted-foreground">{label}:</span>
+            <span>${value.toFixed(2)}</span>
+        </div>
+    );
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -82,7 +89,7 @@ export default function TreasuryPage() {
                     </CardContent>
                 </Card>
             </div>
-            <div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                  <Card>
                     <CardHeader>
                         <CardTitle>Sanciones por Ausencia</CardTitle>
@@ -123,9 +130,61 @@ export default function TreasuryPage() {
                         </Table>
                     </CardContent>
                  </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Registro de Vocalías por Partido</CardTitle>
+                        <CardDescription>Desglose de los ingresos por vocalía de cada partido.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Partido</TableHead>
+                                    <TableHead>Detalle Vocalía A</TableHead>
+                                    <TableHead>Detalle Vocalía B</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {upcomingMatches.map(match => {
+                                    const teamA = match.teams.home;
+                                    const teamB = match.teams.away;
+                                    const detailsA = teamA.vocalPaymentDetails;
+                                    const detailsB = teamB.vocalPaymentDetails;
+
+                                    return (
+                                        <TableRow key={match.id}>
+                                            <TableCell>{isClient ? new Date(match.date).toLocaleDateString() : ''}</TableCell>
+                                            <TableCell className="font-medium">{teamA.name} vs {teamB.name}</TableCell>
+                                            <TableCell>
+                                                <Card className="p-2 bg-muted/50">
+                                                    <p className="font-bold text-center pb-1 border-b mb-1">${(detailsA?.total || 0).toFixed(2)}</p>
+                                                    <VocalPaymentDetailRow label="Árbitro" value={detailsA?.referee || 0} />
+                                                    <VocalPaymentDetailRow label="Cuota" value={detailsA?.fee || 0} />
+                                                    <VocalPaymentDetailRow label="T. Amarillas" value={detailsA?.yellowCardFine || 0} />
+                                                    <VocalPaymentDetailRow label="T. Rojas" value={detailsA?.redCardFine || 0} />
+                                                    <VocalPaymentDetailRow label="Otras Multas" value={detailsA?.otherFines || 0} />
+                                                </Card>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Card className="p-2 bg-muted/50">
+                                                    <p className="font-bold text-center pb-1 border-b mb-1">${(detailsB?.total || 0).toFixed(2)}</p>
+                                                    <VocalPaymentDetailRow label="Árbitro" value={detailsB?.referee || 0} />
+                                                    <VocalPaymentDetailRow label="Cuota" value={detailsB?.fee || 0} />
+                                                    <VocalPaymentDetailRow label="T. Amarillas" value={detailsB?.yellowCardFine || 0} />
+                                                    <VocalPaymentDetailRow label="T. Rojas" value={detailsB?.redCardFine || 0} />
+                                                    <VocalPaymentDetailRow label="Otras Multas" value={detailsB?.otherFines || 0} />
+                                                </Card>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                         </Table>
+                    </CardContent>
+                 </Card>
             </div>
         </div>
     );
 }
-
-    

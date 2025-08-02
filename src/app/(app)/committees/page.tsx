@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import { players, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData } from '@/lib/mock-data';
+import { players, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +27,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import type { MatchEvent, MatchEventType } from '@/lib/types';
 
+
+const VocalPaymentDetailsForm = () => (
+    <div className="text-xs mt-2 border">
+    <p className="p-1"><strong>Jugadores sancionados:</strong> ________________________</p>
+    <table className="w-full border-t">
+        <tbody>
+        <tr className="border-b"><td className="p-1 w-1/2"><strong>Pago Árbitro:</strong></td><td className="p-1 border-l text-right">$ 11.00</td></tr>
+        <tr className="border-b"><td className="p-1"><strong>Cuota:</strong></td><td className="p-1 border-l text-right">$ 2.00</td></tr>
+        <tr className="border-b"><td className="p-1"><strong>Tarjetas Amarillas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
+        <tr className="border-b"><td className="p-1"><strong>Tarjetas Rojas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
+        <tr className="border-b">
+            <td className="p-1"><strong>Multas (especificar):</strong> ____________</td>
+            <td className="p-1 border-l text-right">$______</td>
+        </tr>
+        <tr className="border-b">
+            <td className="p-1"><strong>Otros (especificar):</strong> ______________</td>
+            <td className="p-1 border-l text-right">$______</td>
+        </tr>
+        <tr className="font-bold bg-gray-100"><td className="p-1"><strong>TOTAL VOCALÍA:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
+        </tbody>
+    </table>
+    </div>
+);
 
 const PhysicalMatchSheet = () => {
     const handlePrint = () => {
@@ -43,23 +66,6 @@ const PhysicalMatchSheet = () => {
             <TableCell className="border text-center font-bold p-1 w-[40px]">{String(player.id).slice(-2)}</TableCell>
             <TableCell className="border p-1">{player.name}</TableCell>
         </TableRow>
-    );
-
-    const VocalPaymentDetails = () => (
-      <div className="text-xs mt-2 border">
-        <p className="p-1"><strong>Jugadores sancionados:</strong> ________________________</p>
-        <table className="w-full border-t">
-          <tbody>
-            <tr className="border-b"><td className="p-1 w-1/2"><strong>Pago Árbitro:</strong></td><td className="p-1 border-l text-right">$ 11.00</td></tr>
-            <tr className="border-b"><td className="p-1"><strong>Cuota:</strong></td><td className="p-1 border-l text-right">$ 2.00</td></tr>
-            <tr className="border-b"><td className="p-1"><strong>Tarjetas Amarillas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
-            <tr className="border-b"><td className="p-1"><strong>Tarjetas Rojas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
-            <tr className="border-b"><td className="p-1"><strong>Multas (especificar):</strong> ____________</td><td className="p-1 border-l text-right">$______</td></tr>
-            <tr className="border-b"><td className="p-1"><strong>Otros (especificar):</strong> ______________</td><td className="p-1 border-l text-right">$______</td></tr>
-            <tr className="font-bold bg-gray-100"><td className="p-1"><strong>TOTAL VOCALÍA:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
-          </tbody>
-        </table>
-      </div>
     );
 
     return (
@@ -107,7 +113,7 @@ const PhysicalMatchSheet = () => {
                                 ))}
                             </TableBody>
                         </Table>
-                        <VocalPaymentDetails />
+                        <VocalPaymentDetailsForm />
                         <div className="text-xs mt-2 border p-1 flex items-center">
                             <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
                             <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
@@ -141,7 +147,7 @@ const PhysicalMatchSheet = () => {
                                 ))}
                             </TableBody>
                         </Table>
-                        <VocalPaymentDetails />
+                        <VocalPaymentDetailsForm />
                         <div className="text-xs mt-2 border p-1 flex items-center">
                             <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
                             <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
@@ -294,6 +300,60 @@ const DigitalMatchSheet = () => {
             case 'red_card': return <Badge variant="destructive">T.R.</Badge>;
         }
     }
+
+    const handleVocalPaymentChange = (teamKey: 'teamA' | 'teamB', field: keyof VocalPaymentDetailsType, value: string | number) => {
+        setMatchState(prev => {
+            const currentPayment = prev[teamKey].vocalPaymentDetails;
+            const updatedPayment = { ...currentPayment, [field]: value };
+            
+            const total = 
+                (updatedPayment.referee || 0) + 
+                (updatedPayment.fee || 0) + 
+                (updatedPayment.yellowCardFine || 0) + 
+                (updatedPayment.redCardFine || 0) + 
+                (updatedPayment.otherFines || 0);
+
+            return {
+                ...prev,
+                [teamKey]: {
+                    ...prev[teamKey],
+                    vocalPaymentDetails: { ...updatedPayment, total }
+                }
+            }
+        });
+    }
+
+    const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'teamA' | 'teamB' }) => {
+        const details = matchState[teamKey].vocalPaymentDetails;
+        const disabled = !canEdit || !matchState[teamKey].attended;
+
+        return (
+            <div className="space-y-2 mt-2 p-3 border rounded-lg">
+                <h5 className="font-semibold text-center">Desglose de Vocalía</h5>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <Label>Pago Árbitro:</Label>
+                    <Input type="number" value={details.referee} onChange={(e) => handleVocalPaymentChange(teamKey, 'referee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    
+                    <Label>Cuota:</Label>
+                    <Input type="number" value={details.fee} onChange={(e) => handleVocalPaymentChange(teamKey, 'fee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    
+                    <Label>Tarjetas Amarillas:</Label>
+                    <Input type="number" value={details.yellowCardFine} onChange={(e) => handleVocalPaymentChange(teamKey, 'yellowCardFine', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+
+                    <Label>Tarjetas Rojas:</Label>
+                    <Input type="number" value={details.redCardFine} onChange={(e) => handleVocalPaymentChange(teamKey, 'redCardFine', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+
+                    <Label className="col-span-2">Multas (especificar):</Label>
+                    <Textarea value={details.otherFinesDescription} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
+                    <div/>
+                    <Input type="number" value={details.otherFines} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFines', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+
+                    <Label className="font-bold text-base">TOTAL VOCALÍA:</Label>
+                    <p className="font-bold text-base text-right pr-2">${details.total.toFixed(2)}</p>
+                </div>
+            </div>
+        )
+    };
     
     return (
         <Card className="p-6 md:p-8">
@@ -378,15 +438,12 @@ const DigitalMatchSheet = () => {
                             <Image src={matchState.teamA.logoUrl} alt={matchState.teamA.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
                             <h4 className="font-bold">{matchState.teamA.name}</h4>
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={matchState.teamA.score} onChange={(e) => setMatchState({...matchState, teamA: {...matchState.teamA, score: parseInt(e.target.value) || 0}})} disabled={!canEdit} />
-                            <div className="space-y-2 pt-2">
+                             <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
                                  <Switch id="teamA-attended" checked={matchState.teamA.attended} onCheckedChange={(checked) => setMatchState({...matchState, teamA: {...matchState.teamA, attended: checked}})} disabled={!canEdit}/>
                                  <Label htmlFor="teamA-attended">Se Presentó</Label>
                                </div>
-                               <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input type="number" placeholder="Vocalía" className="w-32 mx-auto pl-8" disabled={!canEdit || !matchState.teamA.attended} value={matchState.teamA.vocalPayment} onChange={(e) => setMatchState({...matchState, teamA: {...matchState.teamA, vocalPayment: parseFloat(e.target.value) || 0}})}/>
-                               </div>
+                               <VocalPaymentDetailsInputs teamKey="teamA" />
                            </div>
                         </div>
                          <div className="text-center space-y-2">
@@ -398,10 +455,7 @@ const DigitalMatchSheet = () => {
                                  <Switch id="teamB-attended" checked={matchState.teamB.attended} onCheckedChange={(checked) => setMatchState({...matchState, teamB: {...matchState.teamB, attended: checked}})} disabled={!canEdit}/>
                                  <Label htmlFor="teamB-attended">Se Presentó</Label>
                                </div>
-                               <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input type="number" placeholder="Vocalía" className="w-32 mx-auto pl-8" disabled={!canEdit || !matchState.teamB.attended} value={matchState.teamB.vocalPayment} onChange={(e) => setMatchState({...matchState, teamB: {...matchState.teamB, vocalPayment: parseFloat(e.target.value) || 0}})} />
-                               </div>
+                               <VocalPaymentDetailsInputs teamKey="teamB" />
                            </div>
                         </div>
                      </div>
