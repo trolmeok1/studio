@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, setSeconds, parse } from 'date-fns';
+import { format, addDays, setHours, setMinutes, setSeconds, parse, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -537,7 +537,7 @@ export default function SchedulePage() {
                         matchIndex++;
                     }
                 }
-                matchTime = addDays(matchTime, matchDurationHours / 24);
+                matchTime = addHours(matchTime, matchDurationHours);
             }
             currentDate = addDays(currentDate, 1);
       }
