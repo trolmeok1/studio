@@ -18,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, setSeconds, parse, addHours, addWeeks, getDay, startOfDay } from 'date-fns';
+import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -495,23 +495,29 @@ export default function SchedulePage() {
         let teamIds = teams.map(t => t.id);
         if (teamIds.length < 2) return [];
 
-        if (teamIds.length % 2 !== 0) teamIds.push("BYE");
+        const isOdd = teamIds.length % 2 !== 0;
+        if (isOdd) {
+          teamIds.push("BYE");
+        }
 
         const rounds = teamIds.length - 1;
         const half = teamIds.length / 2;
 
-        for (let leg = 0; leg < 2; leg++) { // Two legs
+        // Two legs for round-robin
+        for (let leg = 0; leg < 2; leg++) {
             let currentTeams = [...teamIds];
-            for (let i = 0; i < rounds; i++) {
+             for (let i = 0; i < rounds; i++) {
                 for (let j = 0; j < half; j++) {
                     let home, away;
-                    if (leg === 0) {
+
+                    if (leg === 0) { // First leg
                         home = currentTeams[j];
                         away = currentTeams[currentTeams.length - 1 - j];
-                    } else {
+                    } else { // Second leg, swap home and away
                         away = currentTeams[j];
                         home = currentTeams[currentTeams.length - 1 - j];
                     }
+
                     if (home !== "BYE" && away !== "BYE") {
                         matches.push({ home, away, category, group });
                     }
@@ -523,13 +529,7 @@ export default function SchedulePage() {
         return matches;
     };
     
-    const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
-    if (enabledPlayDays.length === 0) return;
-    
-    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-    let matchQueue: GeneratedMatch[] = [];
-
-    // 1. Generate all matches for each category and add to a prioritized queue
+    // 1. Generate all matches for each category
     const maximaMatches = generateRoundRobinMatches(getTeamsByCategory('Máxima').sort(() => 0.5 - Math.random()), 'Máxima');
     const primeraMatches = generateRoundRobinMatches(getTeamsByCategory('Primera').sort(() => 0.5 - Math.random()), 'Primera');
     
@@ -537,8 +537,9 @@ export default function SchedulePage() {
     let segundaTeams = getTeamsByCategory('Segunda');
     segundaTeams.sort(() => 0.5 - Math.random());
     if (segundaTeams.length >= 16) {
-        const groupA = segundaTeams.slice(0, Math.ceil(segundaTeams.length / 2));
-        const groupB = segundaTeams.slice(Math.ceil(segundaTeams.length / 2));
+        const midPoint = Math.ceil(segundaTeams.length / 2);
+        const groupA = segundaTeams.slice(0, midPoint);
+        const groupB = segundaTeams.slice(midPoint);
         groupA.forEach(t => t.group = 'A');
         groupB.forEach(t => t.group = 'B');
         segundaMatches = [
@@ -549,38 +550,55 @@ export default function SchedulePage() {
         segundaMatches = generateRoundRobinMatches(segundaTeams, 'Segunda');
     }
 
-    matchQueue = [...maximaMatches, ...primeraMatches, ...segundaMatches];
-    
-    // 2. Generate time slots
-    const timeSlots: { date: Date, field: number }[] = [];
-    let currentDate = startOfDay(new Date(startDate));
-    
-    while (timeSlots.length < matchQueue.length) {
-        const dayOfWeek = getDay(currentDate);
+    const matchQueue: GeneratedMatch[] = [...maximaMatches, ...primeraMatches, ...segundaMatches];
 
-        if (enabledPlayDays.includes(dayOfWeek)) {
-            const config = dayConfigs[dayOfWeek];
-            const [startHour, startMinute] = config.start.split(':').map(Number);
-            const [endHour, endMinute] = config.end.split(':').map(Number);
+    // 2. Generate all available time slots
+    const generateAllTimeSlots = () => {
+        const slots: { date: Date; field: number }[] = [];
+        let currentDate = startOfDay(startDate);
+        const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
+        
+        if (enabledPlayDays.length === 0) return [];
+        
+        while (slots.length < matchQueue.length) {
+            const dayOfWeek = getDay(currentDate);
 
-            let slotTime = setMinutes(setHours(startOfDay(currentDate), startHour), startMinute);
-            const endTime = setMinutes(setHours(startOfDay(currentDate), endHour), endMinute);
-            
-            while (slotTime < endTime && timeSlots.length < matchQueue.length) {
-                for (let field = 1; field <= numberOfFields; field++) {
-                    if (timeSlots.length < matchQueue.length) {
-                        timeSlots.push({ date: new Date(slotTime), field });
+            if (enabledPlayDays.includes(dayOfWeek)) {
+                const config = dayConfigs[dayOfWeek];
+                const [startHour, startMinute] = config.start.split(':').map(Number);
+                const [endHour, endMinute] = config.end.split(':').map(Number);
+                
+                let matchTime = setMinutes(setHours(currentDate, startHour), startMinute);
+                const endTime = setMinutes(setHours(currentDate, endHour), endMinute);
+
+                while (matchTime.getTime() < endTime.getTime()) {
+                    for (let field = 1; field <= numberOfFields; field++) {
+                        if (slots.length < matchQueue.length) {
+                            slots.push({ date: new Date(matchTime), field });
+                        }
                     }
+                    // Move to the next 2-hour slot
+                    const newHour = matchTime.getHours() + 2;
+                    matchTime.setHours(newHour);
                 }
-                slotTime = addHours(slotTime, 2);
             }
+            currentDate = addDays(currentDate, 1);
         }
-        currentDate = addDays(currentDate, 1);
-    }
+        return slots;
+    };
     
+    const timeSlots = generateAllTimeSlots();
+
     // 3. Assign matches to time slots
     const scheduledMatches: GeneratedMatch[] = matchQueue.map((match, index) => {
         const slot = timeSlots[index];
+        if (!slot) {
+            console.error("Not enough slots for all matches", {
+                matchCount: matchQueue.length,
+                slotCount: timeSlots.length,
+            });
+            return { ...match };
+        }
         return {
             ...match,
             date: slot.date,
@@ -588,11 +606,11 @@ export default function SchedulePage() {
             field: slot.field,
         };
     });
-    
-    setGeneratedMatches(scheduledMatches);
+
+    setGeneratedMatches(scheduledMatches.filter(m => m.date));
     setIsDrawDialogOpen(false);
     setIsSuccessDialogOpen(true);
-};
+  };
 
 
   return (
