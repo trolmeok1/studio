@@ -24,6 +24,7 @@ import {
   Flag,
   Swords,
   UserCog,
+  Landmark,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -130,6 +131,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
+                {(isAdmin || isSecretary) && (
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/treasury')} tooltip="Tesorería">
+                      <Link href="/treasury">
+                          <Landmark />
+                          <span>Tesorería</span>
+                      </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+               )}
            </SidebarMenu>
         </SidebarGroup>
          
@@ -181,5 +192,3 @@ export function AppSidebar() {
     </>
   );
 }
-
-    

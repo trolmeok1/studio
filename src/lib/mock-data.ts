@@ -1,6 +1,6 @@
 
 import { getPlayerById as getPlayerByIdFromAll } from './mock-data-internal';
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, PlayerPosition } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, PlayerPosition, MatchData } from './types';
 
 export let teams: Team[] = [
   { id: '1', name: 'Cosmic Comets', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', abbreviation: 'COS', foundationDate: '2015-03-12', manager: 'Danilo Guano' },
@@ -171,12 +171,8 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Máxima',
         teams: {
-            home: teams[0], // Cosmic Comets
-            away: teams[1]  // Solar Flares
-        },
-        lineup: {
-            home: getPlayersForTeam('1'),
-            away: getPlayersForTeam('2'),
+            home: { ...teams[0], attended: true, vocalPayment: 15 }, // Cosmic Comets
+            away: { ...teams[1], attended: true, vocalPayment: 15 }  // Solar Flares
         },
         status: 'finished',
         score: { home: 2, away: 1 }
@@ -186,12 +182,8 @@ export const upcomingMatches: Match[] = [
         date: tomorrow.toISOString(),
         category: 'Primera',
         teams: {
-            home: teams[4], // Vortex Voyagers
-            away: teams[5]  // Pulsar Pioneers
-        },
-        lineup: {
-            home: getPlayersForTeam('5'),
-            away: getPlayersForTeam('6'),
+            home: { ...teams[4], attended: true, vocalPayment: 0 }, // Vortex Voyagers
+            away: { ...teams[5], attended: true, vocalPayment: 0 }  // Pulsar Pioneers
         },
         status: 'future'
     },
@@ -200,12 +192,8 @@ export const upcomingMatches: Match[] = [
         date: today.toISOString(),
         category: 'Copa',
         teams: {
-            home: teams[6], // Quasar Quest
-            away: teams[7]  // Nebula Nomads
-        },
-        lineup: {
-            home: getPlayersForTeam('7'),
-            away: getPlayersForTeam('8'),
+            home: { ...teams[6], attended: true, vocalPayment: 15 }, // Quasar Quest
+            away: { ...teams[7], attended: false, vocalPayment: 0 }  // Nebula Nomads
         },
         status: 'in-progress'
     },
@@ -214,17 +202,37 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Segunda',
         teams: {
-            home: teams[8], 
-            away: teams[9]  
-        },
-        lineup: {
-            home: getPlayersForTeam('9'),
-            away: getPlayersForTeam('10'),
+            home: { ...teams[8], attended: true, vocalPayment: 10 },
+            away: { ...teams[9], attended: true, vocalPayment: 10 }
         },
         status: 'finished',
         score: { home: 0, away: 0 }
     }
 ];
+
+export const matchData: MatchData = {
+  date: '2024-07-28',
+  time: '14:00',
+  category: 'Máxima',
+  phase: 'Fase de Grupos',
+  matchday: 'Jornada 5',
+  field: 'Cancha Principal',
+  vocalTeam: 'Galaxy Gliders',
+  teamA: {
+    ...teams.find(t => t.id === '1')!,
+    players: players.filter(p => p.teamId === '1').slice(0, 30),
+    score: 0,
+    attended: true,
+    vocalPayment: 15
+  },
+  teamB: {
+    ...teams.find(t => t.id === '2')!,
+     players: players.filter(p => p.teamId === '2').slice(0, 30),
+     score: 0,
+     attended: true,
+     vocalPayment: 15
+  },
+};
 
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
 export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);

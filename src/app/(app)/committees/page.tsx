@@ -16,43 +16,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Upload, Search, Trash2 } from 'lucide-react';
+import { Printer, Upload, Search, Trash2, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import { players, teams, type Player, updatePlayerStats, addSanction, type Category } from '@/lib/mock-data';
+import { players, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
-
-// Mock data - we'll replace this with dynamic data later
-const matchData = {
-  date: '2024-07-28',
-  time: '14:00',
-  category: 'Máxima',
-  phase: 'Fase de Grupos',
-  matchday: 'Jornada 5',
-  field: 'Cancha Principal',
-  vocalTeam: 'Galaxy Gliders',
-  teamA: {
-    ...teams.find(t => t.id === '1')!,
-    players: players.filter(p => p.teamId === '1').slice(0, 30),
-  },
-  teamB: {
-    ...teams.find(t => t.id === '2')!,
-     players: players.filter(p => p.teamId === '2').slice(0, 30),
-  },
-};
-
-type MatchEventType = 'goal' | 'yellow_card' | 'red_card';
-type MatchEvent = {
-    id: string;
-    playerId: string;
-    playerName: string;
-    teamName: string;
-    event: MatchEventType;
-};
 
 const PhysicalMatchSheet = () => {
     const handlePrint = () => {
@@ -76,15 +49,15 @@ const PhysicalMatchSheet = () => {
             <CardContent className="p-0">
                  <header className="mb-4">
                     <div className="flex justify-between items-center text-xs mb-2">
-                        <span><strong>Categoría:</strong> {matchData.category}</span>
-                        <span><strong>Fecha:</strong> {matchData.date}</span>
-                        <span><strong>Hora:</strong> {matchData.time}</span>
-                        <span><strong>Cancha:</strong> {matchData.field}</span>
+                        <span><strong>Categoría:</strong> {initialMatchData.category}</span>
+                        <span><strong>Fecha:</strong> {initialMatchData.date}</span>
+                        <span><strong>Hora:</strong> {initialMatchData.time}</span>
+                        <span><strong>Cancha:</strong> {initialMatchData.field}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs">
-                        <span><strong>Etapa:</strong> {matchData.phase}</span>
-                        <span><strong>Jornada:</strong> {matchData.matchday}</span>
-                        <span><strong>Vocal:</strong> {matchData.vocalTeam}</span>
+                        <span><strong>Etapa:</strong> {initialMatchData.phase}</span>
+                        <span><strong>Jornada:</strong> {initialMatchData.matchday}</span>
+                        <span><strong>Vocal:</strong> {initialMatchData.vocalTeam}</span>
                     </div>
                 </header>
 
@@ -93,8 +66,8 @@ const PhysicalMatchSheet = () => {
                     <div>
                         <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
                             <div className="flex items-center gap-2">
-                                <Image src={matchData.teamA.logoUrl} alt={matchData.teamA.name} width={30} height={30} data-ai-hint="team logo" />
-                                <h3 className="font-bold uppercase">{matchData.teamA.name}</h3>
+                                <Image src={initialMatchData.teamA.logoUrl} alt={initialMatchData.teamA.name} width={30} height={30} data-ai-hint="team logo" />
+                                <h3 className="font-bold uppercase">{initialMatchData.teamA.name}</h3>
                             </div>
                             <div className="w-16 h-10 border-2 border-black bg-white"></div>
                         </div>
@@ -111,7 +84,7 @@ const PhysicalMatchSheet = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {matchData.teamA.players.map((player, index) => (
+                                {initialMatchData.teamA.players.map((player, index) => (
                                     <PlayerRow key={player.id} player={player} index={index}/>
                                 ))}
                             </TableBody>
@@ -130,8 +103,8 @@ const PhysicalMatchSheet = () => {
                     <div>
                         <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
                             <div className="flex items-center gap-2">
-                                <Image src={matchData.teamB.logoUrl} alt={matchData.teamB.name} width={30} height={30} data-ai-hint="team logo" />
-                                <h3 className="font-bold uppercase">{matchData.teamB.name}</h3>
+                                <Image src={initialMatchData.teamB.logoUrl} alt={initialMatchData.teamB.name} width={30} height={30} data-ai-hint="team logo" />
+                                <h3 className="font-bold uppercase">{initialMatchData.teamB.name}</h3>
                             </div>
                             <div className="w-16 h-10 border-2 border-black bg-white"></div>
                         </div>
@@ -148,7 +121,7 @@ const PhysicalMatchSheet = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                               {matchData.teamB.players.map((player, index) => (
+                               {initialMatchData.teamB.players.map((player, index) => (
                                     <PlayerRow key={player.id} player={player} index={index}/>
                                 ))}
                             </TableBody>
@@ -202,7 +175,7 @@ const DigitalMatchSheet = () => {
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
     const [events, setEvents] = useState<MatchEvent[]>([]);
-    const [finalScore, setFinalScore] = useState({ teamA: 0, teamB: 0 });
+    const [matchState, setMatchState] = useState<Match>(initialMatchData);
 
     const categories = useMemo(() => [...new Set(teams.map((t) => t.category))], []);
     const filteredTeams = useMemo(() => {
@@ -388,16 +361,36 @@ const DigitalMatchSheet = () => {
                 {/* Right side: Summary */}
                 <div className="space-y-4">
                      <h3 className="text-xl font-bold">Resumen del Partido</h3>
-                     <div className="grid grid-cols-2 gap-4 items-center">
+                     <div className="grid grid-cols-2 gap-4 items-start">
                         <div className="text-center space-y-2">
-                            <Image src={matchData.teamA.logoUrl} alt={matchData.teamA.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
-                            <h4 className="font-bold">{matchData.teamA.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamA} onChange={(e) => setFinalScore({...finalScore, teamA: parseInt(e.target.value) || 0})} disabled={!canEdit} />
+                            <Image src={matchState.teamA.logoUrl} alt={matchState.teamA.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
+                            <h4 className="font-bold">{matchState.teamA.name}</h4>
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={matchState.teamA.score} onChange={(e) => setMatchState({...matchState, teamA: {...matchState.teamA, score: parseInt(e.target.value) || 0}})} disabled={!canEdit} />
+                            <div className="space-y-2 pt-2">
+                               <div className="flex items-center justify-center gap-2">
+                                 <Switch id="teamA-attended" checked={matchState.teamA.attended} onCheckedChange={(checked) => setMatchState({...matchState, teamA: {...matchState.teamA, attended: checked}})} disabled={!canEdit}/>
+                                 <Label htmlFor="teamA-attended">Se Presentó</Label>
+                               </div>
+                               <div className="relative">
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="number" placeholder="Vocalía" className="w-32 mx-auto pl-8" disabled={!canEdit || !matchState.teamA.attended} value={matchState.teamA.vocalPayment} onChange={(e) => setMatchState({...matchState, teamA: {...matchState.teamA, vocalPayment: parseFloat(e.target.value) || 0}})}/>
+                               </div>
+                           </div>
                         </div>
                          <div className="text-center space-y-2">
-                             <Image src={matchData.teamB.logoUrl} alt={matchData.teamB.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
-                            <h4 className="font-bold">{matchData.teamB.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamB} onChange={(e) => setFinalScore({...finalScore, teamB: parseInt(e.target.value) || 0})} disabled={!canEdit} />
+                             <Image src={matchState.teamB.logoUrl} alt={matchState.teamB.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
+                            <h4 className="font-bold">{matchState.teamB.name}</h4>
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={matchState.teamB.score} onChange={(e) => setMatchState({...matchState, teamB: {...matchState.teamB, score: parseInt(e.target.value) || 0}})} disabled={!canEdit} />
+                             <div className="space-y-2 pt-2">
+                               <div className="flex items-center justify-center gap-2">
+                                 <Switch id="teamB-attended" checked={matchState.teamB.attended} onCheckedChange={(checked) => setMatchState({...matchState, teamB: {...matchState.teamB, attended: checked}})} disabled={!canEdit}/>
+                                 <Label htmlFor="teamB-attended">Se Presentó</Label>
+                               </div>
+                               <div className="relative">
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="number" placeholder="Vocalía" className="w-32 mx-auto pl-8" disabled={!canEdit || !matchState.teamB.attended} value={matchState.teamB.vocalPayment} onChange={(e) => setMatchState({...matchState, teamB: {...matchState.teamB, vocalPayment: parseFloat(e.target.value) || 0}})} />
+                               </div>
+                           </div>
                         </div>
                      </div>
                      <Card>

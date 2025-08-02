@@ -29,17 +29,18 @@ export interface Team {
   manager?: string;
 }
 
+export interface MatchTeam extends Team {
+    attended: boolean;
+    vocalPayment?: number;
+}
+
 export interface Match {
     id: string;
     date: string;
     category: Category;
     teams: {
-        home: Team;
-        away: Team;
-    };
-    lineup: {
-        home: Player[];
-        away: Player[];
+        home: MatchTeam;
+        away: MatchTeam;
     };
     status: 'future' | 'in-progress' | 'finished';
     score?: {
@@ -47,6 +48,26 @@ export interface Match {
         away: number;
     };
 }
+
+export interface MatchDataTeam extends Team {
+    players: Player[];
+    score: number;
+    attended: boolean;
+    vocalPayment: number;
+}
+
+export interface MatchData {
+    date: string;
+    time: string;
+    category: Category;
+    phase: string;
+    matchday: string;
+    field: string;
+    vocalTeam: string;
+    teamA: MatchDataTeam;
+    teamB: MatchDataTeam;
+}
+
 
 export interface Standing {
   rank: number;
