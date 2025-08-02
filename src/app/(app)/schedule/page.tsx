@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -525,19 +526,14 @@ export default function SchedulePage() {
     const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
     if (enabledPlayDays.length === 0) return;
     
-    let maximaMatches: GeneratedMatch[] = [];
-    let primeraMatches: GeneratedMatch[] = [];
+    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+    let matchQueue: GeneratedMatch[] = [];
+
+    // 1. Generate all matches for each category and add to a prioritized queue
+    const maximaMatches = generateRoundRobinMatches(getTeamsByCategory('Máxima').sort(() => 0.5 - Math.random()), 'Máxima');
+    const primeraMatches = generateRoundRobinMatches(getTeamsByCategory('Primera').sort(() => 0.5 - Math.random()), 'Primera');
+    
     let segundaMatches: GeneratedMatch[] = [];
-
-    // Generate matches for each category
-    const maximaTeams = getTeamsByCategory('Máxima');
-    maximaTeams.sort(() => 0.5 - Math.random());
-    maximaMatches = generateRoundRobinMatches(maximaTeams, 'Máxima');
-
-    const primeraTeams = getTeamsByCategory('Primera');
-    primeraTeams.sort(() => 0.5 - Math.random());
-    primeraMatches = generateRoundRobinMatches(primeraTeams, 'Primera');
-
     let segundaTeams = getTeamsByCategory('Segunda');
     segundaTeams.sort(() => 0.5 - Math.random());
     if (segundaTeams.length >= 16) {
@@ -552,18 +548,16 @@ export default function SchedulePage() {
     } else {
         segundaMatches = generateRoundRobinMatches(segundaTeams, 'Segunda');
     }
+
+    matchQueue = [...maximaMatches, ...primeraMatches, ...segundaMatches];
     
-    // Prioritized match queue
-    const matchQueue: GeneratedMatch[] = [...maximaMatches, ...primeraMatches, ...segundaMatches];
-    let scheduledMatches: GeneratedMatch[] = [];
-    
-    // Time slots generation
+    // 2. Generate time slots
     const timeSlots: { date: Date, field: number }[] = [];
     let currentDate = startOfDay(new Date(startDate));
-
-    // Keep generating slots until we have enough for all matches
-    while(timeSlots.length < matchQueue.length) {
+    
+    while (timeSlots.length < matchQueue.length) {
         const dayOfWeek = getDay(currentDate);
+
         if (enabledPlayDays.includes(dayOfWeek)) {
             const config = dayConfigs[dayOfWeek];
             const [startHour, startMinute] = config.start.split(':').map(Number);
@@ -572,29 +566,28 @@ export default function SchedulePage() {
             let slotTime = setMinutes(setHours(startOfDay(currentDate), startHour), startMinute);
             const endTime = setMinutes(setHours(startOfDay(currentDate), endHour), endMinute);
             
-            while (slotTime < endTime) {
+            while (slotTime < endTime && timeSlots.length < matchQueue.length) {
                 for (let field = 1; field <= numberOfFields; field++) {
-                    if(timeSlots.length < matchQueue.length) {
+                    if (timeSlots.length < matchQueue.length) {
                         timeSlots.push({ date: new Date(slotTime), field });
                     }
                 }
-                slotTime = addHours(slotTime, 2); // Assuming 2-hour slots
+                slotTime = addHours(slotTime, 2);
             }
         }
         currentDate = addDays(currentDate, 1);
     }
-
-    // Assign matches to time slots
-    for (let i = 0; i < matchQueue.length; i++) {
-        if (i < timeSlots.length) {
-            scheduledMatches.push({
-                ...matchQueue[i],
-                date: timeSlots[i].date,
-                time: format(timeSlots[i].date, 'HH:mm'),
-                field: timeSlots[i].field,
-            });
-        }
-    }
+    
+    // 3. Assign matches to time slots
+    const scheduledMatches: GeneratedMatch[] = matchQueue.map((match, index) => {
+        const slot = timeSlots[index];
+        return {
+            ...match,
+            date: slot.date,
+            time: format(slot.date, 'HH:mm'),
+            field: slot.field,
+        };
+    });
     
     setGeneratedMatches(scheduledMatches);
     setIsDrawDialogOpen(false);
@@ -680,7 +673,7 @@ export default function SchedulePage() {
          <TabsContent value="primera">
            <LeagueView category="Primera" generatedMatches={generatedMatches} />
         </TabsContent>
-        <TabsContent value="segunda">
+         <TabsContent value="segunda">
            <LeagueView category="Segunda" generatedMatches={generatedMatches} />
         </TabsContent>
       </Tabs>
