@@ -84,10 +84,10 @@ const SegundaLeague = () => {
     const standings = useMemo(() => {
         // Find the team logos from the main teams list
         const teamsWithLogos = mockStandings.map(s => {
-            const team = teams.find(t => t.id === s.teamId);
+            const teamData = teams.find(t => t.id === s.teamId);
             return {
                 ...s,
-                teamLogoUrl: team?.logoUrl || 'https://placehold.co/100x100.png'
+                teamLogoUrl: teamData?.logoUrl || 'https://placehold.co/100x100.png'
             };
         });
         return teamsWithLogos
