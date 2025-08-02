@@ -487,65 +487,87 @@ export default function SchedulePage() {
   }
 
   const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string, end: string }>, numberOfFields: number) => {
-      const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-      let finalSchedule: GeneratedMatch[] = [];
-      const matchDurationHours = 2;
-      const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
-      
-      let currentDate = new Date(startDate);
-      let matchQueue: GeneratedMatch[] = [];
+    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+    let finalSchedule: GeneratedMatch[] = [];
+    const matchDurationHours = 2;
+    const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
+    let matchQueue: GeneratedMatch[] = [];
 
-      categories.forEach(category => {
-          let teams = getTeamsByCategory(category).map(t => t.id);
-          if (teams.length < 2) return;
-          teams.sort(() => 0.5 - Math.random());
-          if (teams.length % 2 !== 0) teams.push("BYE");
-          const rounds = teams.length - 1;
-          const half = teams.length / 2;
-          for (let leg = 0; leg < 2; leg++) {
-              let teamsForScheduling = [...teams];
-              for (let i = 0; i < rounds; i++) {
-                  for (let j = 0; j < half; j++) {
-                      let home, away;
-                      if (leg === 0) { home = teamsForScheduling[j]; away = teamsForScheduling[teamsForScheduling.length - 1 - j]; } 
-                      else { away = teamsForScheduling[j]; home = teamsForScheduling[teamsForScheduling.length - 1 - j]; }
-                      if (home !== "BYE" && away !== "BYE") matchQueue.push({ home, away, category });
-                  }
-                  const lastTeam = teamsForScheduling.pop();
-                  if (lastTeam) teamsForScheduling.splice(1, 0, lastTeam);
-              }
-          }
-      });
-      
-      let matchIndex = 0;
-      while(matchIndex < matchQueue.length) {
-            while (!enabledPlayDays.includes(currentDate.getDay())) {
-                currentDate = addDays(currentDate, 1);
-            }
-            const dayOfWeek = currentDate.getDay();
-            const config = dayConfigs[dayOfWeek] || { start: '08:00', end: '18:00' };
-            const [startHour, startMinute] = config.start.split(':').map(Number);
-            const [endHour] = config.end.split(':').map(Number);
-            let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
-            const endTime = setMinutes(setHours(new Date(currentDate), endHour), 0);
-            
-            while(matchTime.getTime() < endTime.getTime() && matchIndex < matchQueue.length) {
-                for (let field = 1; field <= numberOfFields; field++) {
-                    if (matchIndex < matchQueue.length) {
-                        const match = matchQueue[matchIndex];
-                        finalSchedule.push({ ...match, date: new Date(matchTime), time: format(matchTime, 'HH:mm'), field });
-                        matchIndex++;
+    categories.forEach(category => {
+        let teams = getTeamsByCategory(category).map(t => t.id);
+        if (teams.length < 2) return;
+        
+        teams.sort(() => 0.5 - Math.random());
+        
+        if (teams.length % 2 !== 0) teams.push("BYE");
+
+        const rounds = teams.length - 1;
+        const half = teams.length / 2;
+
+        for (let leg = 0; leg < 2; leg++) { // Two legs: home and away
+            let teamsForScheduling = [...teams];
+            for (let i = 0; i < rounds; i++) {
+                for (let j = 0; j < half; j++) {
+                    let home, away;
+                    if (leg === 0) {
+                        home = teamsForScheduling[j];
+                        away = teamsForScheduling[teamsForScheduling.length - 1 - j];
+                    } else {
+                        away = teamsForScheduling[j];
+                        home = teamsForScheduling[teamsForScheduling.length - 1 - j];
+                    }
+                    if (home !== "BYE" && away !== "BYE") {
+                        matchQueue.push({ home, away, category });
                     }
                 }
-                matchTime = addHours(matchTime, matchDurationHours);
+                const lastTeam = teamsForScheduling.pop();
+                if(lastTeam) teamsForScheduling.splice(1, 0, lastTeam);
             }
+        }
+    });
+
+    let currentDate = new Date(startDate);
+    let matchIndex = 0;
+    while (matchIndex < matchQueue.length) {
+        while (!enabledPlayDays.includes(currentDate.getDay())) {
             currentDate = addDays(currentDate, 1);
-      }
-      
-      setGeneratedMatches(finalSchedule);
-      setIsDrawDialogOpen(false);
-      setIsSuccessDialogOpen(true);
-  }
+        }
+
+        const dayOfWeek = currentDate.getDay();
+        const config = dayConfigs[dayOfWeek];
+        if (!config) { // Should not happen if playDays are filtered correctly
+             currentDate = addDays(currentDate, 1);
+             continue;
+        }
+
+        const [startHour, startMinute] = config.start.split(':').map(Number);
+        const [endHour] = config.end.split(':').map(Number);
+
+        let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
+        const endTime = setMinutes(setHours(new Date(currentDate), endHour), 0);
+
+        while (matchTime.getTime() < endTime.getTime() && matchIndex < matchQueue.length) {
+            for (let field = 1; field <= numberOfFields; field++) {
+                if (matchIndex < matchQueue.length) {
+                    const match = matchQueue[matchIndex];
+                    finalSchedule.push({
+                        ...match,
+                        date: new Date(matchTime),
+                        time: format(matchTime, 'HH:mm'),
+                        field
+                    });
+                    matchIndex++;
+                }
+            }
+            matchTime = addHours(matchTime, matchDurationHours);
+        }
+        currentDate = addDays(currentDate, 1);
+    }
+    
+    setGeneratedMatches(finalSchedule);
+    setIsDrawDialogOpen(false);
+    setIsSuccessDialogOpen(true);
+};
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
