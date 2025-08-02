@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, addHours, isBefore } from 'date-fns';
+import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, addHours, isBefore, isEqual } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -573,13 +573,12 @@ export default function SchedulePage() {
                 let slotTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
                 const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
 
-                while (isBefore(slotTime, endTime)) {
+                while (isBefore(slotTime, endTime) && slots.length < matchCount) {
                      for (let field = 1; field <= numberOfFields; field++) {
                         if (slots.length < matchCount) {
                              slots.push({ date: new Date(slotTime), field });
                         }
                     }
-                    if (slots.length >= matchCount) break;
                     slotTime = addHours(slotTime, 2);
                 }
             }
@@ -696,3 +695,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
