@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { Match, GeneratedMatch } from '@/lib/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -182,15 +183,16 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
 
     const groupedMatches = useMemo(() => {
         const teamCount = teams.length;
-        if (teamCount === 0) return {};
+        if (teamCount === 0 || generatedMatches.length === 0) return {};
 
         return generatedMatches
             .filter(m => m.category === category)
             .reduce((acc, match) => {
-                const roundSize = Math.floor(teamCount / 2);
-                const totalRounds = (teamCount - (teamCount % 2 === 0 ? 0 : 1) -1);
+                const roundSize = Math.floor(teams.filter(t => t.category === category).length / 2);
+                const categoryMatches = generatedMatches.filter(m => m.category === category);
+                const totalRounds = (teams.filter(t => t.category === category).length - (teams.filter(t => t.category === category).length % 2 === 0 ? 0 : 1) -1);
 
-                const matchIndexInSchedule = generatedMatches.filter(m => m.category === category).indexOf(match);
+                const matchIndexInSchedule = categoryMatches.indexOf(match);
 
                 let leg = 'Ida';
                 let currentRound = Math.floor(matchIndexInSchedule / roundSize) + 1;
@@ -316,25 +318,21 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     );
 };
 
-const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string; end: string }>) => void }) => {
+const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string; end: string }>) => void, onOpenChange: (open: boolean) => void, open: boolean }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(new Date());
     const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
         '0': true, // Sunday
-        '1': false, '2': false, '3': false, '4': false, '5': false, 
+        '4': false, '5': false, 
         '6': true, // Saturday
     });
      const [dayConfigs, setDayConfigs] = useState<Record<string, { start: string; end: string }>>({
         '0': { start: '09:00', end: '17:00' }, 
-        '1': { start: '08:00', end: '18:00' },
-        '2': { start: '08:00', end: '18:00' },
-        '3': { start: '08:00', end: '18:00' },
         '4': { start: '08:00', end: '18:00' },
         '5': { start: '08:00', end: '18:00' },
         '6': { start: '10:00', end: '18:00' },
     });
     
     const daysOfWeek = [
-        { id: '1', label: 'Lunes' }, { id: '2', label: 'Martes' }, { id: '3', label: 'Miércoles' },
         { id: '4', label: 'Jueves' }, { id: '5', label: 'Viernes' }, { id: '6', label: 'Sábado' }, { id: '0', label: 'Domingo' }
     ];
 
@@ -345,13 +343,7 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Re
     };
     
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline">
-                    <Dices className="mr-2" />
-                    Sorteo de Equipos
-                </Button>
-            </DialogTrigger>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Configurar Sorteo y Calendario</DialogTitle>
@@ -418,6 +410,9 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Re
                     </div>
                 </div>
                  <DialogFooter>
+                    <DialogClose asChild>
+                       <Button variant="ghost">Cancelar</Button>
+                    </DialogClose>
                     <Button onClick={handleGenerateClick}>
                         <RefreshCw className="mr-2" />
                         Generar Calendario
@@ -432,21 +427,70 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Re
 export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
+  const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [resetAlertStep, setResetAlertStep] = useState(0);
+
+  const isTournamentStarted = generatedMatches.length > 0;
+  
+  const resetAlerts = [
+      {
+          title: "Reiniciar Torneo",
+          description: "¿Ya iniciaste un torneo, vas a reiniciar todo?",
+          action: "Continuar"
+      },
+      {
+          title: "Confirmación Adicional",
+          description: "¿Estás seguro que quieres reiniciar el torneo? Esta acción no se puede deshacer.",
+          action: "Sí, reiniciar"
+      },
+      {
+          title: "Advertencia Final",
+          description: "Una vez reiniciado el torneo, se borrará toda la programación. Los resultados de partidos ya jugados no se verán afectados.",
+          action: "Entendido, reiniciar torneo"
+      }
+  ]
 
   useEffect(() => { setIsClient(true) }, []);
+
+  const handleDrawButtonClick = () => {
+      if(isTournamentStarted) {
+          setResetAlertStep(1);
+      } else {
+          setIsDrawDialogOpen(true);
+      }
+  }
+
+  const handleResetAlertNext = () => {
+      if(resetAlertStep < resetAlerts.length) {
+          setResetAlertStep(resetAlertStep + 1);
+      } else {
+          // All alerts confirmed, proceed with reset and open draw dialog
+          setGeneratedMatches([]);
+          setResetAlertStep(0);
+          setIsDrawDialogOpen(true);
+      }
+  }
+  
+  const handleResetAlertCancel = () => {
+      setResetAlertStep(0);
+  }
 
   const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string, end: string }>) => {
       const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
       let finalSchedule: GeneratedMatch[] = [];
       const matchDurationHours = 2;
       const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
+      
       let currentDate = new Date(startDate);
       let matchQueue: GeneratedMatch[] = [];
 
+      // Create a master queue of all matches from all categories
       categories.forEach(category => {
           let teams = getTeamsByCategory(category).map(t => t.id);
           if (teams.length < 2) return;
 
+          // Shuffle teams for random pairings each time
           teams.sort(() => 0.5 - Math.random());
 
           if (teams.length % 2 !== 0) {
@@ -454,12 +498,15 @@ export default function SchedulePage() {
           }
           const rounds = teams.length - 1;
           const half = teams.length / 2;
+          
+          let legMatches: GeneratedMatch[] = [];
 
-          for (let leg = 0; leg < 2; leg++) {
+          for (let leg = 0; leg < 2; leg++) { // Two legs: home and away
               let teamsForScheduling = [...teams];
               for (let i = 0; i < rounds; i++) {
                   for (let j = 0; j < half; j++) {
                       let home, away;
+                      // Swap home/away for the second leg
                       if (leg === 0) {
                           home = teamsForScheduling[j];
                           away = teamsForScheduling[teamsForScheduling.length - 1 - j];
@@ -468,15 +515,17 @@ export default function SchedulePage() {
                           home = teamsForScheduling[teamsForScheduling.length - 1 - j];
                       }
                       if (home !== "BYE" && away !== "BYE") {
-                          matchQueue.push({ home, away, category });
+                          legMatches.push({ home, away, category });
                       }
                   }
+                  // Rotate teams for next round, keeping first team fixed
                   const lastTeam = teamsForScheduling.pop();
                   if (lastTeam) {
                       teamsForScheduling.splice(1, 0, lastTeam);
                   }
               }
           }
+          matchQueue.push(...legMatches);
       });
       
       // Prioritize Máxima > Primera > Segunda
@@ -487,6 +536,7 @@ export default function SchedulePage() {
 
       let matchIndex = 0;
       while(matchIndex < matchQueue.length) {
+            // Find the next available play day
             while (!enabledPlayDays.includes(currentDate.getDay())) {
                 currentDate = addDays(currentDate, 1);
             }
@@ -494,12 +544,13 @@ export default function SchedulePage() {
             const dayOfWeek = currentDate.getDay();
             const config = dayConfigs[dayOfWeek] || { start: '08:00', end: '18:00' };
             const [startHour, startMinute] = config.start.split(':').map(Number);
-            const [endHour, endMinute] = config.end.split(':').map(Number);
+            const [endHour] = config.end.split(':').map(Number);
             
             let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
-            const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
+            const endTime = setMinutes(setHours(new Date(currentDate), endHour), 0);
 
-            while(matchTime < endTime && matchIndex < matchQueue.length) {
+            // Fill the day with matches
+            while(matchTime.getTime() < endTime.getTime() && matchIndex < matchQueue.length) {
                 const match = matchQueue[matchIndex];
                 finalSchedule.push({
                     ...match,
@@ -507,12 +558,14 @@ export default function SchedulePage() {
                     time: format(matchTime, 'HH:mm'),
                 });
                 matchIndex++;
-                matchTime = addDays(matchTime, matchDurationHours / 24);
+                matchTime = addDays(matchTime, matchDurationHours / 24); // Add 2 hours
             }
-            currentDate = addDays(currentDate, 1);
+            currentDate = addDays(currentDate, 1); // Move to the next day to continue scheduling
       }
       
       setGeneratedMatches(finalSchedule);
+      setIsDrawDialogOpen(false);
+      setIsSuccessDialogOpen(true);
   }
 
   return (
@@ -524,10 +577,50 @@ export default function SchedulePage() {
         <Card className="p-2 bg-card/50">
             <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold mr-2">Admin:</span>
-                 <DrawDialog onGenerate={generateMasterSchedule} />
+                 <Button 
+                    variant={isTournamentStarted ? "destructive" : "outline"}
+                    onClick={handleDrawButtonClick}
+                  >
+                    <Dices className="mr-2" />
+                    {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
+                </Button>
             </div>
         </Card>
       </div>
+
+       <DrawDialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen} onGenerate={generateMasterSchedule} />
+
+        <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="text-center text-2xl text-primary">¡Felicidades!</DialogTitle>
+                    <DialogDescription className="text-center text-lg">
+                        Has iniciado el torneo.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button className="w-full">Cerrar</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        {resetAlerts.map((alert, index) => (
+             <AlertDialog key={index} open={resetAlertStep === index + 1}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{alert.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{alert.description}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handleResetAlertCancel}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleResetAlertNext}>{alert.action}</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        ))}
+
 
       <Tabs defaultValue="copa" className="space-y-4">
         <TabsList>
