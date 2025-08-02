@@ -25,14 +25,22 @@ export interface Player {
   };
 }
 
+export interface Person {
+    name: string;
+    phone?: string;
+}
+
 export interface Team {
   id: string;
   name: string;
   logoUrl: string;
   category: Category;
-  abbreviation?: string;
-  foundationDate?: string;
   manager?: string;
+  president?: Person;
+  secretary?: Person;
+  treasurer?: Person;
+  vocal?: Person;
+  delegates?: Person[];
 }
 
 export interface VocalPaymentDetails {

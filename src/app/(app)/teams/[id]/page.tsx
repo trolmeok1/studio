@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition, upcomingMatches } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition, upcomingMatches, type Person } from '@/lib/mock-data';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -85,16 +85,21 @@ export default function TeamDetailsPage() {
     }
   };
 
-  const InfoRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => (
-    <div className="flex items-center gap-4 text-sm">
-        <Icon className="w-5 h-5 text-primary" />
-        <span className="font-semibold w-28">{label}:</span>
-        <span>{value || 'No disponible'}</span>
+  const InfoRow = ({ icon: Icon, label, person, showContact }: { icon: React.ElementType, label: string, person?: Person, showContact: boolean }) => (
+    <div className="flex items-start gap-4 p-3 bg-muted/50 rounded-lg">
+        <Icon className="w-5 h-5 text-primary mt-1" />
+        <div className="flex-grow">
+            <p className="font-semibold">{label}</p>
+            <p className="text-muted-foreground">{person?.name || 'No asignado'}</p>
+        </div>
+        {showContact && person?.phone && (
+             <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+                <Phone className="w-4 h-4"/>
+                <span>{person.phone}</span>
+            </div>
+        )}
     </div>
   );
-  
-  const foundationDateFormatted = isClient && team.foundationDate ? format(new Date(team.foundationDate), "MMMM dd, yyyy", { locale: es }) : '';
-  const foundationDateFormattedPPP = isClient && team.foundationDate ? format(new Date(team.foundationDate), "PPP", { locale: es }) : '';
 
   const pendingPayments = upcomingMatches.filter(match => 
     (match.teams.home.id === teamId && match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') ||
@@ -115,9 +120,6 @@ export default function TeamDetailsPage() {
                     data-ai-hint="team logo"
                 />
                 <div className="flex-grow text-center md:text-left">
-                    <p className="text-sm text-muted-foreground">
-                        Fundado en {foundationDateFormatted || 'N/A'}
-                    </p>
                     <h2 className="text-4xl font-bold tracking-tight font-headline">{team.name}</h2>
                     <p className="text-lg text-primary">Representado por {team.manager || 'No asignado'}</p>
                     <Badge className="mt-2 text-md">{team.category}</Badge>
@@ -127,13 +129,12 @@ export default function TeamDetailsPage() {
       </Card>
 
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="info"><BadgeInfo className="mr-2" />Información</TabsTrigger>
             <TabsTrigger value="roster"><Users className="mr-2" />Nómina</TabsTrigger>
             <TabsTrigger value="finances"><DollarSign className="mr-2" />Finanzas</TabsTrigger>
             <TabsTrigger value="calendar"><Calendar className="mr-2" />Calendario</TabsTrigger>
             <TabsTrigger value="stats"><BarChart2 className="mr-2" />Estadísticas</TabsTrigger>
-            <TabsTrigger value="results"><Award className="mr-2" />Resultados</TabsTrigger>
             <TabsTrigger value="sanctions"><ShieldAlert className="mr-2" />Sanciones</TabsTrigger>
         </TabsList>
         <TabsContent value="info">
@@ -142,10 +143,20 @@ export default function TeamDetailsPage() {
                     <CardTitle>Información del Club</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <InfoRow icon={Building} label="Nombre" value={team.name} />
-                    <InfoRow icon={BadgeInfo} label="Abreviatura" value={team.abbreviation} />
-                    <InfoRow icon={CalendarClock} label="Fundación" value={foundationDateFormattedPPP} />
-                    <InfoRow icon={UserSquare} label="Dirigente" value={team.manager} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <InfoRow icon={UserIcon} label="Presidente" person={team.president} showContact={canEdit} />
+                         <InfoRow icon={UserIcon} label="Secretario" person={team.secretary} showContact={canEdit} />
+                         <InfoRow icon={UserIcon} label="Tesorero" person={team.treasurer} showContact={canEdit} />
+                         <InfoRow icon={UserIcon} label="Vocal Principal" person={team.vocal} showContact={canEdit} />
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-lg mb-2 mt-4">Delegados Autorizados</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {team.delegates?.map((delegate, index) => (
+                                <InfoRow key={index} icon={UserSquare} label={`Delegado ${index + 1}`} person={delegate} showContact={canEdit} />
+                            ))}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </TabsContent>

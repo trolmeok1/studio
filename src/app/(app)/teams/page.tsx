@@ -30,8 +30,6 @@ export default function TeamsPage() {
         name: newTeam.name,
         category: newTeam.category as Category,
         logoUrl: 'https://placehold.co/100x100.png',
-        abbreviation: newTeam.name.substring(0,3).toUpperCase(),
-        foundationDate: new Date().toISOString().split('T')[0],
         manager: 'N/A'
       };
       setTeams([...teams, newTeamData]);
