@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition, upcomingMatches } from '@/lib/mock-data';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,12 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
 
 export default function TeamDetailsPage() {
   const params = useParams();
@@ -73,6 +74,11 @@ export default function TeamDetailsPage() {
   const foundationDateFormatted = isClient && team.foundationDate ? format(new Date(team.foundationDate), "MMMM dd, yyyy", { locale: es }) : '';
   const foundationDateFormattedPPP = isClient && team.foundationDate ? format(new Date(team.foundationDate), "PPP", { locale: es }) : '';
 
+  const pendingPayments = upcomingMatches.filter(match => 
+    (match.teams.home.id === teamId && match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') ||
+    (match.teams.away.id === teamId && match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending')
+  );
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <Card>
@@ -99,9 +105,10 @@ export default function TeamDetailsPage() {
       </Card>
 
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="info"><BadgeInfo className="mr-2" />Información</TabsTrigger>
             <TabsTrigger value="roster"><Users className="mr-2" />Nómina</TabsTrigger>
+            <TabsTrigger value="finances"><DollarSign className="mr-2" />Finanzas</TabsTrigger>
             <TabsTrigger value="calendar"><Calendar className="mr-2" />Calendario</TabsTrigger>
             <TabsTrigger value="stats"><BarChart2 className="mr-2" />Estadísticas</TabsTrigger>
             <TabsTrigger value="results"><Award className="mr-2" />Resultados</TabsTrigger>
@@ -198,6 +205,41 @@ export default function TeamDetailsPage() {
                 </CardContent>
               </Card>
         </TabsContent>
+        <TabsContent value="finances">
+            <Card>
+                <CardHeader><CardTitle>Estado Financiero</CardTitle></CardHeader>
+                <CardContent>
+                    {pendingPayments.length > 0 ? (
+                        <div className="space-y-4">
+                            {pendingPayments.map(match => {
+                                const details = match.teams.home.id === teamId ? match.teams.home.vocalPaymentDetails : match.teams.away.vocalPaymentDetails;
+                                const opponent = match.teams.home.id === teamId ? match.teams.away : match.teams.home;
+                                return (
+                                <Card key={match.id} className="bg-destructive/10 border-destructive">
+                                    <CardHeader className="flex-row items-center justify-between pb-2">
+                                        <div className="flex items-center gap-2">
+                                            <AlertTriangle className="text-destructive"/>
+                                            <CardTitle className="text-lg">Pago de Vocalía Pendiente</CardTitle>
+                                        </div>
+                                         <Badge variant="destructive">DEUDA</Badge>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p>Partido contra <strong>{opponent.name}</strong></p>
+                                        <p>Fecha: {isClient ? new Date(match.date).toLocaleDateString() : ''}</p>
+                                        <p className="text-2xl font-bold mt-2 text-destructive">${details?.total.toFixed(2)}</p>
+                                        <Button className="mt-2" asChild>
+                                            <Link href="/committees">Ir a Pagar</Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            )})}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground">El equipo está al día con sus pagos.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
          <TabsContent value="calendar">
             <Card>
                 <CardHeader><CardTitle>Calendario</CardTitle></CardHeader>
@@ -226,5 +268,3 @@ export default function TeamDetailsPage() {
     </div>
   );
 }
-
-    

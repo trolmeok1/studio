@@ -37,6 +37,7 @@ export interface VocalPaymentDetails {
     otherFines: number;
     otherFinesDescription: string;
     total: number;
+    paymentStatus: 'paid' | 'pending';
 }
 
 export interface MatchTeam extends Team {

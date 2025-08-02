@@ -135,6 +135,7 @@ const defaultVocalPayment: VocalPaymentDetails = {
     otherFines: 0,
     otherFinesDescription: '',
     total: 13.00,
+    paymentStatus: 'paid'
 }
 
 export const upcomingMatches: Match[] = [
@@ -143,8 +144,8 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Máxima',
         teams: {
-            home: { ...teams[0], attended: true, vocalPaymentDetails: {...defaultVocalPayment, redCardFine: 5, total: 18} },
-            away: { ...teams[1], attended: true, vocalPaymentDetails: {...defaultVocalPayment, yellowCardFine: 2, total: 15}  }
+            home: { ...teams[0], attended: true, vocalPaymentDetails: {...defaultVocalPayment, redCardFine: 5, total: 18, paymentStatus: 'paid'} },
+            away: { ...teams[1], attended: true, vocalPaymentDetails: {...defaultVocalPayment, yellowCardFine: 2, total: 15, paymentStatus: 'pending'}  }
         },
         status: 'finished',
         score: { home: 2, away: 1 }
@@ -154,8 +155,8 @@ export const upcomingMatches: Match[] = [
         date: tomorrow.toISOString(),
         category: 'Primera',
         teams: {
-            home: { ...teams[4], attended: true, vocalPaymentDetails: defaultVocalPayment },
-            away: { ...teams[5], attended: true, vocalPaymentDetails: defaultVocalPayment }
+            home: { ...teams[4], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
+            away: { ...teams[5], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
         },
         status: 'future'
     },
@@ -164,8 +165,8 @@ export const upcomingMatches: Match[] = [
         date: today.toISOString(),
         category: 'Copa',
         teams: {
-            home: { ...teams[6], attended: true, vocalPaymentDetails: defaultVocalPayment },
-            away: { ...teams[7], attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0} }
+            home: { ...teams[6], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
+            away: { ...teams[7], attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0, paymentStatus: 'pending'} }
         },
         status: 'in-progress'
     },
@@ -174,8 +175,8 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Segunda',
         teams: {
-            home: { ...teams[8], attended: true, vocalPaymentDetails: defaultVocalPayment },
-            away: { ...teams[9], attended: true, vocalPaymentDetails: defaultVocalPayment }
+            home: { ...teams[8], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
+            away: { ...teams[9], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
         },
         status: 'finished',
         score: { home: 0, away: 0 }

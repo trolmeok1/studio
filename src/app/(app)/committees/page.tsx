@@ -28,130 +28,176 @@ import { Switch } from '@/components/ui/switch';
 import type { MatchEvent, MatchEventType } from '@/lib/types';
 
 
-const VocalPaymentDetailsForm = () => (
-    <div className="text-xs mt-2 border">
-    <p className="p-1"><strong>Jugadores sancionados:</strong> ________________________</p>
-    <table className="w-full border-t">
-        <tbody>
-        <tr className="border-b"><td className="p-1 w-1/2"><strong>Pago Árbitro:</strong></td><td className="p-1 border-l text-right">$ 11.00</td></tr>
-        <tr className="border-b"><td className="p-1"><strong>Cuota:</strong></td><td className="p-1 border-l text-right">$ 2.00</td></tr>
-        <tr className="border-b"><td className="p-1"><strong>Tarjetas Amarillas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
-        <tr className="border-b"><td className="p-1"><strong>Tarjetas Rojas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
-        <tr className="border-b">
-            <td className="p-1"><strong>Multas (especificar):</strong> ____________</td>
-            <td className="p-1 border-l text-right">$______</td>
-        </tr>
-        <tr className="border-b">
-            <td className="p-1"><strong>Otros (especificar):</strong> ______________</td>
-            <td className="p-1 border-l text-right">$______</td>
-        </tr>
-        <tr className="font-bold bg-gray-100"><td className="p-1"><strong>TOTAL VOCALÍA:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
-        </tbody>
-    </table>
-    </div>
-);
-
 const PhysicalMatchSheet = () => {
     const handlePrint = () => {
         window.print();
     };
 
-    const PlayerRow = ({player, index}: {player: Player, index: number}) => (
+    const PlayerRow = ({ number }: { number: number }) => (
         <TableRow className="h-8">
-            <TableCell className="border text-center p-1 w-[40px]"><Checkbox /></TableCell>
-            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
-            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
-            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
-            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
-            <TableCell className="border text-center font-bold p-1 w-[40px]">{String(player.id).slice(-2)}</TableCell>
-            <TableCell className="border p-1">{player.name}</TableCell>
+            <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{number}</TableCell>
+            <TableCell className="border p-1 text-left w-[200px]"></TableCell>
+            <TableCell className="border text-center p-1 w-[40px]"></TableCell>
         </TableRow>
     );
+
+    const CardCell = ({label, count}: {label: string, count: number}) => (
+        <div className="flex-1">
+            <p className="text-center font-bold text-xs uppercase tracking-wider border-b">{label}</p>
+            <div className="grid grid-cols-6 h-10">
+                {Array.from({ length: count }).map((_, i) => (
+                    <div key={i} className="border-r last:border-r-0 h-full flex items-center justify-center text-xs">
+                        <span className="text-muted-foreground">N°</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+    
+    const IncomeBreakdown = () => (
+        <div className="border mt-2 text-xs">
+            <div className="bg-gray-200 text-center font-bold p-1">INGRESOS</div>
+            <Table className="text-xs">
+                <TableBody>
+                    <TableRow>
+                        <TableCell className="font-semibold p-1 border-r w-1/2">ÁRBITRO</TableCell>
+                        <TableCell className="p-1 text-right">$ 11.00</TableCell>
+                    </TableRow>
+                     <TableRow>
+                        <TableCell className="font-semibold p-1 border-r">CUOTAS</TableCell>
+                        <TableCell className="p-1 text-right">$ 2.00</TableCell>
+                    </TableRow>
+                     <TableRow>
+                        <TableCell className="font-semibold p-1 border-r">MULTAS</TableCell>
+                        <TableCell className="p-1"></TableCell>
+                    </TableRow>
+                     <TableRow>
+                        <TableCell className="font-semibold p-1 border-r">T. AMARILLAS</TableCell>
+                        <TableCell className="p-1"></TableCell>
+                    </TableRow>
+                     <TableRow>
+                        <TableCell className="font-semibold p-1 border-r">T. ROJAS</TableCell>
+                        <TableCell className="p-1"></TableCell>
+                    </TableRow>
+                     <TableRow>
+                        <TableCell className="font-semibold p-1 border-r">OTROS</TableCell>
+                        <TableCell className="p-1"></TableCell>
+                    </TableRow>
+                     <TableRow className="bg-gray-100 font-bold">
+                        <TableCell className="p-1 border-r">TOTAL:</TableCell>
+                        <TableCell className="p-1"></TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+             <div className="p-1 border-t h-12">
+                <span className="font-bold">FIRMA DE CAPITAN:</span>
+            </div>
+        </div>
+    );
+
 
     return (
         <Card id="print-area" className="p-4 md:p-6 print:shadow-none print:border-none bg-white text-black">
             <CardContent className="p-0">
-                 <header className="mb-4">
-                    <div className="flex justify-between items-center text-xs mb-2">
-                        <span><strong>Categoría:</strong> {initialMatchData.category}</span>
-                        <span><strong>Fecha:</strong> {initialMatchData.date}</span>
-                        <span><strong>Hora:</strong> {initialMatchData.time}</span>
-                        <span><strong>Cancha:</strong> {initialMatchData.field}</span>
+                 <header className="mb-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                        <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={70} height={70} data-ai-hint="league logo" />
+                        <div className="text-center">
+                            <h2 className="text-lg font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h2>
+                            <p className="text-xs">FUNDADA EL 05 DE DICIEMBRE DE 1984</p>
+                            <p className="text-xs">FILIAL DE LA UNIÓN DE LIGAS INDEPENDIENTES DEL CANTÓN QUITO</p>
+                            <p className="text-xs">Entidad Jurídica Con Decreto Ministerial N°6581 Rof. N°358 Del 13 De Enero De 1994</p>
+                        </div>
+                        <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={70} height={70} data-ai-hint="league logo" />
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                        <span><strong>Etapa:</strong> {initialMatchData.phase}</span>
-                        <span><strong>Jornada:</strong> {initialMatchData.matchday}</span>
-                        <span><strong>Vocal:</strong> {initialMatchData.vocalTeam}</span>
+                    <div className="text-center font-bold text-2xl border-y-2 border-black py-1">ACTA DE JUEGO</div>
+                     <div className="flex justify-between items-center text-xs">
+                        <span><strong>CATEGORIA:</strong> ______________________</span>
+                        <span><strong>DÍA:</strong> ____________</span>
+                        <span><strong>DE:</strong> ____________</span>
+                        <span><strong>DEL:</strong> 20__</span>
+                    </div>
+                     <div className="flex justify-between items-center text-xs">
+                        <span><strong>VOCAL:</strong> ______________________</span>
+                         <span><strong>HORA:</strong> ____________</span>
                     </div>
                 </header>
 
                 <main className="grid grid-cols-2 gap-4">
                     {/* Team A */}
                     <div>
-                        <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
-                            <div className="flex items-center gap-2">
-                                <Image src={initialMatchData.teamA.logoUrl} alt={initialMatchData.teamA.name} width={30} height={30} data-ai-hint="team logo" />
-                                <h3 className="font-bold uppercase">{initialMatchData.teamA.name}</h3>
-                            </div>
-                            <div className="w-16 h-10 border-2 border-black bg-white"></div>
-                        </div>
-                        <Table className="border-collapse border border-gray-400">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">J</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">C</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">G</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TA</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TR</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">No.</TableHead>
-                                    <TableHead className="border text-center text-black p-1 text-xs">Jugadores</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {initialMatchData.teamA.players.map((player, index) => (
-                                    <PlayerRow key={player.id} player={player} index={index}/>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        <VocalPaymentDetailsForm />
-                        <div className="text-xs mt-2 border p-1 flex items-center">
-                            <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
-                            <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
-                        </div>
-                    </div>
-
-                    {/* Team B */}
-                    <div>
-                        <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
-                            <div className="flex items-center gap-2">
-                                <Image src={initialMatchData.teamB.logoUrl} alt={initialMatchData.teamB.name} width={30} height={30} data-ai-hint="team logo" />
-                                <h3 className="font-bold uppercase">{initialMatchData.teamB.name}</h3>
-                            </div>
-                            <div className="w-16 h-10 border-2 border-black bg-white"></div>
+                         <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
+                           <h3 className="font-bold uppercase text-sm">EQUIPO: ______________________</h3>
+                           <div className="w-16 h-8 border-2 border-black bg-white"></div>
                         </div>
                         <Table className="border-collapse border border-gray-400">
                              <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">J</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">C</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">G</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TA</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TR</TableHead>
-                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">No.</TableHead>
-                                    <TableHead className="border text-center text-black p-1 text-xs">Jugadores</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">N°</TableHead>
+                                    <TableHead className="border text-center text-black p-1 text-xs">NOMBRES Y APELLIDOS</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">GOL</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                               {initialMatchData.teamB.players.map((player, index) => (
-                                    <PlayerRow key={player.id} player={player} index={index}/>
+                                {Array.from({ length: 15 }).map((_, index) => (
+                                    <PlayerRow key={`A-${index}`} number={index + 1} />
                                 ))}
                             </TableBody>
                         </Table>
-                        <VocalPaymentDetailsForm />
-                        <div className="text-xs mt-2 border p-1 flex items-center">
-                            <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
-                            <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
+                         <p className="text-center font-bold text-sm mt-2">CAMBIOS</p>
+                        <Table className="border-collapse border border-gray-400 mt-1">
+                             <TableBody>
+                                {Array.from({ length: 5 }).map((_, index) => (
+                                    <TableRow key={`sub-A-${index}`} className="h-8"><TableCell className="border p-1"></TableCell></TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        <div className="border mt-2 flex">
+                            <CardCell label="T. Amarillas" count={6} />
+                            <CardCell label="T. Rojas" count={3} />
                         </div>
+                         <div className="mt-2 text-xs">
+                            <p>VALORES PENDIENTES: ________________________________</p>
+                        </div>
+                         <IncomeBreakdown />
+                    </div>
+
+                    {/* Team B */}
+                    <div>
+                         <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
+                           <h3 className="font-bold uppercase text-sm">EQUIPO: ______________________</h3>
+                           <div className="w-16 h-8 border-2 border-black bg-white"></div>
+                        </div>
+                        <Table className="border-collapse border border-gray-400">
+                             <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">N°</TableHead>
+                                    <TableHead className="border text-center text-black p-1 text-xs">NOMBRES Y APELLIDOS</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">GOL</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                 {Array.from({ length: 15 }).map((_, index) => (
+                                    <PlayerRow key={`B-${index}`} number={index + 1} />
+                                ))}
+                            </TableBody>
+                        </Table>
+                         <p className="text-center font-bold text-sm mt-2">CAMBIOS</p>
+                        <Table className="border-collapse border border-gray-400 mt-1">
+                            <TableBody>
+                                {Array.from({ length: 5 }).map((_, index) => (
+                                    <TableRow key={`sub-B-${index}`} className="h-8"><TableCell className="border p-1"></TableCell></TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        <div className="border mt-2 flex">
+                             <CardCell label="T. Amarillas" count={6} />
+                            <CardCell label="T. Rojas" count={3} />
+                        </div>
+                        <div className="mt-2 text-xs">
+                            <p>VALORES PENDIENTES: ________________________________</p>
+                        </div>
+                        <IncomeBreakdown />
                     </div>
                 </main>
             
@@ -307,11 +353,11 @@ const DigitalMatchSheet = () => {
             const updatedPayment = { ...currentPayment, [field]: value };
             
             const total = 
-                (updatedPayment.referee || 0) + 
-                (updatedPayment.fee || 0) + 
-                (updatedPayment.yellowCardFine || 0) + 
-                (updatedPayment.redCardFine || 0) + 
-                (updatedPayment.otherFines || 0);
+                (typeof updatedPayment.referee === 'number' ? updatedPayment.referee : 0) + 
+                (typeof updatedPayment.fee === 'number' ? updatedPayment.fee : 0) + 
+                (typeof updatedPayment.yellowCardFine === 'number' ? updatedPayment.yellowCardFine : 0) + 
+                (typeof updatedPayment.redCardFine === 'number' ? updatedPayment.redCardFine : 0) + 
+                (typeof updatedPayment.otherFines === 'number' ? updatedPayment.otherFines : 0);
 
             return {
                 ...prev,
@@ -327,9 +373,35 @@ const DigitalMatchSheet = () => {
         const details = matchState[teamKey].vocalPaymentDetails;
         const disabled = !canEdit || !matchState[teamKey].attended;
 
+        const handlePaymentStatusChange = (checked: boolean) => {
+             setMatchState(prev => ({
+                ...prev,
+                [teamKey]: {
+                    ...prev[teamKey],
+                    vocalPaymentDetails: {
+                        ...prev[teamKey].vocalPaymentDetails,
+                        paymentStatus: checked ? 'paid' : 'pending'
+                    }
+                }
+            }));
+        }
+
         return (
             <div className="space-y-2 mt-2 p-3 border rounded-lg">
-                <h5 className="font-semibold text-center">Desglose de Vocalía</h5>
+                <div className="flex items-center justify-between">
+                    <h5 className="font-semibold text-center">Desglose de Vocalía</h5>
+                    <div className="flex items-center space-x-2">
+                        <Label htmlFor={`payment-status-${teamKey}`} className={details.paymentStatus === 'pending' ? 'text-destructive' : 'text-primary'}>
+                            {details.paymentStatus === 'paid' ? 'Pagado' : 'Pendiente'}
+                        </Label>
+                        <Switch
+                            id={`payment-status-${teamKey}`}
+                            checked={details.paymentStatus === 'paid'}
+                            onCheckedChange={handlePaymentStatusChange}
+                            disabled={disabled}
+                        />
+                    </div>
+                </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <Label>Pago Árbitro:</Label>
                     <Input type="number" value={details.referee} onChange={(e) => handleVocalPaymentChange(teamKey, 'referee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />

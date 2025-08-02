@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Landmark, Ban } from 'lucide-react';
+import { DollarSign, Landmark, Ban, AlertTriangle } from 'lucide-react';
 import { upcomingMatches, teams } from '@/lib/mock-data';
 import { useEffect, useState } from 'react';
 
@@ -16,11 +16,27 @@ export default function TreasuryPage() {
         setIsClient(true);
     }, []);
 
-    const totalVocalIncome = upcomingMatches.reduce((acc, match) => {
-        const homePayment = match.teams.home.vocalPaymentDetails?.total || 0;
-        const awayPayment = match.teams.away.vocalPaymentDetails?.total || 0;
+    const paidMatches = upcomingMatches.filter(match => 
+        match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' || 
+        match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid'
+    );
+
+    const totalVocalIncome = paidMatches.reduce((acc, match) => {
+        const homePayment = match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.home.vocalPaymentDetails?.total || 0 : 0;
+        const awayPayment = match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.away.vocalPaymentDetails?.total || 0 : 0;
         return acc + homePayment + awayPayment;
     }, 0);
+    
+    const pendingPayments = upcomingMatches.flatMap(match => {
+        const pending = [];
+        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
+            pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date});
+        }
+        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending') {
+            pending.push({team: match.teams.away, amount: match.teams.away.vocalPaymentDetails.total, date: match.date});
+        }
+        return pending;
+    });
 
     const totalSanctionIncome = 550; // Mock data for now
 
@@ -51,7 +67,7 @@ export default function TreasuryPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Ingresos Totales
+                            Ingresos Totales (Pagados)
                         </CardTitle>
                         <Landmark className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
@@ -65,18 +81,18 @@ export default function TreasuryPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Ingresos por Vocalías
+                            Ingresos por Vocalías (Pagados)
                         </CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${totalVocalIncome.toLocaleString('en-US')}</div>
                          <p className="text-xs text-muted-foreground">
-                            Basado en {upcomingMatches.length} partidos registrados
+                            Basado en {paidMatches.length} partidos
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Ingresos por Sanciones</CardTitle>
                         <Ban className="h-4 w-4 text-muted-foreground" />
@@ -88,8 +104,58 @@ export default function TreasuryPage() {
                         </p>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pagos Pendientes</CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${pendingPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString('en-US')}</div>
+                        <p className="text-xs text-muted-foreground">
+                            De {pendingPayments.length} equipos
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Pagos Pendientes de Vocalía</CardTitle>
+                         <CardDescription>
+                            Equipos que no han cancelado su valor de vocalía.
+                        </CardDescription>
+                    </CardHeader>
+                     <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Equipo</TableHead>
+                                    <TableHead className="text-right">Monto</TableHead>
+                                    <TableHead className="text-right">Acción</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                 {pendingPayments.length > 0 ? pendingPayments.map((p, index) => (
+                                     <TableRow key={`${p.team.id}-${index}`}>
+                                        <TableCell>{isClient ? new Date(p.date).toLocaleDateString() : ''}</TableCell>
+                                        <TableCell className="font-medium">{p.team.name}</TableCell>
+                                        <TableCell className="text-right font-semibold">${p.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button size="sm">Marcar como Pagado</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center h-24">
+                                            No hay pagos de vocalía pendientes.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                 </Card>
                  <Card>
                     <CardHeader>
                         <CardTitle>Sanciones por Ausencia</CardTitle>
@@ -130,61 +196,72 @@ export default function TreasuryPage() {
                         </Table>
                     </CardContent>
                  </Card>
-
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Registro de Vocalías por Partido</CardTitle>
-                        <CardDescription>Desglose de los ingresos por vocalía de cada partido.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Partido</TableHead>
-                                    <TableHead>Detalle Vocalía A</TableHead>
-                                    <TableHead>Detalle Vocalía B</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {upcomingMatches.map(match => {
-                                    const teamA = match.teams.home;
-                                    const teamB = match.teams.away;
-                                    const detailsA = teamA.vocalPaymentDetails;
-                                    const detailsB = teamB.vocalPaymentDetails;
-
-                                    return (
-                                        <TableRow key={match.id}>
-                                            <TableCell>{isClient ? new Date(match.date).toLocaleDateString() : ''}</TableCell>
-                                            <TableCell className="font-medium">{teamA.name} vs {teamB.name}</TableCell>
-                                            <TableCell>
-                                                <Card className="p-2 bg-muted/50">
-                                                    <p className="font-bold text-center pb-1 border-b mb-1">${(detailsA?.total || 0).toFixed(2)}</p>
-                                                    <VocalPaymentDetailRow label="Árbitro" value={detailsA?.referee || 0} />
-                                                    <VocalPaymentDetailRow label="Cuota" value={detailsA?.fee || 0} />
-                                                    <VocalPaymentDetailRow label="T. Amarillas" value={detailsA?.yellowCardFine || 0} />
-                                                    <VocalPaymentDetailRow label="T. Rojas" value={detailsA?.redCardFine || 0} />
-                                                    <VocalPaymentDetailRow label="Otras Multas" value={detailsA?.otherFines || 0} />
-                                                </Card>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Card className="p-2 bg-muted/50">
-                                                    <p className="font-bold text-center pb-1 border-b mb-1">${(detailsB?.total || 0).toFixed(2)}</p>
-                                                    <VocalPaymentDetailRow label="Árbitro" value={detailsB?.referee || 0} />
-                                                    <VocalPaymentDetailRow label="Cuota" value={detailsB?.fee || 0} />
-                                                    <VocalPaymentDetailRow label="T. Amarillas" value={detailsB?.yellowCardFine || 0} />
-                                                    <VocalPaymentDetailRow label="T. Rojas" value={detailsB?.redCardFine || 0} />
-                                                    <VocalPaymentDetailRow label="Otras Multas" value={detailsB?.otherFines || 0} />
-                                                </Card>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                         </Table>
-                    </CardContent>
-                 </Card>
             </div>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Registro de Vocalías por Partido</CardTitle>
+                    <CardDescription>Desglose de los ingresos por vocalía de cada partido.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Partido</TableHead>
+                                <TableHead>Vocalía Equipo A</TableHead>
+                                <TableHead>Vocalía Equipo B</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {upcomingMatches.map(match => {
+                                const teamA = match.teams.home;
+                                const teamB = match.teams.away;
+                                const detailsA = teamA.vocalPaymentDetails;
+                                const detailsB = teamB.vocalPaymentDetails;
+
+                                const getStatusBadge = (status?: 'paid' | 'pending') => {
+                                    if (status === 'paid') return <Badge>Pagado</Badge>
+                                    if (status === 'pending') return <Badge variant="destructive">Pendiente</Badge>
+                                    return null;
+                                }
+
+                                return (
+                                    <TableRow key={match.id}>
+                                        <TableCell>{isClient ? new Date(match.date).toLocaleDateString() : ''}</TableCell>
+                                        <TableCell className="font-medium">{teamA.name} vs {teamB.name}</TableCell>
+                                        <TableCell>
+                                            <Card className="p-2 bg-muted/50">
+                                                <div className="flex justify-between items-center pb-1 border-b mb-1">
+                                                    <p className="font-bold">${(detailsA?.total || 0).toFixed(2)}</p>
+                                                    {getStatusBadge(detailsA?.paymentStatus)}
+                                                </div>
+                                                <VocalPaymentDetailRow label="Árbitro" value={detailsA?.referee || 0} />
+                                                <VocalPaymentDetailRow label="Cuota" value={detailsA?.fee || 0} />
+                                                <VocalPaymentDetailRow label="T. Amarillas" value={detailsA?.yellowCardFine || 0} />
+                                                <VocalPaymentDetailRow label="T. Rojas" value={detailsA?.redCardFine || 0} />
+                                                <VocalPaymentDetailRow label="Otras Multas" value={detailsA?.otherFines || 0} />
+                                            </Card>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Card className="p-2 bg-muted/50">
+                                                 <div className="flex justify-between items-center pb-1 border-b mb-1">
+                                                    <p className="font-bold">${(detailsB?.total || 0).toFixed(2)}</p>
+                                                    {getStatusBadge(detailsB?.paymentStatus)}
+                                                </div>
+                                                <VocalPaymentDetailRow label="Árbitro" value={detailsB?.referee || 0} />
+                                                <VocalPaymentDetailRow label="Cuota" value={detailsB?.fee || 0} />
+                                                <VocalPaymentDetailRow label="T. Amarillas" value={detailsB?.yellowCardFine || 0} />
+                                                <VocalPaymentDetailRow label="T. Rojas" value={detailsB?.redCardFine || 0} />
+                                                <VocalPaymentDetailRow label="Otras Multas" value={detailsB?.otherFines || 0} />
+                                            </Card>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                     </Table>
+                </CardContent>
+             </Card>
         </div>
     );
 }
