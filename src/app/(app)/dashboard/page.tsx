@@ -65,10 +65,12 @@ import {
   RectangleHorizontal,
   PlusCircle,
   Pencil,
+  ShieldBan,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const barData = [
   { name: 'W1', value: 10 },
@@ -89,6 +91,114 @@ const sliderImages = [
     { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3', hint: 'team celebration' },
     { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 4', hint: 'fans cheering' },
 ]
+
+function TopScorersCard() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Tabla de Goleadores</CardTitle>
+        <CardDescription>
+          Los máximos anotadores del torneo en todas las categorías.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">#</TableHead>
+              <TableHead>Jugador</TableHead>
+              <TableHead>Equipo</TableHead>
+              <TableHead className="text-right">Goles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {topScorers.map((scorer) => (
+              <TableRow key={scorer.playerId}>
+                <TableCell className="font-bold text-lg">
+                  {scorer.rank}
+                </TableCell>
+                <TableCell>
+                  <Link href={`/players/${scorer.playerId}`}>
+                    <div className="flex items-center gap-3 cursor-pointer hover:underline">
+                      <Avatar>
+                        <AvatarImage src={scorer.playerPhotoUrl} alt={scorer.playerName} data-ai-hint="player portrait" />
+                        <AvatarFallback>
+                          {scorer.playerName.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{scorer.playerName}</span>
+                    </div>
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Link href={`/teams/${scorer.teamId}`}>
+                    <div className="flex items-center gap-2 cursor-pointer hover:underline">
+                      <Image
+                        src={`https://placehold.co/100x100.png`}
+                        alt={scorer.teamName}
+                        width={24}
+                        height={24}
+                        className="rounded-full"
+                        data-ai-hint="team logo"
+                      />
+                      <span className="text-sm">{scorer.teamName}</span>
+                    </div>
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right font-bold text-lg">
+                  {scorer.goals}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SanctionsCard() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Sanciones y Suspensiones</CardTitle>
+        <CardDescription>
+          Jugadores que actualmente cumplen una suspensión.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {sanctions.map((sanction) => (
+          <Card key={sanction.id} className="flex items-center p-4 gap-4 bg-muted/50">
+             <Avatar className="h-16 w-16">
+                <AvatarImage src={sanction.playerPhotoUrl} alt={sanction.playerName} data-ai-hint="player portrait" />
+                <AvatarFallback>
+                    {sanction.playerName.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+             </Avatar>
+             <div className="flex-grow">
+                <p className="font-bold text-lg">{sanction.playerName}</p>
+                <p className="text-sm text-muted-foreground">{sanction.teamName}</p>
+                <p className="text-sm mt-1">{sanction.reason}</p>
+             </div>
+             <div className="text-center">
+                <Badge variant="destructive" className="text-lg">
+                    <ShieldBan className="mr-2" />
+                    {sanction.gamesSuspended} Partido(s)
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-1">
+                    Sancionado el: {new Date(sanction.date).toLocaleDateString()}
+                </p>
+             </div>
+          </Card>
+        ))}
+         {sanctions.length === 0 && (
+            <p className="text-center text-muted-foreground py-4">No hay jugadores sancionados actualmente.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -308,22 +418,11 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <Card className="lg:col-span-7 bg-white/5 backdrop-blur-sm border-white/10 text-white">
-          <CardHeader>
-            <CardTitle className="font-headline">Logros</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-             {achievements.map((achievement) => (
-                <div key={achievement.teamName} className="flex flex-col items-center text-center">
-                    <Image src={achievement.teamLogoUrl} alt={achievement.teamName} width={80} height={80} data-ai-hint="team logo" />
-                    <p className="font-bold mt-2">{achievement.teamName}</p>
-                    <p className="text-sm text-blue-400">{achievement.achievement}</p>
-                    <p className="text-xs text-white/60">{achievement.category}</p>
-                    <p className="text-xs text-white/60">{achievement.year}</p>
-                </div>
-             ))}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TopScorersCard />
+        <SanctionsCard />
+      </div>
+
     </div>
   );
 }

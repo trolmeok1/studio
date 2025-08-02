@@ -6,16 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { Trophy } from "lucide-react";
+import { Trophy, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
     const router = useRouter();
+    const { loginAs } = useAuth();
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        // Here you would typically handle authentication
-        // For now, we'll just redirect to the dashboard
+        // Here you would typically handle real authentication (e.g. call an API)
+        // For this demo, we'll assume the credentials are correct for an admin
+        loginAs('admin');
+        router.push('/dashboard');
+    }
+
+    const handleGuestLogin = () => {
+        loginAs('guest');
         router.push('/dashboard');
     }
 
@@ -45,6 +54,18 @@ export default function LoginPage() {
                     Ingresar
                 </Button>
             </form>
+
+            <div className="my-6 flex items-center">
+                <Separator className="flex-grow" />
+                <span className="mx-4 text-xs text-muted-foreground">O</span>
+                <Separator className="flex-grow" />
+            </div>
+            
+            <Button variant="outline" className="w-full" onClick={handleGuestLogin}>
+                <User className="mr-2" />
+                Ingresar como Invitado
+            </Button>
+             
              <div className="mt-6 text-center text-sm">
                 ¿No tienes una cuenta?{" "}
                 <Link href="/register" className="text-primary hover:underline font-semibold">
@@ -55,3 +76,5 @@ export default function LoginPage() {
     </Card>
   );
 }
+
+    

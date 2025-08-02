@@ -9,7 +9,6 @@ import { AuthProvider } from '@/hooks/useAuth';
 
 export default function AppLayout({ children }: PropsWithChildren) {
   return (
-    <AuthProvider>
       <div className="dark bg-background text-foreground" style={{ backgroundImage: "url('/soccer-player-bg.jpg')", backgroundSize: 'cover', backgroundAttachment: 'fixed', backgroundPosition: 'center' }}>
         <SidebarProvider>
           <Sidebar>
@@ -20,6 +19,5 @@ export default function AppLayout({ children }: PropsWithChildren) {
           </SidebarInset>
         </SidebarProvider>
       </div>
-    </AuthProvider>
   );
 }

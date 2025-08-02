@@ -130,16 +130,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
-                      <Link href="/reports">
-                          <Flag />
-                          <span>Reportes</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
            </SidebarMenu>
         </SidebarGroup>
          
@@ -191,3 +181,5 @@ export function AppSidebar() {
     </>
   );
 }
+
+    
