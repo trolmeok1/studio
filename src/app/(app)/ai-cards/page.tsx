@@ -1,22 +1,37 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { players, teams } from '@/lib/mock-data';
+import { players, teams, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Printer } from 'lucide-react';
 
 export default function AiCardsPage() {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<Category | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
-  const selectedTeamPlayers = selectedTeamId
-    ? players.filter((p) => p.teamId === selectedTeamId)
-    : [];
+  const categories = useMemo(() => [...new Set(teams.map((t) => t.category))], []);
+  
+  const filteredTeams = useMemo(() => {
+    if (!selectedCategoryId) return [];
+    return teams.filter((team) => team.category === selectedCategoryId);
+  }, [selectedCategoryId]);
+
+  const selectedTeamPlayers = useMemo(() => {
+    if (!selectedTeamId) return [];
+    return players.filter((p) => p.teamId === selectedTeamId);
+  }, [selectedTeamId]);
     
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategoryId(value as Category);
+    setSelectedTeamId(null); // Reset team selection when category changes
   };
 
 
@@ -30,15 +45,30 @@ export default function AiCardsPage() {
 
       <Card className="lg:col-span-2 print:shadow-none print:border-none">
         <CardContent className="pt-6">
-          <div className="grid gap-4 md:grid-cols-2 print:hidden">
+          <div className="grid gap-4 md:grid-cols-3 print:hidden">
             <div>
-              <h3 className="text-lg font-medium mb-2">Seleccionar Equipo</h3>
-              <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''}>
+              <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
+              <Select onValueChange={handleCategoryChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Elige un equipo..." />
+                  <SelectValue placeholder="Elige una categoría..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {teams.map((team) => (
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+             <div>
+              <h3 className="text-lg font-medium mb-2">2. Seleccionar Equipo</h3>
+              <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''} disabled={!selectedCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedCategoryId ? "Elige un equipo..." : "Primero elige categoría"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredTeams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
                     </SelectItem>
@@ -48,7 +78,7 @@ export default function AiCardsPage() {
             </div>
             {selectedTeamId && (
                 <div>
-                     <h3 className="text-lg font-medium mb-2 invisible">Imprimir</h3>
+                     <h3 className="text-lg font-medium mb-2 invisible">3. Imprimir</h3>
                     <Button onClick={handlePrint} className="w-full md:w-auto">
                         <Printer className="mr-2 h-4 w-4" />
                         Imprimir Carnets ({selectedTeamPlayers.length})
@@ -152,12 +182,13 @@ export default function AiCardsPage() {
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(2, 1fr);
             gap: 0.5cm;
+            height: calc(100vh - 1cm); /* A4 height in landscape minus margins */
           }
           .id-card-wrapper {
              width: 100%; 
              height: 100%;
              display: flex;
-             align-items-center;
+             align-items: center;
              justify-content: center;
              overflow: hidden;
           }
@@ -166,13 +197,13 @@ export default function AiCardsPage() {
             max-width: none !important;
             height: 100% !important;
           }
-          .print\:hidden {
+          .print\\:hidden {
               display: none !important;
           }
-          .print\:shadow-none {
+          .print\\:shadow-none {
               box-shadow: none !important;
           }
-           .print\:border-none {
+           .print\\:border-none {
               border: none !important;
           }
         }
