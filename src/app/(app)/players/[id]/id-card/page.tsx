@@ -2,7 +2,7 @@ import { getPlayerById, getTeamById } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Trophy } from 'lucide-react';
 import { headers } from 'next/headers';
 import { Card } from '@/components/ui/card';
 
