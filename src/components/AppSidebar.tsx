@@ -11,6 +11,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   SidebarTrigger,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   Users,
@@ -21,10 +22,16 @@ import {
   Moon,
   LogOut,
   Settings,
+  Sparkles,
+  CalendarDays,
+  ClipboardSignature,
+  FileText,
+  UserCog,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { SidebarGroup, SidebarGroupLabel } from './ui/sidebar';
 
 const useTheme = () => {
   const isServer = typeof window === 'undefined';
@@ -83,6 +90,52 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <SidebarSeparator />
+        <SidebarGroup>
+           <SidebarGroupLabel>Admin</SidebarGroupLabel>
+           <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/ai-cards')} tooltip="Carnets AI">
+                    <Link href="#">
+                        <Sparkles />
+                        <span>Carnets AI</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Programación">
+                    <Link href="#">
+                        <CalendarDays />
+                        <span>Programación</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/committees')} tooltip="Vocalías">
+                    <Link href="#">
+                        <ClipboardSignature />
+                        <span>Vocalías</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
+                    <Link href="#">
+                        <FileText />
+                        <span>Reportes</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/roles')} tooltip="Roles">
+                    <Link href="#">
+                        <UserCog />
+                        <span>Roles</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+           </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <div className="flex items-center gap-3 rounded-md p-2 bg-muted/50">
