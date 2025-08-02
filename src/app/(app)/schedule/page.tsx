@@ -22,7 +22,13 @@ const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boole
     );
 };
   
-const Matchup = ({ teamA, teamB, isWinnerA }: { teamA: string | null; teamB: string | null; isWinnerA: boolean }) => {
+const Matchup = ({ teamA, teamB }: { teamA: string | null; teamB: string | null; }) => {
+    const [isWinnerA, setIsWinnerA] = useState(true);
+
+    useEffect(() => {
+        setIsWinnerA(Math.random() > 0.5);
+    }, []);
+
     return (
         <div className="inline-flex flex-col items-center gap-2">
             <BracketNode team={teamA} isWinner={isWinnerA} />
@@ -40,7 +46,7 @@ const RoundSection = ({ title, matchups }: { title: string; matchups: { teamA: s
                 <div className="p-4 bg-background/50 rounded-md overflow-x-auto">
                     <div className="flex flex-nowrap gap-8 pb-4">
                         {matchups.map((match, i) => (
-                            <Matchup key={i} teamA={match.teamA} teamB={match.teamB} isWinnerA={Math.random() > 0.5} />
+                            <Matchup key={i} teamA={match.teamA} teamB={match.teamB} />
                         ))}
                     </div>
                 </div>
@@ -65,7 +71,7 @@ const CopaBracket = () => {
                  <AccordionContent>
                      <div className="p-4 bg-background/50 rounded-md flex justify-center">
                          <div className="flex flex-col items-center">
-                            <Matchup teamA={final[0].teamA} teamB={final[0].teamB} isWinnerA={true} />
+                            <Matchup teamA={final[0].teamA} teamB={final[0].teamB} />
                             <div className="mt-8 text-center">
                                 <p className="text-lg text-muted-foreground">Campeón</p>
                                 <p className="text-3xl font-bold text-amber-400">🏆 {final[0].teamA} 🏆</p>
@@ -222,5 +228,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
