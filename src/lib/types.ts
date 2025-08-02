@@ -1,5 +1,6 @@
 
 
+
 export type Category = 'Copa' | 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -168,4 +169,14 @@ export interface MatchEvent {
   playerName: string;
   teamName: string;
   event: MatchEventType;
+}
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  userAvatar: string;
+  action: 'create' | 'update' | 'delete' | 'payment' | 'generate' | 'system';
+  category: 'team' | 'player' | 'treasury' | 'system' | 'match';
+  description: string;
 }

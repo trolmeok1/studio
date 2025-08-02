@@ -25,6 +25,7 @@ import {
   Swords,
   UserCog,
   Landmark,
+  FileClock,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -159,6 +160,16 @@ export function AppSidebar() {
                           <Link href="/roles">
                               <UserCog />
                               <span>Roles</span>
+                          </Link>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                 {isAdmin && (
+                  <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/logs')} tooltip="Logs">
+                          <Link href="/logs">
+                              <FileClock />
+                              <span>Logs</span>
                           </Link>
                       </SidebarMenuButton>
                   </SidebarMenuItem>

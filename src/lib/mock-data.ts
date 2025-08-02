@@ -1,5 +1,5 @@
 
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry } from './types';
 
 export let teams: Team[] = [
   { 
@@ -24,6 +24,13 @@ export let teams: Team[] = [
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Máxima', 
     president: { name: 'John Doe', phone: '0991112233' },
+    vicePresident: { name: 'VP Name' },
+    secretary: { name: 'Secretary Name' },
+    treasurer: { name: 'Treasurer Name' },
+    vocal: { name: 'Vocal Name' },
+    delegates: [
+        { name: 'Delegate 1' },
+    ]
   },
   { 
     id: '3', 
@@ -351,3 +358,51 @@ export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number
         topScorers = getTopScorers();
     }
 };
+
+export const systemLogs: LogEntry[] = [
+    {
+        id: 'log1',
+        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+        user: 'Usuario Admin',
+        userAvatar: 'https://placehold.co/100x100.png',
+        action: 'create',
+        category: 'team',
+        description: "agregó el equipo 'Asteroide FC'."
+    },
+    {
+        id: 'log2',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+        user: 'Secretario/a',
+        userAvatar: 'https://placehold.co/100x100.png',
+        action: 'payment',
+        category: 'treasury',
+        description: "marcó como pagada la vocalía de 'Solar Flares' ($15.00)."
+    },
+     {
+        id: 'log3',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+        user: 'Usuario Admin',
+        userAvatar: 'https://placehold.co/100x100.png',
+        action: 'update',
+        category: 'team',
+        description: "editó la información del club 'Cosmic Comets'."
+    },
+     {
+        id: 'log4',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(),
+        user: 'Usuario Admin',
+        userAvatar: 'https://placehold.co/100x100.png',
+        action: 'generate',
+        category: 'system',
+        description: "generó la nómina de jugadores para 'Galaxy Gliders'."
+    },
+    {
+        id: 'log5',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+        user: 'Usuario Admin',
+        userAvatar: 'https://placehold.co/100x100.png',
+        action: 'delete',
+        category: 'player',
+        description: "eliminó al jugador 'Neymar Jr' del equipo 'Cosmic Comets'."
+    },
+];
