@@ -63,11 +63,11 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                 <TableBody>
                     <TableRow>
                         <TableCell className="font-semibold p-1 border-r w-1/2">ÁRBITRO</TableCell>
-                        <TableCell className="p-1 text-right">$ 11.00</TableCell>
+                        <TableCell className="p-1"></TableCell>
                     </TableRow>
                      <TableRow>
                         <TableCell className="font-semibold p-1 border-r">CUOTAS</TableCell>
-                        <TableCell className="p-1 text-right">$ 2.00</TableCell>
+                        <TableCell className="p-1"></TableCell>
                     </TableRow>
                      <TableRow>
                         <TableCell className="font-semibold p-1 border-r">MULTAS</TableCell>
