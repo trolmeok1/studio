@@ -124,10 +124,20 @@ export default function AiCardsPage() {
         </CardContent>
       </Card>
       <style jsx global>{`
+        @media screen {
+            #card-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+        }
         .id-card-wrapper {
             break-inside: avoid;
+            page-break-inside: avoid;
         }
         @media print {
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
           body {
             background: white;
             -webkit-print-color-adjust: exact;
@@ -135,18 +145,20 @@ export default function AiCardsPage() {
           }
           .flex-1.space-y-4 {
             padding: 0;
+            margin: 0;
           }
           #card-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-            page-break-before: auto;
-            page-break-after: auto;
+            gap: 1cm;
+            width: 100%;
+            height: auto;
           }
           .id-card-wrapper {
-             page-break-inside: avoid;
              padding: 0;
              margin: 0;
+             transform: scale(0.65);
+             transform-origin: top left;
           }
           .print\:hidden {
               display: none !important;
