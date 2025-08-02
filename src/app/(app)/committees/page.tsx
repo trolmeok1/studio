@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ export default function CommitteesPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-background">
-       <div className="flex items-center justify-between">
+       <div className="flex items-center justify-between print:hidden">
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           Hoja de Vocalía
         </h2>
@@ -226,7 +227,7 @@ export default function CommitteesPage() {
       <style jsx global>{`
         @media print {
           body {
-            background: white;
+            background: white !important;
           }
           .flex-1.space-y-4 {
             padding: 0;
@@ -238,7 +239,10 @@ export default function CommitteesPage() {
           main {
             page-break-inside: avoid;
           }
-          .flex.items-center.justify-between, .print\:shadow-none, .print\:border-none {
+          .print\:hidden {
+              display: none !important;
+          }
+          .print\:shadow-none, .print\:border-none {
             box-shadow: none !important;
             border: none !important;
           }

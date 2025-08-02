@@ -22,42 +22,30 @@ const PlayerMarker = ({ player, className }: { player: Player; className?: strin
 );
 
 const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'away' }) => {
-    const allPlayersInLineup = match.lineup[teamType] || [];
+    const lineup = (match.lineup[teamType] || []).slice(0, 11);
 
-    const getPlayersByPosition = (players: Player[], position: Player['position']) => {
-        return players.filter(p => p.position === position);
-    }
+    const goalkeepers = lineup.filter(p => p.position === 'Portero');
+    const defenders = lineup.filter(p => p.position === 'Defensa');
+    const midfielders = lineup.filter(p => p.position === 'Mediocampista');
+    const forwards = lineup.filter(p => p.position === 'Delantero');
+
+    // Simple distribution for visualization if positions aren't perfectly balanced
+    const formation = {
+        forwards: forwards.slice(0, 2),
+        midfielders: midfielders.slice(0, 4),
+        defenders: defenders.slice(0, 4),
+        goalkeepers: goalkeepers.slice(0, 1)
+    };
     
-    // Get players by their designated positions first
-    const goalkeepers = getPlayersByPosition(allPlayersInLineup, 'Portero');
-    const defenders = getPlayersByPosition(allPlayersInLineup, 'Defensa');
-    const midfielders = getPlayersByPosition(allPlayersInLineup, 'Mediocampista');
-    const forwards = getPlayersByPosition(allPlayersInLineup, 'Delantero');
+    // Fill the rest
+    const assignedIds = new Set(Object.values(formation).flat().map(p => p.id));
+    const remainingPlayers = lineup.filter(p => !assignedIds.has(p.id));
 
-    // Create a set of players who are already assigned to a position group
-    const assignedPlayerIds = new Set([
-        ...goalkeepers.map(p => p.id),
-        ...defenders.map(p => p.id),
-        ...midfielders.map(p => p.id),
-        ...forwards.map(p => p.id),
-    ]);
+    while(formation.forwards.length < 2 && remainingPlayers.length > 0) formation.forwards.push(remainingPlayers.shift()!);
+    while(formation.midfielders.length < 4 && remainingPlayers.length > 0) formation.midfielders.push(remainingPlayers.shift()!);
+    while(formation.defenders.length < 4 && remainingPlayers.length > 0) formation.defenders.push(remainingPlayers.shift()!);
+    while(formation.goalkeepers.length < 1 && remainingPlayers.length > 0) formation.goalkeepers.push(remainingPlayers.shift()!);
 
-    // Get all remaining players who haven't been assigned
-    const remainingPlayers = allPlayersInLineup.filter(p => !assignedPlayerIds.has(p.id));
-
-    const fillLine = (assigned: Player[], count: number) => {
-        const line = [...assigned];
-        while (line.length < count && remainingPlayers.length > 0) {
-            line.push(remainingPlayers.shift()!);
-        }
-        return line;
-    }
-
-    // Fill the formation lines, prioritizing assigned players and then filling with remaining ones
-    const finalGoalkeepers = fillLine(goalkeepers, 1);
-    const finalDefenders = fillLine(defenders, 4);
-    const finalMidfielders = fillLine(midfielders, 4);
-    const finalForwards = fillLine(forwards, 2);
 
     return (
         <div className="relative w-full max-w-md mx-auto aspect-[2/3] bg-green-600/80 rounded-lg overflow-hidden p-4 flex flex-col justify-around mt-4" style={{
@@ -70,19 +58,19 @@ const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'awa
         }}>
             {/* Forwards */}
             <div className="flex justify-around h-1/4 items-center">
-                {finalForwards.map(p => <PlayerMarker key={p.id} player={p} />)}
+                {formation.forwards.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Midfielders */}
             <div className="flex justify-around h-1/4 items-center">
-                 {finalMidfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {formation.midfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Defenders */}
             <div className="flex justify-around h-1/4 items-center">
-                 {finalDefenders.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {formation.defenders.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Goalkeeper */}
             <div className="flex justify-around h-1/4 items-center">
-                 {finalGoalkeepers.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {formation.goalkeepers.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
         </div>
     );
