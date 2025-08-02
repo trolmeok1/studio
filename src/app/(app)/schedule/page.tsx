@@ -29,23 +29,24 @@ const Matchup = ({ teamA, teamB, isWinnerA }: { teamA: string | null; teamB: str
 );
 
 
-const RoundSection = ({ title, matchups }: { title: string; matchups: { teamA: string; teamB: string; }[] }) => (
-    <AccordionItem value={title}>
-        <AccordionTrigger className="text-xl font-bold font-headline tracking-wider uppercase">{title}</AccordionTrigger>
-        <AccordionContent>
-            <div className="p-4 bg-background/50 rounded-md overflow-x-auto">
-                 <div className="flex flex-nowrap gap-8 pb-4">
-                    {matchups.map((match, i) => (
-                        <Matchup key={i} teamA={match.teamA} teamB={match.teamB} isWinnerA={Math.random() > 0.5} />
-                    ))}
+const RoundSection = ({ title, matchups }: { title: string; matchups: { teamA: string; teamB: string; }[] }) => {
+    return (
+        <AccordionItem value={title}>
+            <AccordionTrigger className="text-xl font-bold font-headline tracking-wider uppercase">{title}</AccordionTrigger>
+            <AccordionContent>
+                <div className="p-4 bg-background/50 rounded-md overflow-x-auto">
+                     <div className="flex flex-nowrap gap-8 pb-4">
+                        {matchups.map((match, i) => (
+                            <Matchup key={i} teamA={match.teamA} teamB={match.teamB} isWinnerA={Math.random() > 0.5} />
+                        ))}
+                    </div>
                 </div>
-            </div>
-        </AccordionContent>
-    </AccordionItem>
-);
+            </AccordionContent>
+        </AccordionItem>
+    );
+};
 
 const CopaBracket = () => {
-    // This is a visual representation, logic for actual matchups would be more complex
     const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: `Equipo ${i * 2 + 1}`, teamB: `Equipo ${i * 2 + 2}` }));
     const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: `Ganador Octavos ${i * 2 + 1}`, teamB: `Ganador Octavos ${i * 2 + 2}` }));
     const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: `Ganador Cuartos ${i * 2 + 1}`, teamB: `Ganador Cuartos ${i * 2 + 2}` }));
@@ -82,7 +83,6 @@ const SegundaLeague = () => {
     }, []);
 
     const standings = useMemo(() => {
-        // Find the team logos from the main teams list
         const teamsWithLogos = mockStandings.map(s => {
             const teamData = teams.find(t => t.id === s.teamId);
             return {
@@ -144,12 +144,12 @@ const SegundaLeague = () => {
                         <h4 className="font-bold font-headline text-lg text-primary">FINAL</h4>
                          <div className="mt-2 p-4 rounded-lg bg-muted/50 flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                                <Image src={standings[0]?.teamLogoUrl || ''} alt={standings[0]?.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                <Image src={standings[0]?.teamLogoUrl || ''} alt={standings[0]?.teamName || 'Primero'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
                                 <span>{standings[0]?.teamName || 'Primero'}</span>
                             </div>
                             <span className="font-bold text-primary">VS</span>
                              <div className="flex items-center gap-2">
-                                <Image src={standings[1]?.teamLogoUrl || ''} alt={standings[1]?.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                <Image src={standings[1]?.teamLogoUrl || ''} alt={standings[1]?.teamName || 'Segundo'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
                                 <span>{standings[1]?.teamName || 'Segundo'}</span>
                             </div>
                         </div>
@@ -217,3 +217,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
