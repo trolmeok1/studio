@@ -112,7 +112,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
                <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/committees')} tooltip="Vocalías">
-                    <Link href="#">
+                    <Link href="/committees">
                         <ClipboardSignature />
                         <span>Vocalías</span>
                     </Link>
