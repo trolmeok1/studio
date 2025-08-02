@@ -44,6 +44,23 @@ const PhysicalMatchSheet = () => {
         </TableRow>
     );
 
+    const VocalPaymentDetails = () => (
+      <div className="text-xs mt-2 border">
+        <p className="p-1"><strong>Jugadores sancionados:</strong> ________________________</p>
+        <table className="w-full border-t">
+          <tbody>
+            <tr className="border-b"><td className="p-1 w-1/2"><strong>Pago Árbitro:</strong></td><td className="p-1 border-l text-right">$ 11.00</td></tr>
+            <tr className="border-b"><td className="p-1"><strong>Cuota:</strong></td><td className="p-1 border-l text-right">$ 2.00</td></tr>
+            <tr className="border-b"><td className="p-1"><strong>Tarjetas Amarillas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
+            <tr className="border-b"><td className="p-1"><strong>Tarjetas Rojas:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
+            <tr className="border-b"><td className="p-1"><strong>Multas (especificar):</strong> ____________</td><td className="p-1 border-l text-right">$______</td></tr>
+            <tr className="border-b"><td className="p-1"><strong>Otros (especificar):</strong> ______________</td><td className="p-1 border-l text-right">$______</td></tr>
+            <tr className="font-bold bg-gray-100"><td className="p-1"><strong>TOTAL VOCALÍA:</strong></td><td className="p-1 border-l text-right">$______</td></tr>
+          </tbody>
+        </table>
+      </div>
+    );
+
     return (
         <Card id="print-area" className="p-4 md:p-6 print:shadow-none print:border-none bg-white text-black">
             <CardContent className="p-0">
@@ -89,10 +106,7 @@ const PhysicalMatchSheet = () => {
                                 ))}
                             </TableBody>
                         </Table>
-                         <div className="text-xs mt-2 border p-1">
-                            <p><strong>Jugadores sancionados:</strong> ________________________</p>
-                            <p><strong>Total Pagado Vocalía:</strong> $ ____________</p>
-                        </div>
+                        <VocalPaymentDetails />
                         <div className="text-xs mt-2 border p-1 flex items-center">
                             <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
                             <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
@@ -126,10 +140,7 @@ const PhysicalMatchSheet = () => {
                                 ))}
                             </TableBody>
                         </Table>
-                         <div className="text-xs mt-2 border p-1">
-                            <p><strong>Jugadores sancionados:</strong> ________________________</p>
-                            <p><strong>Total Pagado Vocalía:</strong> $ ____________</p>
-                        </div>
+                        <VocalPaymentDetails />
                         <div className="text-xs mt-2 border p-1 flex items-center">
                             <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
                             <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
@@ -493,10 +504,10 @@ export default function CommitteesPage() {
           }
            .print\\:block {
               display: block !important;
-          }
+           }
            .print\\:shadow-none {
               box-shadow: none !important;
-          }
+           }
            .print\\:border-none {
               border: none !important;
           }
