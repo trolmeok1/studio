@@ -10,6 +10,18 @@ export const teams: Team[] = [
   { id: '6', name: 'Pulsar Pioneers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera' },
   { id: '7', name: 'Quasar Quest', logoUrl: 'https://placehold.co/100x100.png', category: 'Copa' },
   { id: '8', name: 'Nebula Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Copa' },
+  { id: '9', name: 'Asteroide FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '10', name: 'Supernova SC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '11', name: 'Blackhole United', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '12', name: 'Rocket Rangers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '13', name: 'Mars Rovers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '14', name: 'Jupiter Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '15', name: 'Saturn Rings', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '16', name: 'Neptune Knights', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '17', name: 'Pluto Pups', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '18', name: 'Mercury Meteors', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '19', name: 'Venus Vipers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
+  { id: '20', name: 'Earth Eagles', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda' },
 ];
 
 const generatePlayersForTeam = (teamId: string, teamName: string, category: Category, count: number, startId: number): Player[] => {
@@ -47,11 +59,20 @@ export const players: Player[] = [
 ];
 
 export const standings: Standing[] = [
-  { rank: 1, teamId: '1', teamName: 'Cosmic Comets', teamLogoUrl: 'https://placehold.co/40x40.png', played: 10, wins: 8, draws: 1, losses: 1, points: 25 },
-  { rank: 2, teamId: '2', teamName: 'Solar Flares', teamLogoUrl: 'https://placehold.co/40x40.png', played: 10, wins: 7, draws: 2, losses: 1, points: 23 },
-  { rank: 3, teamId: '3', teamName: 'Galaxy Gliders', teamLogoUrl: 'https://placehold.co/40x40.png', played: 10, wins: 6, draws: 1, losses: 3, points: 19 },
-  { rank: 4, teamId: '4', teamName: 'Orion Stars', teamLogoUrl: 'https://placehold.co/40x40.png', played: 10, wins: 5, draws: 2, losses: 3, points: 17 },
+  { rank: 1, teamId: '9', teamName: 'Asteroide FC', played: 10, wins: 8, draws: 1, losses: 1, points: 25, goalsFor: 20, goalsAgainst: 5 },
+  { rank: 2, teamId: '10', teamName: 'Supernova SC', played: 10, wins: 7, draws: 2, losses: 1, points: 23, goalsFor: 25, goalsAgainst: 10 },
+  { rank: 3, teamId: '11', teamName: 'Blackhole United', played: 10, wins: 7, draws: 1, losses: 2, points: 22, goalsFor: 18, goalsAgainst: 8 },
+  { rank: 4, teamId: '12', teamName: 'Rocket Rangers', played: 10, wins: 6, draws: 2, losses: 2, points: 20, goalsFor: 22, goalsAgainst: 12 },
+  { rank: 5, teamId: '13', teamName: 'Mars Rovers', played: 10, wins: 5, draws: 2, losses: 3, points: 17, goalsFor: 15, goalsAgainst: 15 },
+  { rank: 6, teamId: '14', teamName: 'Jupiter Giants', played: 10, wins: 4, draws: 3, losses: 3, points: 15, goalsFor: 13, goalsAgainst: 13 },
+  { rank: 7, teamId: '15', teamName: 'Saturn Rings', played: 10, wins: 3, draws: 3, losses: 4, points: 12, goalsFor: 10, goalsAgainst: 14 },
+  { rank: 8, teamId: '16', teamName: 'Neptune Knights', played: 10, wins: 2, draws: 4, losses: 4, points: 10, goalsFor: 8, goalsAgainst: 16 },
+  { rank: 9, teamId: '17', teamName: 'Pluto Pups', played: 10, wins: 2, draws: 2, losses: 6, points: 8, goalsFor: 7, goalsAgainst: 20 },
+  { rank: 10, teamId: '18', teamName: 'Mercury Meteors', played: 10, wins: 1, draws: 3, losses: 6, points: 6, goalsFor: 9, goalsAgainst: 22 },
+  { rank: 11, teamId: '19', teamName: 'Venus Vipers', played: 10, wins: 1, draws: 2, losses: 7, points: 5, goalsFor: 5, goalsAgainst: 19 },
+  { rank: 12, teamId: '20', teamName: 'Earth Eagles', played: 10, wins: 0, draws: 3, losses: 7, points: 3, goalsFor: 4, goalsAgainst: 25 },
 ];
+
 
 export const topScorers: Scorer[] = [
   { rank: 1, playerName: 'Leo Astral', teamName: 'Cosmic Comets', goals: 22 },
@@ -132,3 +153,4 @@ export const upcomingMatches: Match[] = [
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
 export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
 export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
+export const getTeamsByCategory = (category: Category): Team[] => teams.filter(t => t.category === category);

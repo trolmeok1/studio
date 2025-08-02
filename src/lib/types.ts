@@ -1,5 +1,5 @@
 
-export type Category = 'Copa' | 'Primera' | 'Máxima';
+export type Category = 'Copa' | 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 
 export interface Player {
@@ -49,6 +49,8 @@ export interface Standing {
   draws: number;
   losses: number;
   points: number;
+  goalsFor: number;
+  goalsAgainst: number;
 }
 
 export interface Sanction {
