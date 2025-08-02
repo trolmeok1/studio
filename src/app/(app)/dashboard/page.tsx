@@ -53,7 +53,7 @@ import {
   Ban,
   FilePen,
   BarChart2,
-  Futbol,
+  Goal,
   RectangleHorizontal,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -148,7 +148,7 @@ export default function DashboardPage() {
                 <p className="text-lg">Goles Marcados</p>
                 <p className="text-4xl font-bold">{dashboardStats.goalsScored}</p>
               </div>
-              <Futbol className="h-12 w-12 opacity-50" />
+              <Goal className="h-12 w-12 opacity-50" />
             </CardContent>
           </Card>
            <Card className="bg-yellow-500 text-white">
