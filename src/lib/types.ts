@@ -6,6 +6,9 @@ export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delanter
 export interface Player {
   id: string;
   name: string;
+  idNumber: string;
+  birthDate: string;
+  jerseyNumber: number;
   photoUrl: string;
   team: string;
   teamId: string;

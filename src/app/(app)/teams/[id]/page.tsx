@@ -7,17 +7,30 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+
+const initialNewPlayerState = {
+    firstName: '',
+    lastName: '',
+    idNumber: '',
+    birthDate: undefined as Date | undefined,
+    position: '' as PlayerPosition | '',
+    jerseyNumber: '',
+};
 
 export default function TeamDetailsPage() {
   const params = useParams();
@@ -28,7 +41,7 @@ export default function TeamDetailsPage() {
   const [team, setTeam] = useState<Team | undefined>(undefined);
   const [players, setPlayers] = useState<Player[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPlayer, setNewPlayer] = useState<{ name: string; position: PlayerPosition | '' }>({ name: '', position: '' });
+  const [newPlayer, setNewPlayer] = useState(initialNewPlayerState);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -46,19 +59,22 @@ export default function TeamDetailsPage() {
   }
 
   const handleAddPlayer = () => {
-    if (newPlayer.name && newPlayer.position) {
+    if (newPlayer.firstName && newPlayer.lastName && newPlayer.position && newPlayer.birthDate) {
       const newPlayerData: Player = {
         id: `p${Date.now()}`,
-        name: newPlayer.name,
+        name: `${newPlayer.firstName} ${newPlayer.lastName}`,
         position: newPlayer.position as PlayerPosition,
         team: team.name,
         teamId: team.id,
         category: team.category,
         photoUrl: 'https://placehold.co/400x400.png',
         stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
+        idNumber: newPlayer.idNumber,
+        birthDate: newPlayer.birthDate.toISOString().split('T')[0],
+        jerseyNumber: parseInt(newPlayer.jerseyNumber) || 0,
       };
       setPlayers([...players, newPlayerData]);
-      setNewPlayer({ name: '', position: '' });
+      setNewPlayer(initialNewPlayerState);
       setIsDialogOpen(false);
     }
   };
@@ -139,32 +155,60 @@ export default function TeamDetailsPage() {
                           Agregar Jugador
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
+                      <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
                           <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
+                           <DialogDescription>
+                            Completa los datos del jugador. Los campos de la cédula solo serán visibles para administradores.
+                          </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                              Nombres
-                            </Label>
-                            <Input
-                              id="name"
-                              value={newPlayer.name}
-                              onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                              className="col-span-3"
-                              placeholder="Nombres y apellidos completos"
-                            />
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="firstName">Nombres</Label>
+                                <Input id="firstName" value={newPlayer.firstName} onChange={(e) => setNewPlayer({ ...newPlayer, firstName: e.target.value })} placeholder="Nombres" />
+                             </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="lastName">Apellidos</Label>
+                                <Input id="lastName" value={newPlayer.lastName} onChange={(e) => setNewPlayer({ ...newPlayer, lastName: e.target.value })} placeholder="Apellidos" />
+                            </div>
                           </div>
-                           <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="position" className="text-right">
-                              Posición
-                            </Label>
-                             <Select
-                              onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })}
-                              value={newPlayer.position}
-                            >
-                              <SelectTrigger className="col-span-3">
+                           <div className="space-y-2">
+                            <Label htmlFor="idNumber">Número de Cédula</Label>
+                            <Input id="idNumber" value={newPlayer.idNumber} onChange={(e) => setNewPlayer({ ...newPlayer, idNumber: e.target.value })} placeholder="1234567890" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn("w-full justify-start text-left font-normal", !newPlayer.birthDate && "text-muted-foreground")}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {newPlayer.birthDate ? format(newPlayer.birthDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <CalendarPicker
+                                            mode="single"
+                                            selected={newPlayer.birthDate}
+                                            onSelect={(date) => setNewPlayer({ ...newPlayer, birthDate: date })}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                             </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="jerseyNumber">No. Camiseta</Label>
+                                <Input id="jerseyNumber" type="number" value={newPlayer.jerseyNumber} onChange={(e) => setNewPlayer({ ...newPlayer, jerseyNumber: e.target.value })} placeholder="10" />
+                             </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="position">Posición</Label>
+                             <Select onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })} value={newPlayer.position}>
+                              <SelectTrigger>
                                 <SelectValue placeholder="Selecciona una posición" />
                               </SelectTrigger>
                               <SelectContent>
@@ -175,8 +219,24 @@ export default function TeamDetailsPage() {
                               </SelectContent>
                             </Select>
                           </div>
+                           <div className="space-y-2">
+                                <Label htmlFor="photoUrl">Foto de Perfil</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input id="photoUrl" type="file" className="flex-grow" />
+                                    <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
+                                </div>
+                          </div>
+                           <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-dashed">
+                                <Label htmlFor="idCardUrl">Cédula Completa (Administrativo)</Label>
+                                 <div className="flex items-center gap-2">
+                                    <Input id="idCardUrl" type="file" className="flex-grow" />
+                                     <Button variant="ghost" size="icon"><FileText className="h-5 w-5"/></Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Imagen rectangular. Visible solo para administradores.</p>
+                          </div>
+
                         </div>
-                        <Button onClick={handleAddPlayer}>Guardar Jugador</Button>
+                        <Button onClick={handleAddPlayer} className="w-full" size="lg">Guardar Jugador</Button>
                       </DialogContent>
                     </Dialog>
                   )}
@@ -186,6 +246,7 @@ export default function TeamDetailsPage() {
                     {players.map((player) => (
                       <Card key={player.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg">
                         <CardHeader className="p-0">
+                           <Link href={`/players/${player.id}`}>
                             <Image
                               src={player.photoUrl}
                               alt={`Foto de ${player.name}`}
@@ -194,6 +255,7 @@ export default function TeamDetailsPage() {
                               className="w-full h-auto aspect-square object-cover"
                               data-ai-hint="player portrait"
                             />
+                           </Link>
                         </CardHeader>
                         <CardContent className="p-4 flex-grow">
                           <h3 className="text-xl font-bold font-headline mt-2">{player.name}</h3>
