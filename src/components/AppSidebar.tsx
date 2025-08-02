@@ -133,7 +133,7 @@ export function AppSidebar() {
               {isAdmin && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
-                      <Link href="#">
+                      <Link href="/reports">
                           <Flag />
                           <span>Reportes</span>
                       </Link>

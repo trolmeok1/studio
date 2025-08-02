@@ -1,4 +1,5 @@
 
+
 export type Category = 'Copa' | 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 
@@ -46,7 +47,7 @@ export interface Standing {
   rank: number;
   teamId: string;
   teamName: string;
-  teamLogoUrl: string;
+  teamLogoUrl?: string;
   played: number;
   wins: number;
   draws: number;
@@ -58,8 +59,11 @@ export interface Standing {
 
 export interface Sanction {
   id: string;
+  playerId: string;
   playerName: string;
+  playerPhotoUrl: string;
   teamName: string;
+  teamId: string;
   reason: string;
   gamesSuspended: number;
   date: string;
@@ -67,8 +71,11 @@ export interface Sanction {
 
 export interface Scorer {
   rank: number;
+  playerId: string;
   playerName: string;
+  playerPhotoUrl: string;
   teamName: string;
+  teamId: string;
   goals: number;
 }
 

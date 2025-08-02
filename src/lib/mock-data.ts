@@ -1,4 +1,5 @@
 
+import { getPlayerById as getPlayerByIdFromAll } from './mock-data-internal';
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, PlayerPosition } from './types';
 
 export const teams: Team[] = [
@@ -36,13 +37,13 @@ const generatePlayersForTeam = (teamId: string, teamName: string, category: Cate
             teamId: teamId,
             category: category,
             position: positions[i % 4],
-            stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 }
+            stats: { goals: Math.floor(Math.random() * 20), assists: Math.floor(Math.random() * 15), yellowCards: Math.floor(Math.random() * 10), redCards: Math.floor(Math.random() * 2) }
         });
     }
     return players;
 }
 
-export const players: Player[] = [
+export let players: Player[] = [
   // Cosmic Comets (Team 1) - 30 players
   ...generatePlayersForTeam('1', 'Cosmic Comets', 'Máxima', 30, 100),
   
@@ -55,8 +56,21 @@ export const players: Player[] = [
   { id: '501', name: 'Jordan Vortex', photoUrl: 'https://placehold.co/400x400.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 2, redCards: 0 } },
   { id: '601', name: 'Taylor Pulsar', photoUrl: 'https://placehold.co/400x400.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Mediocampista', stats: { goals: 20, assists: 18, yellowCards: 4, redCards: 0 } },
   { id: '701', name: 'Morgan Quasar', photoUrl: 'https://placehold.co/400x400.png', team: 'Quasar Quest', teamId: '7', category: 'Copa', position: 'Delantero', stats: { goals: 30, assists: 5, yellowCards: 6, redCards: 1 } },
-  { id: '801', name: 'Casey Nebula', photoUrl: 'https://placehold.co/400x400.png', team: 'Nebula Nomads', teamId: '8', category: 'Copa', position: 'Portero', stats: { goals: 28, assists: 9, yellowCards: 1, redCards: 0 } },
+  { id: '801', name: 'Casey Nebula', photoUrl: 'https://placehold.co/400x400.png', team: 'Nebula Nomads', teamId: '8', category: 'Copa', position: 'Portero', stats: { goals: 1, assists: 9, yellowCards: 1, redCards: 0 } },
 ];
+players = [...players, ...generatePlayersForTeam('9', 'Asteroide FC', 'Segunda', 18, 900)];
+players = [...players, ...generatePlayersForTeam('10', 'Supernova SC', 'Segunda', 18, 1000)];
+players = [...players, ...generatePlayersForTeam('11', 'Blackhole United', 'Segunda', 18, 1100)];
+players = [...players, ...generatePlayersForTeam('12', 'Rocket Rangers', 'Segunda', 18, 1200)];
+players = [...players, ...generatePlayersForTeam('13', 'Mars Rovers', 'Segunda', 18, 1300)];
+players = [...players, ...generatePlayersForTeam('14', 'Jupiter Giants', 'Segunda', 18, 1400)];
+players = [...players, ...generatePlayersForTeam('15', 'Saturn Rings', 'Segunda', 18, 1500)];
+players = [...players, ...generatePlayersForTeam('16', 'Neptune Knights', 'Segunda', 18, 1600)];
+players = [...players, ...generatePlayersForTeam('17', 'Pluto Pups', 'Segunda', 18, 1700)];
+players = [...players, ...generatePlayersForTeam('18', 'Mercury Meteors', 'Segunda', 18, 1800)];
+players = [...players, ...generatePlayersForTeam('19', 'Venus Vipers', 'Segunda', 18, 1900)];
+players = [...players, ...generatePlayersForTeam('20', 'Earth Eagles', 'Segunda', 18, 2000)];
+
 
 export const standings: Standing[] = [
   { rank: 1, teamId: '9', teamName: 'Asteroide FC', played: 10, wins: 8, draws: 1, losses: 1, points: 25, goalsFor: 20, goalsAgainst: 5 },
@@ -74,18 +88,33 @@ export const standings: Standing[] = [
 ];
 
 
-export const topScorers: Scorer[] = [
-  { rank: 1, playerName: 'Leo Astral', teamName: 'Cosmic Comets', goals: 22 },
-  { rank: 2, playerName: 'Jordan Vortex', teamName: 'Vortex Voyagers', goals: 25 },
-  { rank: 3, playerName: 'Morgan Quasar', teamName: 'Quasar Quest', goals: 30 },
-  { rank: 4, playerName: 'Chris Nova', teamName: 'Solar Flares', goals: 18 },
-];
+export const topScorers: Scorer[] = players
+    .sort((a, b) => b.stats.goals - a.stats.goals)
+    .slice(0, 10)
+    .map((player, index) => ({
+        rank: index + 1,
+        playerId: player.id,
+        playerName: player.name,
+        playerPhotoUrl: player.photoUrl,
+        teamName: player.team,
+        teamId: player.teamId,
+        goals: player.stats.goals,
+    }));
 
-export const sanctions: Sanction[] = [
-  { id: 's1', playerName: 'Chris Nova', teamName: 'Solar Flares', reason: 'Unsportsmanlike conduct', gamesSuspended: 2, date: '2024-07-20' },
-  { id: 's2', playerName: 'Sam Meteor', teamName: 'Orion Stars', reason: 'Accumulation of yellow cards', gamesSuspended: 1, date: '2024-07-18' },
-  { id: 's3', playerName: 'Morgan Quasar', teamName: 'Quasar Quest', reason: 'Violent conduct', gamesSuspended: 3, date: '2024-07-15' },
-];
+
+export const sanctions: Sanction[] = players
+    .filter(p => p.stats.redCards > 0)
+    .map((player, index) => ({
+        id: `s${index + 1}`,
+        playerId: player.id,
+        playerName: player.name,
+        playerPhotoUrl: player.photoUrl,
+        teamName: player.team,
+        teamId: player.teamId,
+        reason: 'Tarjeta Roja Directa',
+        gamesSuspended: 1,
+        date: '2024-07-20',
+}));
 
 export const achievements: Achievement[] = [
     { teamName: 'Athletic Bilbao Jr', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Campeón', category: 'Categoría Máxima', year: '2018-2019' },
