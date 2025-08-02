@@ -1,6 +1,9 @@
+'use client';
+
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -12,146 +15,248 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { players, teams, standings, topScorers, sanctions } from '@/lib/mock-data';
-import { Users, Shield, Trophy, Swords, Calendar } from 'lucide-react';
+import {
+  achievements,
+  dashboardStats,
+  players,
+  teams,
+  standings,
+  topScorers,
+  sanctions,
+} from '@/lib/mock-data';
+import {
+  Users,
+  Shield,
+  Trophy,
+  Swords,
+  Calendar,
+  List,
+  Flag,
+  UserSquare,
+  Gavel,
+  Check,
+  Plus,
+  Ban,
+  FilePen,
+  BarChart2,
+  Futbol,
+  RectangleHorizontal,
+} from 'lucide-react';
 import Image from 'next/image';
+
+const barData = [
+  { name: 'W1', value: 10 },
+  { name: 'W2', value: 15 },
+  { name: 'W3', value: 12 },
+  { name: 'W4', value: 20 },
+  { name: 'W5', value: 18 },
+];
+
+const pieData = [
+  { name: 'A', value: 2768, color: '#f59e0b' },
+  { name: 'B', value: 335, color: '#ef4444' },
+];
 
 export default function DashboardPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <h2 className="text-3xl font-bold tracking-tight font-headline">
-        Dashboard del Torneo
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight font-headline">
+          Dashboard
+        </h2>
+        <p className="text-muted-foreground">
+          Visualiza el resumen de la información del campeonato
+        </p>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Jugadores</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">CATEGORÍAS</CardTitle>
+            <List className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{players.length}</div>
-            <p className="text-xs text-muted-foreground">Registrados en todas las categorías</p>
+            <div className="text-2xl font-bold">
+              {dashboardStats.categories}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Equipos</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">ETAPAS</CardTitle>
+            <Flag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teams.length}</div>
-            <p className="text-xs text-muted-foreground">Compitiendo esta temporada</p>
+            <div className="text-2xl font-bold">{dashboardStats.stages}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Partidos Jugados</CardTitle>
-            <Swords className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">ÁRBITROS</CardTitle>
+            <UserSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">124</div>
-            <p className="text-xs text-muted-foreground">En todos los torneos</p>
+            <div className="text-2xl font-bold">{dashboardStats.referees}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próxima Jornada</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">MULTAS</CardTitle>
+            <Gavel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">28 de Julio, 2024</div>
-            <p className="text-xs text-muted-foreground">Partidos del fin de semana</p>
+            <div className="text-2xl font-bold">${dashboardStats.fines}</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle className="font-headline">Tabla de Posiciones (Máxima)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">Pos</TableHead>
-                  <TableHead>Equipo</TableHead>
-                  <TableHead className="text-center">PJ</TableHead>
-                  <TableHead className="text-center">G</TableHead>
-                  <TableHead className="text-center">E</TableHead>
-                  <TableHead className="text-center">P</TableHead>
-                  <TableHead className="text-right">Pts</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {standings.map((team) => (
-                  <TableRow key={team.teamId}>
-                    <TableCell className="font-medium">{team.rank}</TableCell>
-                    <TableCell>
-                       <div className="flex items-center gap-2">
-                        <Image src={team.teamLogoUrl} alt={team.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                        <span>{team.teamName}</span>
-                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">{team.played}</TableCell>
-                    <TableCell className="text-center">{team.wins}</TableCell>
-                    <TableCell className="text-center">{team.draws}</TableCell>
-                    <TableCell className="text-center">{team.losses}</TableCell>
-                    <TableCell className="text-right font-bold">{team.points}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="font-headline">Goleadores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {topScorers.map((scorer) => (
-                <div key={scorer.playerName} className="flex items-center">
-                  <span className="font-bold text-lg mr-4">{scorer.rank}.</span>
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={`https://placehold.co/100x100.png`} alt={scorer.playerName} data-ai-hint="player avatar"/>
-                    <AvatarFallback>{scorer.playerName.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium leading-none">{scorer.playerName}</p>
-                    <p className="text-sm text-muted-foreground">{scorer.teamName}</p>
-                  </div>
-                  <div className="ml-auto font-medium">{scorer.goals} Goles</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="col-span-1 md:col-span-2 bg-blue-500 text-white">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-lg">Partidos Jugados</p>
+                <p className="text-4xl font-bold">{dashboardStats.matchesPlayed}</p>
+              </div>
+              <div className="w-24 h-16">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barData}>
+                    <Bar dataKey="value" fill="#ffffff" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-7">
+          <Card className="bg-green-500 text-white">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-lg">Goles Marcados</p>
+                <p className="text-4xl font-bold">{dashboardStats.goalsScored}</p>
+              </div>
+              <Futbol className="h-12 w-12 opacity-50" />
+            </CardContent>
+          </Card>
+           <Card className="bg-yellow-500 text-white">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-lg">T.A. Exhibidas</p>
+                <p className="text-4xl font-bold">{dashboardStats.yellowCards}</p>
+              </div>
+               <RectangleHorizontal className="h-12 w-12 opacity-50 transform -rotate-45" />
+            </CardContent>
+          </Card>
+            <Card className="bg-red-500 text-white">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-lg">T.R. Exhibidas</p>
+                <p className="text-4xl font-bold">{dashboardStats.redCards}</p>
+              </div>
+               <RectangleHorizontal className="h-12 w-12 opacity-50 transform -rotate-45"/>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-400 text-white">
+            <CardContent className="flex items-center justify-between p-4">
+               <div>
+                <p className="text-sm">EQUIPOS</p>
+                <p className="text-2xl font-bold">Registrados</p>
+              </div>
+              <p className="text-4xl font-bold">{dashboardStats.teams.registered}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-400 text-white">
+             <CardContent className="flex items-center justify-between p-4">
+               <div>
+                <p className="text-sm">EQUIPOS</p>
+                <p className="text-2xl font-bold">Aprobados</p>
+              </div>
+              <p className="text-4xl font-bold">{dashboardStats.teams.approved}</p>
+            </CardContent>
+          </Card>
+           <Card className="bg-yellow-400 text-white">
+             <CardContent className="flex items-center justify-between p-4">
+               <div>
+                <p className="text-sm">EQUIPOS</p>
+                <p className="text-2xl font-bold">Desaprobados</p>
+              </div>
+              <p className="text-4xl font-bold">{dashboardStats.teams.rejected}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-400 text-white">
+             <CardContent className="flex items-center justify-between p-4">
+               <div>
+                <p className="text-sm">EQUIPOS</p>
+                <p className="text-2xl font-bold">Sancionados</p>
+              </div>
+              <p className="text-4xl font-bold">{dashboardStats.teams.sanctioned}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="bg-green-500 text-white">
+            <CardContent className="p-4 flex justify-between items-center">
+              <Check className="h-8 w-8" />
+              <div>
+                <p className="text-right">JUGADORES</p>
+                <p className="text-3xl font-bold text-right">{dashboardStats.players.approved}</p>
+                <p className="text-sm text-right">Aprobados</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-500 text-white">
+            <CardContent className="p-4 flex justify-between items-center">
+              <Plus className="h-8 w-8" />
+               <div>
+                <p className="text-right">JUGADORES</p>
+                <p className="text-3xl font-bold text-right">{dashboardStats.players.new}</p>
+                <p className="text-sm text-right">Nuevos</p>
+              </div>
+            </CardContent>
+          </Card>
+           <Card className="bg-yellow-500 text-white">
+            <CardContent className="p-4 flex justify-between items-center">
+              <Ban className="h-8 w-8" />
+               <div>
+                <p className="text-right">JUGADORES</p>
+                <p className="text-3xl font-bold text-right">{dashboardStats.players.rejected}</p>
+                <p className="text-sm text-right">Rechazados</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      
+      <Card className="lg:col-span-7">
           <CardHeader>
-            <CardTitle className="font-headline">Sanciones Recientes</CardTitle>
+            <CardTitle className="font-headline">Logros</CardTitle>
           </CardHeader>
-          <CardContent>
-             <div className="space-y-4">
-              {sanctions.map((sanction) => (
-                <div key={sanction.id} className="flex items-center p-2 rounded-lg hover:bg-muted/50">
-                  <Shield className="h-5 w-5 text-destructive mr-4" />
-                  <div className="flex-1">
-                    <p className="font-semibold">{sanction.playerName} <span className="text-muted-foreground font-normal">({sanction.teamName})</span></p>
-                    <p className="text-sm text-muted-foreground">{sanction.reason}</p>
-                  </div>
-                   <Badge variant="destructive" className="ml-auto">{sanction.gamesSuspended} {sanction.gamesSuspended > 1 ? 'Partidos' : 'Partido'}</Badge>
+          <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+             {achievements.map((achievement) => (
+                <div key={achievement.teamName} className="flex flex-col items-center text-center">
+                    <Image src={achievement.teamLogoUrl} alt={achievement.teamName} width={80} height={80} data-ai-hint="team logo" />
+                    <p className="font-bold mt-2">{achievement.teamName}</p>
+                    <p className="text-sm text-primary">{achievement.achievement}</p>
+                    <p className="text-xs text-muted-foreground">{achievement.category}</p>
+                    <p className="text-xs text-muted-foreground">{achievement.year}</p>
                 </div>
-              ))}
-            </div>
+             ))}
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Player, Team, Standing, Sanction, Scorer } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats } from './types';
 
 export const teams: Team[] = [
   { id: '1', name: 'Cosmic Comets', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima' },
@@ -41,6 +41,36 @@ export const sanctions: Sanction[] = [
   { id: 's2', playerName: 'Sam Meteor', teamName: 'Orion Stars', reason: 'Accumulation of yellow cards', gamesSuspended: 1, date: '2024-07-18' },
   { id: 's3', playerName: 'Morgan Quasar', teamName: 'Quasar Quest', reason: 'Violent conduct', gamesSuspended: 3, date: '2024-07-15' },
 ];
+
+export const achievements: Achievement[] = [
+    { teamName: 'Athletic Bilbao Jr', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Campeón', category: 'Categoría Máxima', year: '2018-2019' },
+    { teamName: 'Cruzeiro', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Vicecampeón', category: 'Categoría Máxima', year: '2018-2019' },
+    { teamName: 'Jesús Del Gran Poder', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Campeón', category: 'Categoría Femenino', year: '2018-2019' },
+    { teamName: 'Union Bautista', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Vicecampeón', category: 'Categoría Femenino', year: '2018-2019' },
+]
+
+export const dashboardStats: DashboardStats = {
+    categories: 6,
+    stages: 3,
+    referees: 69,
+    fines: 48,
+    matchesPlayed: 698,
+    goalsScored: 4856,
+    yellowCards: 2768,
+    redCards: 335,
+    teams: {
+        registered: 2,
+        approved: 65,
+        rejected: 9,
+        sanctioned: 1,
+    },
+    players: {
+        approved: 1730,
+        new: 394,
+        rejected: 1470,
+    }
+}
+
 
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
 

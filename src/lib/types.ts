@@ -49,3 +49,33 @@ export interface Scorer {
   teamName: string;
   goals: number;
 }
+
+export interface Achievement {
+    teamName: string;
+    teamLogoUrl: string;
+    achievement: string;
+    category: string;
+    year: string;
+}
+
+export interface DashboardStats {
+    categories: number;
+    stages: number;
+    referees: number;
+    fines: number;
+    matchesPlayed: number;
+    goalsScored: number;
+    yellowCards: number;
+    redCards: number;
+    teams: {
+        registered: number;
+        approved: number;
+        rejected: number;
+        sanctioned: number;
+    };
+    players: {
+        approved: number;
+        new: number;
+        rejected: number;
+    };
+}

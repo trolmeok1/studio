@@ -27,6 +27,9 @@ import {
   ClipboardSignature,
   FileText,
   UserCog,
+  FilePen,
+  CreditCard,
+  Flag,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -105,7 +108,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/ai-cards')} tooltip="Carnets AI">
                     <Link href="/ai-cards">
-                        <Sparkles />
+                        <CreditCard />
                         <span>Carnets AI</span>
                     </Link>
                 </SidebarMenuButton>
@@ -113,7 +116,7 @@ export function AppSidebar() {
                <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/committees')} tooltip="Vocalías">
                     <Link href="/committees">
-                        <ClipboardSignature />
+                        <FilePen />
                         <span>Vocalías</span>
                     </Link>
                 </SidebarMenuButton>
@@ -121,7 +124,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
                     <Link href="#">
-                        <FileText />
+                        <Flag />
                         <span>Reportes</span>
                     </Link>
                 </SidebarMenuButton>
