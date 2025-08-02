@@ -148,97 +148,105 @@ export default function TeamDetailsPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Plantilla de Jugadores ({players.length})</CardTitle>
                   {canEdit && (
-                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Agregar Jugador
+                    <div className="flex items-center gap-2">
+                         <Button size="sm" variant="outline" asChild>
+                            <Link href={`/teams/${teamId}/roster`}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Descargar Nómina
+                            </Link>
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
-                           <DialogDescription>
-                            Completa los datos del jugador. Los campos de la cédula solo serán visibles para administradores.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <Label htmlFor="firstName">Nombres</Label>
-                                <Input id="firstName" value={newPlayer.firstName} onChange={(e) => setNewPlayer({ ...newPlayer, firstName: e.target.value })} placeholder="Nombres" />
-                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="lastName">Apellidos</Label>
-                                <Input id="lastName" value={newPlayer.lastName} onChange={(e) => setNewPlayer({ ...newPlayer, lastName: e.target.value })} placeholder="Apellidos" />
-                            </div>
-                          </div>
-                           <div className="space-y-2">
-                            <Label htmlFor="idNumber">Número de Cédula</Label>
-                            <Input id="idNumber" value={newPlayer.idNumber} onChange={(e) => setNewPlayer({ ...newPlayer, idNumber: e.target.value })} placeholder="1234567890" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn("w-full justify-start text-left font-normal", !newPlayer.birthDate && "text-muted-foreground")}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {newPlayer.birthDate ? format(newPlayer.birthDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <CalendarPicker
-                                            mode="single"
-                                            selected={newPlayer.birthDate}
-                                            onSelect={(date) => setNewPlayer({ ...newPlayer, birthDate: date })}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                             </div>
+                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm">
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Agregar Jugador
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-lg">
+                            <DialogHeader>
+                              <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
+                               <DialogDescription>
+                                Completa los datos del jugador. Los campos de la cédula solo serán visibles para administradores.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="space-y-2">
+                                    <Label htmlFor="firstName">Nombres</Label>
+                                    <Input id="firstName" value={newPlayer.firstName} onChange={(e) => setNewPlayer({ ...newPlayer, firstName: e.target.value })} placeholder="Nombres" />
+                                 </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor="lastName">Apellidos</Label>
+                                    <Input id="lastName" value={newPlayer.lastName} onChange={(e) => setNewPlayer({ ...newPlayer, lastName: e.target.value })} placeholder="Apellidos" />
+                                </div>
+                              </div>
+                               <div className="space-y-2">
+                                <Label htmlFor="idNumber">Número de Cédula</Label>
+                                <Input id="idNumber" value={newPlayer.idNumber} onChange={(e) => setNewPlayer({ ...newPlayer, idNumber: e.target.value })} placeholder="1234567890" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="space-y-2">
+                                    <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn("w-full justify-start text-left font-normal", !newPlayer.birthDate && "text-muted-foreground")}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {newPlayer.birthDate ? format(newPlayer.birthDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <CalendarPicker
+                                                mode="single"
+                                                selected={newPlayer.birthDate}
+                                                onSelect={(date) => setNewPlayer({ ...newPlayer, birthDate: date })}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                 </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor="jerseyNumber">No. Camiseta</Label>
+                                    <Input id="jerseyNumber" type="number" value={newPlayer.jerseyNumber} onChange={(e) => setNewPlayer({ ...newPlayer, jerseyNumber: e.target.value })} placeholder="10" />
+                                 </div>
+                              </div>
                               <div className="space-y-2">
-                                <Label htmlFor="jerseyNumber">No. Camiseta</Label>
-                                <Input id="jerseyNumber" type="number" value={newPlayer.jerseyNumber} onChange={(e) => setNewPlayer({ ...newPlayer, jerseyNumber: e.target.value })} placeholder="10" />
-                             </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="position">Posición</Label>
-                             <Select onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })} value={newPlayer.position}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecciona una posición" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Portero">Portero</SelectItem>
-                                <SelectItem value="Defensa">Defensa</SelectItem>
-                                <SelectItem value="Mediocampista">Mediocampista</SelectItem>
-                                <SelectItem value="Delantero">Delantero</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                           <div className="space-y-2">
-                                <Label htmlFor="photoUrl">Foto de Perfil</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input id="photoUrl" type="file" className="flex-grow" />
-                                    <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
-                                </div>
-                          </div>
-                           <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-dashed">
-                                <Label htmlFor="idCardUrl">Cédula Completa (Administrativo)</Label>
-                                 <div className="flex items-center gap-2">
-                                    <Input id="idCardUrl" type="file" className="flex-grow" />
-                                     <Button variant="ghost" size="icon"><FileText className="h-5 w-5"/></Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">Imagen rectangular. Visible solo para administradores.</p>
-                          </div>
+                                <Label htmlFor="position">Posición</Label>
+                                 <Select onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })} value={newPlayer.position}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona una posición" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Portero">Portero</SelectItem>
+                                    <SelectItem value="Defensa">Defensa</SelectItem>
+                                    <SelectItem value="Mediocampista">Mediocampista</SelectItem>
+                                    <SelectItem value="Delantero">Delantero</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                               <div className="space-y-2">
+                                    <Label htmlFor="photoUrl">Foto de Perfil</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input id="photoUrl" type="file" className="flex-grow" />
+                                        <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
+                                    </div>
+                              </div>
+                               <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-dashed">
+                                    <Label htmlFor="idCardUrl">Cédula Completa (Administrativo)</Label>
+                                     <div className="flex items-center gap-2">
+                                        <Input id="idCardUrl" type="file" className="flex-grow" />
+                                         <Button variant="ghost" size="icon"><FileText className="h-5 w-5"/></Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Imagen rectangular. Visible solo para administradores.</p>
+                              </div>
 
-                        </div>
-                        <Button onClick={handleAddPlayer} className="w-full" size="lg">Guardar Jugador</Button>
-                      </DialogContent>
-                    </Dialog>
+                            </div>
+                            <Button onClick={handleAddPlayer} className="w-full" size="lg">Guardar Jugador</Button>
+                          </DialogContent>
+                        </Dialog>
+                    </div>
                   )}
                 </CardHeader>
                 <CardContent>
@@ -330,3 +338,5 @@ export default function TeamDetailsPage() {
     </div>
   );
 }
+
+    
