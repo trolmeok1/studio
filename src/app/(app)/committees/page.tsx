@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -246,12 +246,12 @@ const DigitalMatchSheet = () => {
                      <h3 className="text-xl font-bold">Resumen del Partido</h3>
                      <div className="grid grid-cols-2 gap-4 items-center">
                         <div className="text-center space-y-2">
-                            <Image src={matchData.teamA.logoUrl} alt={matchData.teamA.name} width={60} height={60} className="mx-auto rounded-full" />
+                            <Image src={matchData.teamA.logoUrl} alt={matchData.teamA.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
                             <h4 className="font-bold">{matchData.teamA.name}</h4>
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamA} onChange={(e) => setFinalScore({...finalScore, teamA: parseInt(e.target.value) || 0})} />
                         </div>
                          <div className="text-center space-y-2">
-                             <Image src={matchData.teamB.logoUrl} alt={matchData.teamB.name} width={60} height={60} className="mx-auto rounded-full" />
+                             <Image src={matchData.teamB.logoUrl} alt={matchData.teamB.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
                             <h4 className="font-bold">{matchData.teamB.name}</h4>
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamB} onChange={(e) => setFinalScore({...finalScore, teamB: parseInt(e.target.value) || 0})} />
                         </div>
@@ -358,4 +358,3 @@ export default function CommitteesPage() {
     </div>
   );
 }
-
