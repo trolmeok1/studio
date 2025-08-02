@@ -26,8 +26,20 @@ export const players: Player[] = [
   { id: '117', name: 'Player Seventeen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   { id: '118', name: 'Player Eighteen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Portero', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   
-  // Other players
+  // Solar Flares (Team 2)
   { id: '102', name: 'Chris Nova', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 18, assists: 10, yellowCards: 5, redCards: 1 } },
+  { id: '201', name: 'Stella Flare', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Portero', stats: { goals: 0, assists: 0, yellowCards: 1, redCards: 0 } },
+  { id: '202', name: 'Rigel Sun', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 1, assists: 2, yellowCards: 3, redCards: 0 } },
+  { id: '203', name: 'Sirius Blaze', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 0, assists: 1, yellowCards: 2, redCards: 0 } },
+  { id: '204', name: 'Vega Heat', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 2, assists: 0, yellowCards: 4, redCards: 0 } },
+  { id: '205', name: 'Altair Ray', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 0, assists: 0, yellowCards: 1, redCards: 0 } },
+  { id: '206', name: 'Orion Burst', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 8, assists: 12, yellowCards: 2, redCards: 0 } },
+  { id: '207', name: 'Lyra Spark', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 6, assists: 15, yellowCards: 3, redCards: 0 } },
+  { id: '208', name: 'Draco Ember', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 10, yellowCards: 1, redCards: 0 } },
+  { id: '209', name: 'Cygnus Fire', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 7, assists: 8, yellowCards: 2, redCards: 0 } },
+  { id: '210', name: 'Corona Flash', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
+
+  // Other players
   { id: '103', name: 'Alex Comet', photoUrl: 'https://placehold.co/400x400.png', team: 'Galaxy Gliders', teamId: '3', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 20, yellowCards: 1, redCards: 0 } },
   { id: '104', name: 'Sam Meteor', photoUrl: 'https://placehold.co/400x400.png', team: 'Orion Stars', teamId: '4', category: 'Máxima', position: 'Defensa', stats: { goals: 12, assists: 8, yellowCards: 7, redCards: 0 } },
   { id: '105', name: 'Jordan Vortex', photoUrl: 'https://placehold.co/400x400.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 2, redCards: 0 } },
