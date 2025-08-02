@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { upcomingMatches, type Match } from '@/lib/mock-data';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 const PlayerMarker = ({ player, className }: { player: { name: string; photoUrl: string }; className?: string }) => (
   <div className={cn('flex flex-col items-center gap-1', className)}>
