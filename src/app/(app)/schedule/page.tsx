@@ -18,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse } from 'date-fns';
+import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -326,14 +326,14 @@ const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate
     const [startDate, setStartDate] = useState<Date | undefined>(new Date());
     const [numberOfFields, setNumberOfFields] = useState(1);
     const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
-        '4': false, 
-        '5': false, 
+        '4': true, 
+        '5': true, 
         '6': true, // Saturday
         '0': true, // Sunday
     });
      const [dayConfigs, setDayConfigs] = useState<Record<string, { start: string; end: string }>>({
-        '4': { start: '08:00', end: '18:00' },
-        '5': { start: '08:00', end: '18:00' },
+        '4': { start: '18:00', end: '22:00' },
+        '5': { start: '18:00', end: '22:00' },
         '6': { start: '10:00', end: '18:00' },
         '0': { start: '09:00', end: '17:00' }, 
     });
@@ -503,7 +503,6 @@ export default function SchedulePage() {
         const rounds = teamIds.length - 1;
         const half = teamIds.length / 2;
 
-        // Two legs for round-robin
         for (let leg = 0; leg < 2; leg++) {
             let currentTeams = [...teamIds];
              for (let i = 0; i < rounds; i++) {
@@ -529,38 +528,39 @@ export default function SchedulePage() {
         return matches;
     };
     
-    // 1. Generate all matches for each category
-    const maximaMatches = generateRoundRobinMatches(getTeamsByCategory('Máxima').sort(() => 0.5 - Math.random()), 'Máxima');
-    const primeraMatches = generateRoundRobinMatches(getTeamsByCategory('Primera').sort(() => 0.5 - Math.random()), 'Primera');
-    
-    let segundaMatches: GeneratedMatch[] = [];
-    let segundaTeams = getTeamsByCategory('Segunda');
-    segundaTeams.sort(() => 0.5 - Math.random());
-    if (segundaTeams.length >= 16) {
-        const midPoint = Math.ceil(segundaTeams.length / 2);
-        const groupA = segundaTeams.slice(0, midPoint);
-        const groupB = segundaTeams.slice(midPoint);
-        groupA.forEach(t => t.group = 'A');
-        groupB.forEach(t => t.group = 'B');
-        segundaMatches = [
-            ...generateRoundRobinMatches(groupA, 'Segunda', 'A'),
-            ...generateRoundRobinMatches(groupB, 'Segunda', 'B')
-        ];
-    } else {
-        segundaMatches = generateRoundRobinMatches(segundaTeams, 'Segunda');
+    let matchQueue: GeneratedMatch[] = [];
+    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+
+    categories.forEach(category => {
+        let teamsForScheduling = getTeamsByCategory(category);
+        if (category === 'Segunda' && teamsForScheduling.length >= 16) {
+            teamsForScheduling.sort(() => 0.5 - Math.random());
+            const midPoint = Math.ceil(teamsForScheduling.length / 2);
+            const groupA = teamsForScheduling.slice(0, midPoint);
+            const groupB = teamsForScheduling.slice(midPoint);
+            groupA.forEach(t => t.group = 'A');
+            groupB.forEach(t => t.group = 'B');
+            matchQueue.push(...generateRoundRobinMatches(groupA, 'Segunda', 'A'));
+            matchQueue.push(...generateRoundRobinMatches(groupB, 'Segunda', 'B'));
+        } else {
+            matchQueue.push(...generateRoundRobinMatches(teamsForScheduling, category));
+        }
+    });
+
+    // Shuffle the array to mix categories
+    for (let i = matchQueue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [matchQueue[i], matchQueue[j]] = [matchQueue[j], matchQueue[i]];
     }
 
-    const matchQueue: GeneratedMatch[] = [...maximaMatches, ...primeraMatches, ...segundaMatches];
-
-    // 2. Generate all available time slots
-    const generateAllTimeSlots = () => {
+    const generateAllTimeSlots = (matchCount: number) => {
         const slots: { date: Date; field: number }[] = [];
         let currentDate = startOfDay(startDate);
         const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
         
         if (enabledPlayDays.length === 0) return [];
         
-        while (slots.length < matchQueue.length) {
+        while (slots.length < matchCount) {
             const dayOfWeek = getDay(currentDate);
 
             if (enabledPlayDays.includes(dayOfWeek)) {
@@ -568,37 +568,33 @@ export default function SchedulePage() {
                 const [startHour, startMinute] = config.start.split(':').map(Number);
                 const [endHour, endMinute] = config.end.split(':').map(Number);
                 
-                let matchTime = setMinutes(setHours(currentDate, startHour), startMinute);
-                const endTime = setMinutes(setHours(currentDate, endHour), endMinute);
+                let slotTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
+                const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
 
-                while (matchTime.getTime() < endTime.getTime()) {
+                while (slotTime.getTime() < endTime.getTime() && slots.length < matchCount) {
                     for (let field = 1; field <= numberOfFields; field++) {
-                        if (slots.length < matchQueue.length) {
-                            slots.push({ date: new Date(matchTime), field });
+                        if (slots.length < matchCount) {
+                             slots.push({ date: new Date(slotTime), field });
                         }
                     }
-                    // Move to the next 2-hour slot
-                    const newHour = matchTime.getHours() + 2;
-                    matchTime.setHours(newHour);
+                    slotTime = addHours(slotTime, 2);
                 }
             }
             currentDate = addDays(currentDate, 1);
         }
         return slots;
     };
-    
-    const timeSlots = generateAllTimeSlots();
 
-    // 3. Assign matches to time slots
+    const timeSlots = generateAllTimeSlots(matchQueue.length);
+
+    if (timeSlots.length < matchQueue.length) {
+        console.error("Not enough time slots generated for all matches.");
+        // Handle error appropriately - maybe show a toast to the user
+        return;
+    }
+
     const scheduledMatches: GeneratedMatch[] = matchQueue.map((match, index) => {
         const slot = timeSlots[index];
-        if (!slot) {
-            console.error("Not enough slots for all matches", {
-                matchCount: matchQueue.length,
-                slotCount: timeSlots.length,
-            });
-            return { ...match };
-        }
         return {
             ...match,
             date: slot.date,
@@ -607,94 +603,92 @@ export default function SchedulePage() {
         };
     });
 
-    setGeneratedMatches(scheduledMatches.filter(m => m.date));
+    setGeneratedMatches(scheduledMatches);
     setIsDrawDialogOpen(false);
     setIsSuccessDialogOpen(true);
   };
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold tracking-tight font-headline">
+                Programación de Partidos
+            </h2>
+            <Card className="p-2 bg-card/50">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold mr-2">Admin:</span>
+                    <Button 
+                        variant={isTournamentStarted ? "destructive" : "outline"}
+                        onClick={handleDrawButtonClick}
+                    >
+                        <Dices className="mr-2" />
+                        {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
+                    </Button>
+                </div>
+            </Card>
+        </div>
+
+        <DrawDialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen} onGenerate={generateMasterSchedule} />
+
+            <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="text-center text-2xl text-primary">¡Felicidades!</DialogTitle>
+                        <DialogDescription className="text-center text-lg">
+                            Has iniciado el torneo.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button className="w-full">Cerrar</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
+            {resetAlerts.map((alert, index) => (
+                <AlertDialog key={index} open={resetAlertStep === index + 1}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>{alert.title}</AlertDialogTitle>
+                            <AlertDialogDescription>{alert.description}</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={handleResetAlertCancel}>Cancelar</Button>
+                            <AlertDialogAction onClick={handleResetAlertNext}>{alert.action}</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            ))}
 
 
-  return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight font-headline">
-            Programación de Partidos
-        </h2>
-        <Card className="p-2 bg-card/50">
-            <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold mr-2">Admin:</span>
-                 <Button 
-                    variant={isTournamentStarted ? "destructive" : "outline"}
-                    onClick={handleDrawButtonClick}
-                  >
-                    <Dices className="mr-2" />
-                    {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
-                </Button>
-            </div>
-        </Card>
-      </div>
-
-       <DrawDialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen} onGenerate={generateMasterSchedule} />
-
-        <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle className="text-center text-2xl text-primary">¡Felicidades!</DialogTitle>
-                    <DialogDescription className="text-center text-lg">
-                        Has iniciado el torneo.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button className="w-full">Cerrar</Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-        
-        {resetAlerts.map((alert, index) => (
-             <AlertDialog key={index} open={resetAlertStep === index + 1}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{alert.title}</AlertDialogTitle>
-                        <AlertDialogDescription>{alert.description}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={handleResetAlertCancel}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleResetAlertNext}>{alert.action}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        ))}
-
-
-      <Tabs defaultValue="copa" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="copa">Copa La Luz</TabsTrigger>
-          <TabsTrigger value="maxima">Máxima</TabsTrigger>
-          <TabsTrigger value="primera">Primera</TabsTrigger>
-          <TabsTrigger value="segunda">Segunda</TabsTrigger>
-        </TabsList>
-        <TabsContent value="copa">
-           <Card>
-            <CardHeader>
-              <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
-              <CardDescription>Torneo de eliminación directa con 16 equipos de todas las categorías.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CopaBracket />
-            </CardContent>
-          </Card>
-        </TabsContent>
-         <TabsContent value="maxima">
-           <LeagueView category="Máxima" generatedMatches={generatedMatches} />
-        </TabsContent>
-         <TabsContent value="primera">
-           <LeagueView category="Primera" generatedMatches={generatedMatches} />
-        </TabsContent>
-         <TabsContent value="segunda">
-           <LeagueView category="Segunda" generatedMatches={generatedMatches} />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+        <Tabs defaultValue="copa" className="space-y-4">
+            <TabsList>
+            <TabsTrigger value="copa">Copa La Luz</TabsTrigger>
+            <TabsTrigger value="maxima">Máxima</TabsTrigger>
+            <TabsTrigger value="primera">Primera</TabsTrigger>
+            <TabsTrigger value="segunda">Segunda</TabsTrigger>
+            </TabsList>
+            <TabsContent value="copa">
+            <Card>
+                <CardHeader>
+                <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
+                <CardDescription>Torneo de eliminación directa con 16 equipos de todas las categorías.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <CopaBracket />
+                </CardContent>
+            </Card>
+            </TabsContent>
+            <TabsContent value="maxima">
+            <LeagueView category="Máxima" generatedMatches={generatedMatches} />
+            </TabsContent>
+            <TabsContent value="primera">
+            <LeagueView category="Primera" generatedMatches={generatedMatches} />
+            </TabsContent>
+            <TabsContent value="segunda">
+            <LeagueView category="Segunda" generatedMatches={generatedMatches} />
+            </TabsContent>
+        </Tabs>
+        </div>
+    );
 }
