@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, setSeconds, parse, addHours, addWeeks } from 'date-fns';
+import { format, addDays, setHours, setMinutes, setSeconds, parse, addHours, addWeeks, getDay, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -552,47 +552,47 @@ export default function SchedulePage() {
     } else {
         segundaMatches = generateRoundRobinMatches(segundaTeams, 'Segunda');
     }
-
+    
     // Prioritized match queue
     const matchQueue: GeneratedMatch[] = [...maximaMatches, ...primeraMatches, ...segundaMatches];
     let scheduledMatches: GeneratedMatch[] = [];
     let matchIndex = 0;
-    
-    let currentDate = new Date(startDate);
+    let currentDate = startOfDay(new Date(startDate));
 
-    while(matchIndex < matchQueue.length) {
-        // Find the next available play day
-        while (!enabledPlayDays.includes(currentDate.getDay())) {
-            currentDate = addDays(currentDate, 1);
-        }
-        
-        const dayOfWeek = currentDate.getDay();
-        const config = dayConfigs[dayOfWeek];
-        const [startHour, startMinute] = config.start.split(':').map(Number);
-        const [endHour, endMinute] = config.end.split(':').map(Number);
+    // Time slots generation
+    const timeSlots: { date: Date, field: number }[] = [];
+    let tempDate = startOfDay(new Date(startDate));
 
-        let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
-        const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
+    for (let i = 0; i < 365 && timeSlots.length < matchQueue.length; i++) {
+        if (enabledPlayDays.includes(getDay(tempDate))) {
+            const dayOfWeek = getDay(tempDate);
+            const config = dayConfigs[dayOfWeek];
+            const [startHour, startMinute] = config.start.split(':').map(Number);
+            const [endHour, endMinute] = config.end.split(':').map(Number);
 
-        // Schedule matches for the current day
-        while (matchTime < endTime && matchIndex < matchQueue.length) {
-            for (let field = 1; field <= numberOfFields && matchIndex < matchQueue.length; field++) {
-                let matchToSchedule = matchQueue[matchIndex];
-                
-                scheduledMatches.push({
-                    ...matchToSchedule,
-                    date: new Date(matchTime),
-                    time: format(matchTime, 'HH:mm'),
-                    field
-                });
-                matchIndex++;
+            let slotTime = setMinutes(setHours(startOfDay(tempDate), startHour), startMinute);
+            const endTime = setMinutes(setHours(startOfDay(tempDate), endHour), endMinute);
+            
+            while (slotTime < endTime) {
+                for (let field = 1; field <= numberOfFields; field++) {
+                    timeSlots.push({ date: new Date(slotTime), field });
+                }
+                slotTime = addHours(slotTime, 2);
             }
-             
-            matchTime = addHours(matchTime, 2);
         }
+        tempDate = addDays(tempDate, 1);
+    }
 
-        // Move to the next day
-        currentDate = addDays(currentDate, 1);
+    // Assign matches to time slots
+    for (let i = 0; i < matchQueue.length; i++) {
+        if (i < timeSlots.length) {
+            scheduledMatches.push({
+                ...matchQueue[i],
+                date: timeSlots[i].date,
+                time: format(timeSlots[i].date, 'HH:mm'),
+                field: timeSlots[i].field,
+            });
+        }
     }
     
     setGeneratedMatches(scheduledMatches);
@@ -686,4 +686,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
