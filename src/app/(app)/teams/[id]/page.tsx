@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition } from '@/lib/mock-data';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,7 @@ export default function TeamDetailsPage() {
         <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="info"><BadgeInfo className="mr-2" />Información</TabsTrigger>
             <TabsTrigger value="roster"><Users className="mr-2" />Nómina</TabsTrigger>
-            <TabsTrigger value="calendar"><Calendar className="mr-2" />Calendario</Tabs-Trigger>
+            <TabsTrigger value="calendar"><Calendar className="mr-2" />Calendario</TabsTrigger>
             <TabsTrigger value="stats"><BarChart2 className="mr-2" />Estadísticas</TabsTrigger>
             <TabsTrigger value="results"><Award className="mr-2" />Resultados</TabsTrigger>
             <TabsTrigger value="sanctions"><ShieldAlert className="mr-2" />Sanciones</TabsTrigger>
@@ -203,13 +203,13 @@ export default function TeamDetailsPage() {
         <TabsContent value="results">
             <Card>
                 <CardHeader><CardTitle>Resultados</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Próximamente...</p></cardcontent>
+                <CardContent><p className="text-muted-foreground">Próximamente...</p></CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="sanctions">
             <Card>
                 <CardHeader><CardTitle>Sanciones</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Próximamente...</p></cardcontent>
+                <CardContent><p className="text-muted-foreground">Próximamente...</p></CardContent>
             </Card>
         </TabsContent>
       </Tabs>
