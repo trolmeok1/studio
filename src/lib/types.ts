@@ -1,6 +1,7 @@
 
 
 
+
 export type Category = 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -77,8 +78,9 @@ export interface Match {
 }
 
 export interface GeneratedMatch {
-    home: string;
-    away: string;
+    home: string; // teamId
+    away: string; // teamId
+    category: Category;
     date?: Date;
     time?: string;
 }

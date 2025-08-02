@@ -23,10 +23,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 
 const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean }) => {
+    const [isClientWinner, setIsClientWinner] = useState(false);
+
+    useEffect(() => {
+        if (team) { // Only determine winner if there is a team
+            setIsClientWinner(Math.random() > 0.5);
+        }
+    }, [team]);
+
     return (
         <div
         className={cn(`flex items-center w-full h-8 px-2 border text-xs rounded-md`,
-            isWinner ? 'bg-primary/20 border-primary font-bold' : 'bg-muted/50',
+            isWinner ?? isClientWinner ? 'bg-primary/20 border-primary font-bold' : 'bg-muted/50',
             !team ? 'border-dashed' : 'border-solid'
         )}
         >
@@ -70,26 +78,25 @@ const CopaBracket = () => {
     const [bracketTeams, setBracketTeams] = useState<Team[]>([]);
 
     useEffect(() => {
-        // This logic runs only on the client, preventing hydration errors
-        let allTeams = getTeamsByCategory('Máxima').concat(getTeamsByCategory('Primera')).concat(getTeamsByCategory('Segunda'));
+        let allTeams: Team[] = [
+            ...getTeamsByCategory('Máxima'),
+            ...getTeamsByCategory('Primera'),
+            ...getTeamsByCategory('Segunda')
+        ];
         
-        // Shuffle teams for random bracket
         allTeams.sort(() => 0.5 - Math.random());
 
-        if (allTeams.length < 16) {
-            const placeholderCount = 16 - allTeams.length;
-            for(let i = 0; i < placeholderCount; i++) {
-                 allTeams.push({
-                    id: `fake-${i + 1}`,
-                    name: `Equipo ${i + 1}`,
-                    logoUrl: 'https://placehold.co/100x100.png',
-                    category: 'Máxima' // temp category
-                });
-            }
-        } else {
-            allTeams = allTeams.slice(0, 16);
+        const selectedTeams = allTeams.slice(0, 16);
+
+        while (selectedTeams.length < 16) {
+            selectedTeams.push({
+                id: `fake-${selectedTeams.length + 1}`,
+                name: `Equipo ${selectedTeams.length + 1}`,
+                logoUrl: 'https://placehold.co/100x100.png',
+                category: 'Máxima'
+            });
         }
-        setBracketTeams(allTeams);
+        setBracketTeams(selectedTeams);
     }, []);
 
     if (bracketTeams.length === 0) {
@@ -97,9 +104,9 @@ const CopaBracket = () => {
     }
 
     const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] }));
-    const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] })); // Dummy winners
-    const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] })); // Dummy winners
-    const final = { teamA: bracketTeams[0], teamB: bracketTeams[1] }; // Dummy winners
+    const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: octavos[i*2].teamA, teamB: octavos[i*2+1].teamA })); // Dummy winners
+    const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: cuartos[i*2].teamA, teamB: cuartos[i*2+1].teamA })); // Dummy winners
+    const final = { teamA: semifinal[0].teamA, teamB: semifinal[1].teamA }; // Dummy winners
 
     return (
         <div className="flex justify-center items-stretch gap-4 md:gap-8 p-4 bg-background/50 rounded-md overflow-x-auto">
@@ -463,9 +470,9 @@ export default function SchedulePage() {
         <TabsList>
           <TabsTrigger value="general">Calendario General</TabsTrigger>
           <TabsTrigger value="copa">Copa La Luz</TabsTrigger>
-          <TabsTrigger value="segunda">Segunda</TabsTrigger>
-          <TabsTrigger value="primera">Primera</TabsTrigger>
           <TabsTrigger value="maxima">Máxima</TabsTrigger>
+          <TabsTrigger value="primera">Primera</TabsTrigger>
+          <TabsTrigger value="segunda">Segunda</TabsTrigger>
         </TabsList>
          <TabsContent value="general">
              <Card>
@@ -498,14 +505,14 @@ export default function SchedulePage() {
             </CardContent>
           </Card>
         </TabsContent>
-         <TabsContent value="segunda">
-           <LeagueView category="Segunda" />
+         <TabsContent value="maxima">
+           <LeagueView category="Máxima" />
         </TabsContent>
          <TabsContent value="primera">
            <LeagueView category="Primera" />
         </TabsContent>
-        <TabsContent value="maxima">
-           <LeagueView category="Máxima" />
+        <TabsContent value="segunda">
+           <LeagueView category="Segunda" />
         </TabsContent>
       </Tabs>
     </div>
