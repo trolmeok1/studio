@@ -23,20 +23,39 @@ const PlayerMarker = ({ player, className }: { player: Player; className?: strin
 
 const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'away' }) => {
     const lineup = match.lineup[teamType];
-    const goalkeeper = lineup.filter(p => p.position === 'Portero').slice(0, 1);
-    const defenders = lineup.filter(p => p.position === 'Defensa').slice(0, 4);
-    const midfielders = lineup.filter(p => p.position === 'Mediocampista').slice(0, 4);
-    const forwards = lineup.filter(p => p.position === 'Delantero').slice(0, 2);
+    
+    // Defensive copy to avoid mutation issues
+    const availablePlayers = [...lineup];
 
-    const displayedPlayers = new Set([...goalkeeper, ...defenders, ...midfielders, ...forwards].map(p => p.id));
-    const remainingPlayers = lineup.filter(p => !displayedPlayers.has(p.id));
+    const getPlayersByPosition = (position: string, count: number) => {
+      const players = [];
+      const remainingPlayers = [];
+      for (const player of availablePlayers) {
+        if (player.position === position && players.length < count) {
+          players.push(player);
+        } else {
+          remainingPlayers.push(player);
+        }
+      }
+      // This is a simple way to update the available players pool
+      // A more robust implementation might use IDs to track who has been placed
+      availablePlayers.length = 0;
+      availablePlayers.push(...remainingPlayers);
+      return players;
+    };
     
     const fillPlayers = (target: Player[], count: number) => {
-        while(target.length < count && remainingPlayers.length > 0) {
-            target.push(remainingPlayers.shift()!);
+        while (target.length < count && availablePlayers.length > 0) {
+            target.push(availablePlayers.shift()!);
         }
     }
 
+    const forwards = getPlayersByPosition('Delantero', 2);
+    const midfielders = getPlayersByPosition('Mediocampista', 4);
+    const defenders = getPlayersByPosition('Defensa', 4);
+    const goalkeeper = getPlayersByPosition('Portero', 1);
+
+    // Fill remaining spots to ensure 11 players are on the field
     fillPlayers(forwards, 2);
     fillPlayers(midfielders, 4);
     fillPlayers(defenders, 4);
