@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -30,6 +31,7 @@ import {
   FilePen,
   CreditCard,
   Flag,
+  Swords,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -97,6 +99,14 @@ export function AppSidebar() {
                 <Link href="/schedule">
                     <CalendarDays />
                     <span>Programación</span>
+                </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive('/partido')} tooltip="Partido">
+                <Link href="/partido">
+                    <Swords />
+                    <span>Partido</span>
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

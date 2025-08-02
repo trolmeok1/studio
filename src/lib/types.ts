@@ -1,3 +1,4 @@
+
 export type Category = 'Copa' | 'Primera' | 'Máxima';
 
 export interface Player {
@@ -20,6 +21,20 @@ export interface Team {
   name: string;
   logoUrl: string;
   category: Category;
+}
+
+export interface Match {
+    id: string;
+    date: string;
+    category: Category;
+    teams: {
+        home: Team;
+        away: Team;
+    };
+    lineup: {
+        home: Player[];
+        away: Player[];
+    };
 }
 
 export interface Standing {

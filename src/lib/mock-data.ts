@@ -1,4 +1,5 @@
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category } from './types';
+
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match } from './types';
 
 export const teams: Team[] = [
   { id: '1', name: 'Cosmic Comets', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima' },
@@ -87,6 +88,39 @@ export const dashboardStats: DashboardStats = {
         rejected: 1470,
     }
 }
+
+const getPlayersForTeam = (teamId: string, count: number) => {
+    return players.filter(p => p.teamId === teamId).slice(0, count);
+}
+
+export const upcomingMatches: Match[] = [
+    {
+        id: 'm1',
+        date: '2024-08-10T16:00:00Z',
+        category: 'Máxima',
+        teams: {
+            home: teams[0], // Cosmic Comets
+            away: teams[1]  // Solar Flares
+        },
+        lineup: {
+            home: getPlayersForTeam('1', 11),
+            away: getPlayersForTeam('2', 11),
+        }
+    },
+    {
+        id: 'm2',
+        date: '2024-08-11T18:00:00Z',
+        category: 'Primera',
+        teams: {
+            home: teams[4], // Vortex Voyagers
+            away: teams[5]  // Pulsar Pioneers
+        },
+        lineup: {
+            home: getPlayersForTeam('5', 11),
+            away: getPlayersForTeam('6', 11),
+        }
+    }
+];
 
 
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
