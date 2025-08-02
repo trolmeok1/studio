@@ -573,12 +573,13 @@ export default function SchedulePage() {
                 let slotTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
                 const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
 
-                while (isBefore(slotTime, endTime) && slots.length < matchCount) {
+                while (isBefore(slotTime, endTime)) {
                      for (let field = 1; field <= numberOfFields; field++) {
                         if (slots.length < matchCount) {
                              slots.push({ date: new Date(slotTime), field });
                         }
                     }
+                    if (slots.length >= matchCount) break;
                     slotTime = addHours(slotTime, 2);
                 }
             }
