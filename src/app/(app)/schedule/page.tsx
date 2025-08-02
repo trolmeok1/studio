@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Image from 'next/image';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean; }) => (
+const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean }) => (
   <div
     className={`flex items-center justify-between w-48 h-10 px-3 border rounded-md text-sm
       ${isWinner ? 'bg-primary/20 border-primary font-bold text-primary-foreground' : 'bg-muted/50'}
@@ -20,7 +20,7 @@ const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boole
   </div>
 );
 
-const Matchup = ({ teamA, teamB, isWinnerA }: { teamA: string | null; teamB: string | null; isWinnerA: boolean; }) => (
+const Matchup = ({ teamA, teamB, isWinnerA }: { teamA: string | null; teamB: string | null; isWinnerA: boolean }) => (
     <div className="inline-flex flex-col items-center gap-2">
        <BracketNode team={teamA} isWinner={isWinnerA} />
        <span className="text-xs font-bold text-muted-foreground">VS</span>
