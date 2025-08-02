@@ -1,20 +1,22 @@
 
 'use client';
 
-import { getPlayerById, getTeamById, getPlayersByTeamId } from '@/lib/mock-data';
-import { notFound } from 'next/navigation';
+import { getTeamById, getPlayersByTeamId } from '@/lib/mock-data';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 
-export default function TeamRosterPage({ params }: { params: { id: string } }) {
-  const team = getTeamById(params.id);
+export default function TeamRosterPage() {
+  const params = useParams();
+  const teamId = typeof params.id === 'string' ? params.id : '';
+  const team = getTeamById(teamId);
 
   if (!team) {
     notFound();
   }
 
-  const players = getPlayersByTeamId(params.id);
+  const players = getPlayersByTeamId(teamId);
 
   const splitName = (fullName: string) => {
     const parts = fullName.split(' ');
