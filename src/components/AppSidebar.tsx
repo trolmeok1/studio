@@ -35,13 +35,13 @@ import { SidebarGroup, SidebarGroupLabel } from './ui/sidebar';
 
 const useTheme = () => {
   const isServer = typeof window === 'undefined';
-  const _setTheme = (theme: 'light' | 'dark') => {
+  const setTheme = (theme: 'light' | 'dark') => {
     if (!isServer) {
       document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(theme);
     }
   };
-  return { setTheme: _setTheme };
+  return { setTheme };
 };
 
 export function AppSidebar() {
@@ -89,6 +89,14 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Programación">
+                <Link href="/schedule">
+                    <CalendarDays />
+                    <span>Programación</span>
+                </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
         <SidebarSeparator />
         <SidebarGroup>
@@ -96,17 +104,9 @@ export function AppSidebar() {
            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/ai-cards')} tooltip="Carnets AI">
-                    <Link href="#">
+                    <Link href="/ai-cards">
                         <Sparkles />
                         <span>Carnets AI</span>
-                    </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Programación">
-                    <Link href="#">
-                        <CalendarDays />
-                        <span>Programación</span>
                     </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
