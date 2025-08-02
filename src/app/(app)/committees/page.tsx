@@ -37,7 +37,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     
     const PlayerRow = ({ player, number }: { player?: Player, number: number }) => (
         <TableRow className="h-8">
-            <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{number}</TableCell>
+            <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{player?.jerseyNumber}</TableCell>
             <TableCell className="border p-1 text-left w-[200px] text-xs">{player?.name || ''}</TableCell>
             <TableCell className="border text-center p-1 w-[40px]"></TableCell>
         </TableRow>
@@ -269,7 +269,7 @@ const DigitalMatchSheet = () => {
         }
         const results = allPlayers.filter(p => 
             p.teamId === selectedTeamId &&
-            p.id.slice(-2) === playerNumber.padStart(2, '0') // Assuming player number is last 2 digits of ID
+            p.jerseyNumber.toString() === playerNumber
         );
 
         if (results.length === 0) {
