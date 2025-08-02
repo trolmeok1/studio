@@ -1,9 +1,8 @@
 
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { standings as mockStandings, getTeamsByCategory, Team, Category, upcomingMatches as initialMatches } from '@/lib/mock-data';
+import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Dices, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -12,13 +11,13 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { Match, GeneratedMatch } from '@/lib/types';
+import type { GeneratedMatch } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, addHours } from 'date-fns';
+import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, addHours, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -503,7 +502,7 @@ export default function SchedulePage() {
         const rounds = teamIds.length - 1;
         const half = teamIds.length / 2;
 
-        for (let leg = 0; leg < 2; leg++) {
+        for (let leg = 0; leg < 2; leg++) { // Two legs: home and away
             let currentTeams = [...teamIds];
              for (let i = 0; i < rounds; i++) {
                 for (let j = 0; j < half; j++) {
@@ -521,6 +520,7 @@ export default function SchedulePage() {
                         matches.push({ home, away, category, group });
                     }
                 }
+                // Rotate teams
                 const lastTeam = currentTeams.pop();
                 if(lastTeam) currentTeams.splice(1, 0, lastTeam);
             }
@@ -534,10 +534,12 @@ export default function SchedulePage() {
     categories.forEach(category => {
         let teamsForScheduling = getTeamsByCategory(category);
         if (category === 'Segunda' && teamsForScheduling.length >= 16) {
+            // Split teams into two groups for 'Segunda'
             teamsForScheduling.sort(() => 0.5 - Math.random());
             const midPoint = Math.ceil(teamsForScheduling.length / 2);
             const groupA = teamsForScheduling.slice(0, midPoint);
             const groupB = teamsForScheduling.slice(midPoint);
+            // Assign group property to teams
             groupA.forEach(t => t.group = 'A');
             groupB.forEach(t => t.group = 'B');
             matchQueue.push(...generateRoundRobinMatches(groupA, 'Segunda', 'A'));
@@ -546,8 +548,8 @@ export default function SchedulePage() {
             matchQueue.push(...generateRoundRobinMatches(teamsForScheduling, category));
         }
     });
-
-    // Shuffle the array to mix categories
+    
+    // Shuffle the entire match queue to mix categories fairly
     for (let i = matchQueue.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [matchQueue[i], matchQueue[j]] = [matchQueue[j], matchQueue[i]];
@@ -557,7 +559,7 @@ export default function SchedulePage() {
         const slots: { date: Date; field: number }[] = [];
         let currentDate = startOfDay(startDate);
         const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
-        
+
         if (enabledPlayDays.length === 0) return [];
         
         while (slots.length < matchCount) {
@@ -571,12 +573,13 @@ export default function SchedulePage() {
                 let slotTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
                 const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
 
-                while (slotTime.getTime() < endTime.getTime() && slots.length < matchCount) {
-                    for (let field = 1; field <= numberOfFields; field++) {
+                while (isBefore(slotTime, endTime)) {
+                     for (let field = 1; field <= numberOfFields; field++) {
                         if (slots.length < matchCount) {
                              slots.push({ date: new Date(slotTime), field });
                         }
                     }
+                    if (slots.length >= matchCount) break;
                     slotTime = addHours(slotTime, 2);
                 }
             }
@@ -589,11 +592,11 @@ export default function SchedulePage() {
 
     if (timeSlots.length < matchQueue.length) {
         console.error("Not enough time slots generated for all matches.");
-        // Handle error appropriately - maybe show a toast to the user
+        // Potentially show a toast or alert to the user here
         return;
     }
 
-    const scheduledMatches: GeneratedMatch[] = matchQueue.map((match, index) => {
+    const scheduledMatches = matchQueue.map((match, index) => {
         const slot = timeSlots[index];
         return {
             ...match,
@@ -607,8 +610,9 @@ export default function SchedulePage() {
     setIsDrawDialogOpen(false);
     setIsSuccessDialogOpen(true);
   };
-    return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    
+  return (
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold tracking-tight font-headline">
                 Programación de Partidos
@@ -689,6 +693,6 @@ export default function SchedulePage() {
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
         </Tabs>
-        </div>
-    );
+    </div>
+  );
 }
