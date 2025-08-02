@@ -22,57 +22,42 @@ const PlayerMarker = ({ player, className }: { player: Player; className?: strin
 );
 
 const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'away' }) => {
-    const lineup = match.lineup[teamType] || [];
+    const allPlayersInLineup = match.lineup[teamType] || [];
 
-    const getPlayersForPosition = (
-        players: Player[],
-        position: Player['position'],
-        count: number
-    ): [Player[], Player[]] => {
-        const positionPlayers: Player[] = [];
-        const remainingPlayers: Player[] = [];
-        const tempPlayers = [...players];
-
-        for (const player of tempPlayers) {
-            if (player.position === position && positionPlayers.length < count) {
-                positionPlayers.push(player);
-            } else {
-                remainingPlayers.push(player);
-            }
-        }
-        return [positionPlayers, remainingPlayers];
-    };
-
-    const fillFormation = (
-        players: Player[],
-        allPlayers: Player[]
-    ): Player[] => {
-        const formation: Player[] = [...players];
-        const playerIdsInFormation = new Set(formation.map(p => p.id));
-        const remainingPlayers = allPlayers.filter(p => !playerIdsInFormation.has(p.id));
-        
-        while (formation.length < 11 && remainingPlayers.length > 0) {
-            formation.push(remainingPlayers.shift()!);
-        }
-        return formation;
+    const getPlayersByPosition = (players: Player[], position: Player['position']) => {
+        return players.filter(p => p.position === position);
     }
     
-    const [forwards, remainingAfterForwards] = getPlayersForPosition(lineup, 'Delantero', 2);
-    const [midfielders, remainingAfterMid] = getPlayersForPosition(remainingAfterForwards, 'Mediocampista', 4);
-    const [defenders, remainingAfterDef] = getPlayersForPosition(remainingAfterMid, 'Defensa', 4);
-    const [goalkeeper, remainingAfterGk] = getPlayersForPosition(remainingAfterDef, 'Portero', 1);
+    // Get players by their designated positions first
+    const goalkeepers = getPlayersByPosition(allPlayersInLineup, 'Portero');
+    const defenders = getPlayersByPosition(allPlayersInLineup, 'Defensa');
+    const midfielders = getPlayersByPosition(allPlayersInLineup, 'Mediocampista');
+    const forwards = getPlayersByPosition(allPlayersInLineup, 'Delantero');
 
-    const fullLineup = fillFormation(
-        [...forwards, ...midfielders, ...defenders, ...goalkeeper],
-        lineup
-    );
+    // Create a set of players who are already assigned to a position group
+    const assignedPlayerIds = new Set([
+        ...goalkeepers.map(p => p.id),
+        ...defenders.map(p => p.id),
+        ...midfielders.map(p => p.id),
+        ...forwards.map(p => p.id),
+    ]);
 
-    // Re-slice based on ideal formation counts, now that we have a full 11.
-    const finalForwards = fullLineup.slice(0, 2);
-    const finalMidfielders = fullLineup.slice(2, 6);
-    const finalDefenders = fullLineup.slice(6, 10);
-    const finalGoalkeeper = fullLineup.slice(10, 11);
+    // Get all remaining players who haven't been assigned
+    const remainingPlayers = allPlayersInLineup.filter(p => !assignedPlayerIds.has(p.id));
 
+    const fillLine = (assigned: Player[], count: number) => {
+        const line = [...assigned];
+        while (line.length < count && remainingPlayers.length > 0) {
+            line.push(remainingPlayers.shift()!);
+        }
+        return line;
+    }
+
+    // Fill the formation lines, prioritizing assigned players and then filling with remaining ones
+    const finalGoalkeepers = fillLine(goalkeepers, 1);
+    const finalDefenders = fillLine(defenders, 4);
+    const finalMidfielders = fillLine(midfielders, 4);
+    const finalForwards = fillLine(forwards, 2);
 
     return (
         <div className="relative w-full max-w-md mx-auto aspect-[2/3] bg-green-600/80 rounded-lg overflow-hidden p-4 flex flex-col justify-around mt-4" style={{
@@ -97,7 +82,7 @@ const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'awa
             </div>
              {/* Goalkeeper */}
             <div className="flex justify-around h-1/4 items-center">
-                 {finalGoalkeeper.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {finalGoalkeepers.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
         </div>
     );
