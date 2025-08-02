@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -15,6 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 import {
   BarChart,
   Bar,
@@ -55,8 +63,12 @@ import {
   BarChart2,
   Goal,
   RectangleHorizontal,
+  PlusCircle,
+  Pencil,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 const barData = [
   { name: 'W1', value: 10 },
@@ -71,7 +83,17 @@ const pieData = [
   { name: 'B', value: 335, color: '#ef4444' },
 ];
 
+const sliderImages = [
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2', hint: 'soccer action' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3', hint: 'team celebration' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 4', hint: 'fans cheering' },
+]
+
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const isAdmin = user.role === 'admin';
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
       <div className="flex items-center justify-between">
@@ -82,6 +104,48 @@ export default function DashboardPage() {
           Visualiza el resumen de la información del campeonato
         </p>
       </div>
+
+       <Card className="relative group">
+            {isAdmin && (
+                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <Button size="sm">
+                        <PlusCircle />
+                        Agregar Imagen
+                    </Button>
+                     <Button size="sm" variant="secondary">
+                        <Pencil />
+                        Editar Galería
+                    </Button>
+                </div>
+            )}
+            <Carousel
+                className="w-full"
+                opts={{
+                    loop: true,
+                }}
+            >
+                <CarouselContent>
+                    {sliderImages.map((image, index) => (
+                        <CarouselItem key={index}>
+                            <Card className="border-0 rounded-lg overflow-hidden">
+                                <CardContent className="p-0">
+                                    <Image
+                                        src={image.src}
+                                        alt={image.alt}
+                                        width={1200}
+                                        height={400}
+                                        className="w-full h-auto object-cover"
+                                        data-ai-hint={image.hint}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-4" />
+                <CarouselNext className="right-4" />
+            </Carousel>
+        </Card>
       
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
 
@@ -263,3 +327,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
