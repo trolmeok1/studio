@@ -13,7 +13,9 @@ export default function AppLayout({ children }: PropsWithChildren) {
         <Sidebar>
           <AppSidebar />
         </Sidebar>
-        <SidebarInset>{children}</SidebarInset>
+        <SidebarInset className="bg-background/80 backdrop-blur-sm">
+            {children}
+        </SidebarInset>
       </SidebarProvider>
     </div>
   );
