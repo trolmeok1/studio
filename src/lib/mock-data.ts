@@ -1,4 +1,4 @@
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category } from './types';
 
 export const teams: Team[] = [
   { id: '1', name: 'Cosmic Comets', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima' },
@@ -34,6 +34,9 @@ export const players: Player[] = [
   { id: '119', name: 'Player Nineteen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   { id: '120', name: 'Player Twenty', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   { id: '121', name: 'Player Twenty-One', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '122', name: 'Player Twenty-Two', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '123', name: 'Player Twenty-Three', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '124', name: 'Player Twenty-Four', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
 ];
 
 export const standings: Standing[] = [
@@ -87,5 +90,5 @@ export const dashboardStats: DashboardStats = {
 
 
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
-
+export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
 export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
