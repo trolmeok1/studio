@@ -151,18 +151,13 @@ export default function AiCardsPage() {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 0.25cm;
-            height: calc(100vh - 1cm);
-            width: calc(100vw - 1cm);
-            position: fixed;
-            top: 0.5cm;
-            left: 0.5cm;
+            gap: 0.5cm;
           }
           .id-card-wrapper {
              width: 100%; 
              height: 100%;
              display: flex;
-             align-items: center;
+             align-items-center;
              justify-content: center;
              overflow: hidden;
           }
@@ -170,8 +165,6 @@ export default function AiCardsPage() {
             width: 100% !important;
             max-width: none !important;
             height: 100% !important;
-            transform: scale(0.98);
-            transform-origin: center;
           }
           .print\:hidden {
               display: none !important;
