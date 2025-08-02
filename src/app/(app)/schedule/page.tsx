@@ -417,12 +417,16 @@ export default function SchedulePage() {
 
   const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, startTimes: Record<string, string>) => {
       const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-      const allMatchesToSchedule: GeneratedMatch[] = [];
-      const matchDurationHours = 2; // Each match lasts 2 hours
+      const finalSchedule: GeneratedMatch[] = [];
+      const matchDurationHours = 2;
+      const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
+      let currentDate = new Date(startDate);
 
-      // 1. Generate all round-robin matches for each category
       categories.forEach(category => {
+          let categoryMatches: GeneratedMatch[] = [];
           let teams = getTeamsByCategory(category).map(t => t.id);
+
+          if (teams.length < 2) return; // Not enough teams to play
 
           // Randomize team order for fair matchups
           teams.sort(() => 0.5 - Math.random());
@@ -432,81 +436,58 @@ export default function SchedulePage() {
           }
           const rounds = teams.length - 1;
           const half = teams.length / 2;
-          
-          let teamsForScheduling = [...teams];
-          
-          // Generate first and second leg matches
+
           for (let leg = 0; leg < 2; leg++) {
-              teamsForScheduling = [...teams]; // Reset for each leg to ensure fairness
+              let teamsForScheduling = [...teams];
               for (let i = 0; i < rounds; i++) {
                   for (let j = 0; j < half; j++) {
                       let home, away;
-                      if (leg === 0) { // First leg
+                      if (leg === 0) {
                           home = teamsForScheduling[j];
                           away = teamsForScheduling[teamsForScheduling.length - 1 - j];
-                      } else { // Second leg (swap home/away)
+                      } else {
                           away = teamsForScheduling[j];
                           home = teamsForScheduling[teamsForScheduling.length - 1 - j];
                       }
-
                       if (home !== "BYE" && away !== "BYE") {
-                          allMatchesToSchedule.push({ home, away, category });
+                          categoryMatches.push({ home, away, category });
                       }
                   }
-                  // Rotate teams for next round
                   const lastTeam = teamsForScheduling.pop();
                   if (lastTeam) {
                       teamsForScheduling.splice(1, 0, lastTeam);
                   }
               }
           }
-      });
-      
-      // 2. Assign dates and times
-      const finalSchedule: GeneratedMatch[] = [];
-      let currentDate = new Date(startDate);
-      let matchIndex = 0;
-      const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
-
-
-      while (matchIndex < allMatchesToSchedule.length) {
-          // Find next available play day
-          while (!enabledPlayDays.includes(currentDate.getDay())) {
-              currentDate = addDays(currentDate, 1);
-          }
           
-          const dayOfWeek = currentDate.getDay();
-          const startTimeString = startTimes[dayOfWeek] || '08:00';
-          const [startHour, startMinute] = startTimeString.split(':').map(Number);
-          let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
-
-          // Fill time slots for the current day
-          while(matchIndex < allMatchesToSchedule.length) {
-              const match = allMatchesToSchedule[matchIndex];
-              
-              // Check if another category can fit on this day
-              const matchesOnThisDay = finalSchedule.filter(f => f.date && f.date.toDateString() === currentDate.toDateString()).length;
-              const matchesPerCategoryOnDay = finalSchedule.filter(f => f.date && f.date.toDateString() === currentDate.toDateString() && f.category === match.category).length;
-              const teamsForCategory = getTeamsByCategory(match.category).length;
-              const maxMatchesPerDayForCategory = Math.ceil(teamsForCategory / 2);
-              
-              if(matchesPerCategoryOnDay >= maxMatchesPerDayForCategory) {
-                 // Move to next match in the list, try to fit it on the same day if possible.
-                 // This logic is complex, for now we break and go to next day.
-                 break;
+          let matchIndex = 0;
+          while (matchIndex < categoryMatches.length) {
+              while (!enabledPlayDays.includes(currentDate.getDay())) {
+                  currentDate = addDays(currentDate, 1);
               }
 
-              finalSchedule.push({
-                  ...match,
-                  date: new Date(matchTime),
-                  time: format(matchTime, 'HH:mm'),
-              });
-              matchIndex++;
-              matchTime = addDays(matchTime, matchDurationHours / 24); // Add 2 hours
+              const dayOfWeek = currentDate.getDay();
+              const startTimeString = startTimes[dayOfWeek] || '08:00';
+              const [startHour, startMinute] = startTimeString.split(':').map(Number);
+              let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
+              
+              const matchesPerDay = Math.floor((18 - startHour) / matchDurationHours);
+              const matchesForThisDay = Math.min(half, matchesPerDay);
+
+              for(let k = 0; k < matchesForThisDay && matchIndex < categoryMatches.length; k++) {
+                  const match = categoryMatches[matchIndex];
+                  finalSchedule.push({
+                      ...match,
+                      date: new Date(matchTime),
+                      time: format(matchTime, 'HH:mm'),
+                  });
+                  matchIndex++;
+                  matchTime = addDays(matchTime, matchDurationHours / 24);
+              }
+              currentDate = addDays(currentDate, 1);
           }
-          
-          currentDate = addDays(currentDate, 1);
-      }
+      });
+      
       setGeneratedMatches(finalSchedule);
   }
 
