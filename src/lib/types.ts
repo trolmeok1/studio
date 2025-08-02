@@ -41,6 +41,11 @@ export interface Match {
         home: Player[];
         away: Player[];
     };
+    status: 'future' | 'in-progress' | 'finished';
+    score?: {
+        home: number;
+        away: number;
+    };
 }
 
 export interface Standing {

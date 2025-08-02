@@ -2,13 +2,16 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
+import { standings as mockStandings, getTeamsByCategory, Team, Category, upcomingMatches } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Dices, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import type { Match } from '@/lib/types';
 
 
 const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean }) => {
@@ -88,64 +91,91 @@ const CopaBracket = () => {
     );
 };
 
-const MatchCard = ({ match, homeTeam, awayTeam }: { match: { home: string, away: string }, homeTeam?: Team, awayTeam?: Team }) => (
-    <div className="flex items-center justify-between p-2 bg-muted/20 rounded-md text-sm">
-        <div className="flex items-center gap-2 font-semibold text-right w-2/5 justify-end">
-            <span>{homeTeam?.name || match.home}</span>
-            <Image src={homeTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={homeTeam?.name || 'Home'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
+const MatchCard = ({ match }: { match: { home: string, away: string, matchData?: Match } }) => {
+    const homeTeam = upcomingMatches.find(m => m.teams.home.id === match.home)?.teams.home;
+    const awayTeam = upcomingMatches.find(m => m.teams.away.id === match.away)?.teams.away;
+    const fullMatch = match.matchData;
+
+    const getStatusBadge = () => {
+        if (!fullMatch) return null;
+        switch (fullMatch.status) {
+            case 'finished':
+                return <Badge variant="secondary" className="bg-green-600/80 text-white">Finalizado</Badge>;
+            case 'in-progress':
+                return <Badge variant="default" className="bg-blue-500 animate-pulse">Jugando ahora</Badge>;
+            case 'future':
+                 return <Badge variant="outline">{new Date(fullMatch.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</Badge>;
+            default:
+                return null;
+        }
+    };
+    
+    return (
+    <Link href={`/partido`}>
+        <div className="flex items-center justify-between p-2 bg-muted/20 rounded-md text-sm hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2 font-semibold text-right w-2/5 justify-end">
+                <span className="truncate">{homeTeam?.name || match.home}</span>
+                <Image src={homeTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={homeTeam?.name || 'Home'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
+            </div>
+             <div className="text-center w-1/5">
+                {fullMatch && fullMatch.status === 'finished' ? (
+                    <span className="font-bold">{fullMatch.score?.home} - {fullMatch.score?.away}</span>
+                ) : (
+                    <span className="text-primary font-bold mx-2">VS</span>
+                )}
+                <div className="mt-1">{getStatusBadge()}</div>
+            </div>
+            <div className="flex items-center gap-2 font-semibold text-left w-2/5">
+                <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
+                <span className="truncate">{awayTeam?.name || match.away}</span>
+            </div>
         </div>
-        <span className="text-primary font-bold mx-2">VS</span>
-        <div className="flex items-center gap-2 font-semibold text-left w-2/5">
-            <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
-            <span>{awayTeam?.name || match.away}</span>
-        </div>
-    </div>
+    </Link>
 );
+}
 
 
 const LeagueView = ({ category }: { category: Category }) => {
     const [teams, setTeams] = useState<Team[]>([]);
-    const [schedule, setSchedule] = useState<{ home: string, away: string }[][][]>([]);
+    const [schedule, setSchedule] = useState<{ home: string, away: string, matchData?: Match }[][][]>([]);
 
     useEffect(() => {
         const categoryTeams = getTeamsByCategory(category);
         setTeams(categoryTeams);
 
-        if (categoryTeams.length >= 2) { // Need at least 2 teams for a match
+        if (categoryTeams.length >= 2) { 
             let teamSlice = categoryTeams.map(t => t.id);
 
-            // Ensure there's an even number of teams for scheduling
             if (teamSlice.length % 2 !== 0) {
                 teamSlice.push("BYE");
             }
             
             const rounds = teamSlice.length - 1;
             const half = teamSlice.length / 2;
-            const generatedSchedule: { home: string, away: string }[][] = [];
+            const generatedSchedule: { home: string, away: string, matchData?: Match }[][] = [];
 
             const teamsForScheduling = teamSlice.map(id => ({ id }));
             
             for (let i = 0; i < rounds; i++) {
-                const roundMatches: { home: string, away: string }[] = [];
+                const roundMatches: { home: string, away: string, matchData?: Match }[] = [];
                 for (let j = 0; j < half; j++) {
                     const home = teamsForScheduling[j];
                     const away = teamsForScheduling[teamsForScheduling.length - 1 - j];
                     if(home.id !== "BYE" && away.id !== "BYE") {
-                       roundMatches.push({ home: home.id, away: away.id });
+                       const matchData = upcomingMatches.find(m => (m.teams.home.id === home.id && m.teams.away.id === away.id) || (m.teams.home.id === away.id && m.teams.away.id === home.id));
+                       roundMatches.push({ home: home.id, away: away.id, matchData });
                     }
                 }
                 generatedSchedule.push(roundMatches);
 
-                // Rotate teams - keep the first one fixed
                 const lastTeam = teamsForScheduling.pop();
                 if(lastTeam) {
                   teamsForScheduling.splice(1, 0, lastTeam);
                 }
             }
             
-            // Generate second leg
             const secondLeg = generatedSchedule.map(round => 
-                round.map(match => ({ home: match.away, away: match.home }))
+                round.map(match => ({ home: match.away, away: match.home, matchData: match.matchData }))
             );
 
             setSchedule([generatedSchedule, secondLeg]);
@@ -154,7 +184,6 @@ const LeagueView = ({ category }: { category: Category }) => {
 
     const standings = useMemo(() => {
         if (teams.length === 0) return [];
-        // Filter mock standings for the current category teams
         const categoryStandings = [...mockStandings].filter(s => teams.some(t => t.id === s.teamId));
 
         const teamsWithLogos = categoryStandings.map(s => {
@@ -169,8 +198,6 @@ const LeagueView = ({ category }: { category: Category }) => {
     }, [teams]);
 
 
-    const getTeam = (id: string) => teams.find(t => t.id === id);
-    
     if(teams.length === 0) {
          return (
              <Card>
@@ -259,7 +286,7 @@ const LeagueView = ({ category }: { category: Category }) => {
                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                         {round.map((match, matchIndex) => (
-                                            <MatchCard key={matchIndex} match={match} homeTeam={getTeam(match.home)} awayTeam={getTeam(match.away)} />
+                                            <MatchCard key={matchIndex} match={match} />
                                         ))}
                                     </CardContent>
                                 </Card>
@@ -275,7 +302,7 @@ const LeagueView = ({ category }: { category: Category }) => {
                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                         {round.map((match, matchIndex) => (
-                                             <MatchCard key={matchIndex} match={match} homeTeam={getTeam(match.home)} awayTeam={getTeam(match.away)} />
+                                             <MatchCard key={matchIndex} match={match} />
                                         ))}
                                     </CardContent>
                                 </Card>

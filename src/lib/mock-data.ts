@@ -158,10 +158,17 @@ const getPlayersForTeam = (teamId: string) => {
     return players.filter(p => p.teamId === teamId);
 }
 
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+const yesterday = new Date(today);
+yesterday.setDate(yesterday.getDate() - 1);
+
+
 export const upcomingMatches: Match[] = [
     {
         id: 'm1',
-        date: '2024-08-10T16:00:00Z',
+        date: yesterday.toISOString(),
         category: 'Máxima',
         teams: {
             home: teams[0], // Cosmic Comets
@@ -170,11 +177,13 @@ export const upcomingMatches: Match[] = [
         lineup: {
             home: getPlayersForTeam('1'),
             away: getPlayersForTeam('2'),
-        }
+        },
+        status: 'finished',
+        score: { home: 2, away: 1 }
     },
     {
         id: 'm2',
-        date: '2024-08-11T18:00:00Z',
+        date: tomorrow.toISOString(),
         category: 'Primera',
         teams: {
             home: teams[4], // Vortex Voyagers
@@ -183,7 +192,37 @@ export const upcomingMatches: Match[] = [
         lineup: {
             home: getPlayersForTeam('5'),
             away: getPlayersForTeam('6'),
-        }
+        },
+        status: 'future'
+    },
+     {
+        id: 'm3',
+        date: today.toISOString(),
+        category: 'Copa',
+        teams: {
+            home: teams[6], // Quasar Quest
+            away: teams[7]  // Nebula Nomads
+        },
+        lineup: {
+            home: getPlayersForTeam('7'),
+            away: getPlayersForTeam('8'),
+        },
+        status: 'in-progress'
+    },
+    {
+        id: 'm4',
+        date: yesterday.toISOString(),
+        category: 'Segunda',
+        teams: {
+            home: teams[8], 
+            away: teams[9]  
+        },
+        lineup: {
+            home: getPlayersForTeam('9'),
+            away: getPlayersForTeam('10'),
+        },
+        status: 'finished',
+        score: { home: 0, away: 0 }
     }
 ];
 

@@ -2,169 +2,119 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { upcomingMatches, type Match, type Player } from '@/lib/mock-data';
+import { upcomingMatches as allMatches, type Match, type Team } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
-const PlayerMarker = ({ player, className }: { player: Player; className?: string }) => (
-  <div className={cn('flex flex-col items-center gap-1', className)}>
-    <Avatar className="w-12 h-12 border-2 border-white/50">
-      <AvatarImage src={player.photoUrl} alt={player.name} data-ai-hint="player portrait" />
-      <AvatarFallback>{player.name.substring(0, 2)}</AvatarFallback>
-    </Avatar>
-    <span className="text-xs font-bold text-white bg-black/50 px-2 py-0.5 rounded">{player.name.split(' ')[0]}</span>
-  </div>
-);
-
-const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'away' }) => {
-    const lineup = (match.lineup[teamType] || []).slice(0, 11);
-
-    const goalkeepers = lineup.filter(p => p.position === 'Portero');
-    const defenders = lineup.filter(p => p.position === 'Defensa');
-    const midfielders = lineup.filter(p => p.position === 'Mediocampista');
-    const forwards = lineup.filter(p => p.position === 'Delantero');
-
-    // Simple distribution for visualization if positions aren't perfectly balanced
-    const formation = {
-        forwards: forwards.slice(0, 2),
-        midfielders: midfielders.slice(0, 4),
-        defenders: defenders.slice(0, 4),
-        goalkeepers: goalkeepers.slice(0, 1)
+const MatchCard = ({ match }: { match: Match }) => {
+    const getStatusBadge = () => {
+        switch (match.status) {
+            case 'finished':
+                return <Badge variant="secondary" className="bg-green-600/80 text-white">Finalizado</Badge>;
+            case 'in-progress':
+                return <Badge variant="default" className="bg-blue-500 animate-pulse">Jugando ahora</Badge>;
+            case 'future':
+                 return <Badge variant="outline">{new Date(match.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</Badge>;
+            default:
+                return null;
+        }
     };
-    
-    // Fill the rest
-    const assignedIds = new Set(Object.values(formation).flat().map(p => p.id));
-    const remainingPlayers = lineup.filter(p => !assignedIds.has(p.id));
-
-    while(formation.forwards.length < 2 && remainingPlayers.length > 0) formation.forwards.push(remainingPlayers.shift()!);
-    while(formation.midfielders.length < 4 && remainingPlayers.length > 0) formation.midfielders.push(remainingPlayers.shift()!);
-    while(formation.defenders.length < 4 && remainingPlayers.length > 0) formation.defenders.push(remainingPlayers.shift()!);
-    while(formation.goalkeepers.length < 1 && remainingPlayers.length > 0) formation.goalkeepers.push(remainingPlayers.shift()!);
-
 
     return (
-        <div className="relative w-full max-w-md mx-auto aspect-[2/3] bg-green-600/80 rounded-lg overflow-hidden p-4 flex flex-col justify-around mt-4" style={{
-            backgroundImage: `
-                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '3rem 3rem',
-            boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
-        }}>
-            {/* Forwards */}
-            <div className="flex justify-around h-1/4 items-center">
-                {formation.forwards.map(p => <PlayerMarker key={p.id} player={p} />)}
-            </div>
-             {/* Midfielders */}
-            <div className="flex justify-around h-1/4 items-center">
-                 {formation.midfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
-            </div>
-             {/* Defenders */}
-            <div className="flex justify-around h-1/4 items-center">
-                 {formation.defenders.map(p => <PlayerMarker key={p.id} player={p} />)}
-            </div>
-             {/* Goalkeeper */}
-            <div className="flex justify-around h-1/4 items-center">
-                 {formation.goalkeepers.map(p => <PlayerMarker key={p.id} player={p} />)}
-            </div>
-        </div>
+        <Link href={`/teams/${match.teams.home.id}`}>
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3 w-2/5 justify-end">
+                        <span className="font-bold text-right truncate">{match.teams.home.name}</span>
+                        <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                    </div>
+
+                    <div className="text-center w-1/5">
+                        {match.status === 'finished' ? (
+                            <div className="text-2xl font-bold">
+                                <span>{match.score?.home}</span>
+                                <span className="mx-2">-</span>
+                                <span>{match.score?.away}</span>
+                            </div>
+                        ) : (
+                            <span className="text-xl font-light text-muted-foreground">VS</span>
+                        )}
+                        {getStatusBadge()}
+                    </div>
+
+                    <div className="flex items-center gap-3 w-2/5">
+                        <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                        <span className="font-bold truncate">{match.teams.away.name}</span>
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
     );
 };
 
-
 export default function PartidoPage() {
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-  const currentMatch = upcomingMatches[currentMatchIndex];
+    const [matches] = useState<Match[]>(allMatches);
 
-  const nextMatch = () => {
-    setCurrentMatchIndex((prev) => (prev + 1) % upcomingMatches.length);
-  };
+    const futureMatches = matches.filter(m => m.status === 'future' || m.status === 'in-progress').sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const pastMatches = matches.filter(m => m.status === 'finished').sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const prevMatch = () => {
-    setCurrentMatchIndex((prev) => (prev - 1 + upcomingMatches.length) % upcomingMatches.length);
-  };
+    const groupedFutureMatches = futureMatches.reduce((acc, match) => {
+        const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(match);
+        return acc;
+    }, {} as Record<string, Match[]>);
+    
+    const groupedPastMatches = pastMatches.reduce((acc, match) => {
+        const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(match);
+        return acc;
+    }, {} as Record<string, Match[]>);
 
   return (
-    <div className="p-4 md:p-8 text-white">
-        <div className="max-w-md mx-auto bg-card/80 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden">
-            <header className="p-4 text-center border-b border-white/10">
-                 <div className="flex items-center justify-between">
-                    <Button variant="ghost" size="icon" onClick={prevMatch}>
-                        <ChevronLeft />
-                    </Button>
-                    <p className="text-lg font-semibold">{new Date(currentMatch.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                    <Button variant="ghost" size="icon" onClick={nextMatch}>
-                        <ChevronRight />
-                    </Button>
-                </div>
-                <div className="flex items-center justify-center gap-4 mt-4">
-                    <div className="flex flex-col items-center gap-2">
-                        <Image src={currentMatch.teams.home.logoUrl} alt={currentMatch.teams.home.name} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                        <h2 className="text-xl font-bold">{currentMatch.teams.home.name}</h2>
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <h2 className="text-3xl font-bold tracking-tight font-headline">
+          Partidos y Resultados
+        </h2>
+        <Tabs defaultValue="future">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="future">Partidos Futuros</TabsTrigger>
+                <TabsTrigger value="results">Resultados</TabsTrigger>
+            </TabsList>
+            <TabsContent value="future" className="space-y-6 mt-6">
+                {Object.keys(groupedFutureMatches).length > 0 ? Object.entries(groupedFutureMatches).map(([date, matchesOnDate]) => (
+                    <div key={date}>
+                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
+                        <div className="space-y-4">
+                            {matchesOnDate.map(match => <MatchCard key={match.id} match={match} />)}
+                        </div>
                     </div>
-                    <span className="text-2xl font-light text-muted-foreground">VS</span>
-                     <div className="flex flex-col items-center gap-2">
-                        <Image src={currentMatch.teams.away.logoUrl} alt={currentMatch.teams.away.name} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                        <h2 className="text-xl font-bold">{currentMatch.teams.away.name}</h2>
+                )) : (
+                    <p className="text-muted-foreground text-center py-8">No hay partidos futuros programados.</p>
+                )}
+            </TabsContent>
+            <TabsContent value="results" className="space-y-6 mt-6">
+                 {Object.keys(groupedPastMatches).length > 0 ? Object.entries(groupedPastMatches).map(([date, matchesOnDate]) => (
+                    <div key={date}>
+                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
+                        <div className="space-y-4">
+                            {matchesOnDate.map(match => <MatchCard key={match.id} match={match} />)}
+                        </div>
                     </div>
-                </div>
-            </header>
-            <main>
-                 <Tabs defaultValue="lineup" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 bg-transparent border-b border-t border-white/10 rounded-none">
-                        <TabsTrigger value="info">Info</TabsTrigger>
-                        <TabsTrigger value="lineup">Alineación</TabsTrigger>
-                        <TabsTrigger value="players">Jugadores</TabsTrigger>
-                        <TabsTrigger value="stats">Estadísticas</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="info">
-                        <Card className="bg-transparent border-0">
-                            <CardContent className="text-center p-6">
-                                <p className="text-lg">Próximo partido de la categoría {currentMatch.category}.</p>
-                                <p className="text-muted-foreground">Más detalles estarán disponibles pronto.</p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="lineup">
-                         <Card className="bg-transparent border-0">
-                            <CardContent className="p-2">
-                                <Tabs defaultValue="home" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="home">{currentMatch.teams.home.name}</TabsTrigger>
-                                        <TabsTrigger value="away">{currentMatch.teams.away.name}</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="home">
-                                        <MatchField match={currentMatch} teamType="home" />
-                                    </TabsContent>
-                                    <TabsContent value="away">
-                                        <MatchField match={currentMatch} teamType="away" />
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="players">
-                         <Card className="bg-transparent border-0">
-                            <CardContent className="text-center p-6">
-                                <p>Lista de jugadores convocados no disponible.</p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="stats">
-                         <Card className="bg-transparent border-0">
-                            <CardContent className="text-center p-6">
-                                <p>Estadísticas pre-partido no disponibles.</p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
-            </main>
-        </div>
+                )) : (
+                     <p className="text-muted-foreground text-center py-8">Aún no se han registrado resultados.</p>
+                )}
+            </TabsContent>
+        </Tabs>
     </div>
   );
 }
