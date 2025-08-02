@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import type { MatchEvent, MatchEventType } from '@/lib/types';
 
 
 const PhysicalMatchSheet = () => {
