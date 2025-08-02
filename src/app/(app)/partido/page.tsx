@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { upcomingMatches as allMatches, type Match, type Team } from '@/lib/mock-data';
@@ -11,7 +11,14 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 const MatchCard = ({ match }: { match: Match }) => {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const getStatusBadge = () => {
+        if (!isClient) return null;
         switch (match.status) {
             case 'finished':
                 return <Badge variant="secondary" className="bg-green-600/80 text-white">Finalizado</Badge>;
@@ -58,12 +65,17 @@ const MatchCard = ({ match }: { match: Match }) => {
 
 export default function PartidoPage() {
     const [matches] = useState<Match[]>(allMatches);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const futureMatches = matches.filter(m => m.status === 'future' || m.status === 'in-progress').sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const pastMatches = matches.filter(m => m.status === 'finished').sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const groupedFutureMatches = futureMatches.reduce((acc, match) => {
-        const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        const date = isClient ? new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) : '';
         if (!acc[date]) {
             acc[date] = [];
         }
@@ -72,7 +84,7 @@ export default function PartidoPage() {
     }, {} as Record<string, Match[]>);
     
     const groupedPastMatches = pastMatches.reduce((acc, match) => {
-        const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        const date = isClient ? new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) : '';
         if (!acc[date]) {
             acc[date] = [];
         }
@@ -118,3 +130,5 @@ export default function PartidoPage() {
     </div>
   );
 }
+
+    

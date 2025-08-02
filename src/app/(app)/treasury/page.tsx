@@ -7,8 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Landmark, Ban } from 'lucide-react';
 import { upcomingMatches, teams } from '@/lib/mock-data';
+import { useEffect, useState } from 'react';
 
 export default function TreasuryPage() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const totalVocalIncome = upcomingMatches.reduce((acc, match) => {
         const homePayment = match.teams.home.attended ? (match.teams.home.vocalPayment || 0) : 0;
         const awayPayment = match.teams.away.attended ? (match.teams.away.vocalPayment || 0) : 0;
@@ -97,7 +104,7 @@ export default function TreasuryPage() {
                             <TableBody>
                                 {absentTeams.length > 0 ? absentTeams.map((team, index) => (
                                      <TableRow key={`${team.id}-${index}`}>
-                                        <TableCell>{new Date(team.date).toLocaleDateString()}</TableCell>
+                                        <TableCell>{isClient ? new Date(team.date).toLocaleDateString() : ''}</TableCell>
                                         <TableCell className="font-medium">{team.name}</TableCell>
                                         <TableCell>{(teams.find(t => t.id === team.id))?.category}</TableCell>
                                         <TableCell><Badge variant="outline">Pendiente</Badge></TableCell>
@@ -120,3 +127,5 @@ export default function TreasuryPage() {
         </div>
     );
 }
+
+    

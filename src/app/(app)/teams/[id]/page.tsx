@@ -28,8 +28,10 @@ export default function TeamDetailsPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPlayer, setNewPlayer] = useState<{ name: string; position: PlayerPosition | '' }>({ name: '', position: '' });
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const fetchedTeam = getTeamById(teamId);
     if (fetchedTeam) {
       setTeam(fetchedTeam);
@@ -67,6 +69,9 @@ export default function TeamDetailsPage() {
         <span>{value || 'No disponible'}</span>
     </div>
   );
+  
+  const foundationDateFormatted = isClient && team.foundationDate ? format(new Date(team.foundationDate), "MMMM dd, yyyy", { locale: es }) : '';
+  const foundationDateFormattedPPP = isClient && team.foundationDate ? format(new Date(team.foundationDate), "PPP", { locale: es }) : '';
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -83,7 +88,7 @@ export default function TeamDetailsPage() {
                 />
                 <div className="flex-grow text-center md:text-left">
                     <p className="text-sm text-muted-foreground">
-                        Fundado en {team.foundationDate ? format(new Date(team.foundationDate), "MMMM dd, yyyy", { locale: es }) : 'N/A'}
+                        Fundado en {foundationDateFormatted || 'N/A'}
                     </p>
                     <h2 className="text-4xl font-bold tracking-tight font-headline">{team.name}</h2>
                     <p className="text-lg text-primary">Representado por {team.manager || 'No asignado'}</p>
@@ -110,7 +115,7 @@ export default function TeamDetailsPage() {
                 <CardContent className="space-y-4">
                     <InfoRow icon={Building} label="Nombre" value={team.name} />
                     <InfoRow icon={BadgeInfo} label="Abreviatura" value={team.abbreviation} />
-                    <InfoRow icon={CalendarClock} label="Fundación" value={team.foundationDate ? format(new Date(team.foundationDate), "PPP", { locale: es }) : undefined} />
+                    <InfoRow icon={CalendarClock} label="Fundación" value={foundationDateFormattedPPP} />
                     <InfoRow icon={UserSquare} label="Dirigente" value={team.manager} />
                 </CardContent>
             </Card>
@@ -221,3 +226,5 @@ export default function TeamDetailsPage() {
     </div>
   );
 }
+
+    

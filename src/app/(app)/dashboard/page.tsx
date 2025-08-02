@@ -71,6 +71,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 const barData = [
   { name: 'W1', value: 10 },
@@ -158,6 +159,12 @@ function TopScorersCard() {
 }
 
 function SanctionsCard() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
   return (
     <Card>
       <CardHeader>
@@ -186,7 +193,7 @@ function SanctionsCard() {
                     {sanction.gamesSuspended} Partido(s)
                 </Badge>
                 <p className="text-xs text-muted-foreground mt-1">
-                    Sancionado el: {new Date(sanction.date).toLocaleDateString()}
+                    Sancionado el: {isClient ? new Date(sanction.date).toLocaleDateString() : ''}
                 </p>
              </div>
           </Card>
@@ -426,5 +433,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
