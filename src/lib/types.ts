@@ -1,5 +1,6 @@
 
 export type Category = 'Copa' | 'Primera' | 'Máxima';
+export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 
 export interface Player {
   id: string;
@@ -8,6 +9,7 @@ export interface Player {
   team: string;
   teamId: string;
   category: Category;
+  position: PlayerPosition;
   stats: {
     goals: number;
     assists: number;

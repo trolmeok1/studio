@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTeamById, getPlayersByTeamId, type Player, type Team } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition } from '@/lib/mock-data';
 import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, User, AtSign, Phone } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function TeamDetailsPage() {
@@ -20,7 +21,7 @@ export default function TeamDetailsPage() {
   const [team, setTeam] = useState<Team | undefined>(undefined);
   const [players, setPlayers] = useState<Player[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPlayer, setNewPlayer] = useState({ name: '' });
+  const [newPlayer, setNewPlayer] = useState<{ name: string; position: PlayerPosition | '' }>({ name: '', position: '' });
 
   useEffect(() => {
     const fetchedTeam = getTeamById(teamId);
@@ -32,14 +33,15 @@ export default function TeamDetailsPage() {
 
   if (!team) {
     // This could be a loading state in a real app
-    return <div>Loading...</div>;
+    return <div>Cargando...</div>;
   }
 
   const handleAddPlayer = () => {
-    if (newPlayer.name) {
+    if (newPlayer.name && newPlayer.position) {
       const newPlayerData: Player = {
         id: `p${Date.now()}`,
         name: newPlayer.name,
+        position: newPlayer.position as PlayerPosition,
         team: team.name,
         teamId: team.id,
         category: team.category,
@@ -47,7 +49,7 @@ export default function TeamDetailsPage() {
         stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
       };
       setPlayers([...players, newPlayerData]);
-      setNewPlayer({ name: '' });
+      setNewPlayer({ name: '', position: '' });
       setIsDialogOpen(false);
     }
   };
@@ -92,7 +94,25 @@ export default function TeamDetailsPage() {
                     placeholder="Nombres y apellidos completos"
                   />
                 </div>
-                 {/* We can add more fields here later */}
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="position" className="text-right">
+                    Posición
+                  </Label>
+                   <Select
+                    onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })}
+                    value={newPlayer.position}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecciona una posición" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Portero">Portero</SelectItem>
+                      <SelectItem value="Defensa">Defensa</SelectItem>
+                      <SelectItem value="Mediocampista">Mediocampista</SelectItem>
+                      <SelectItem value="Delantero">Delantero</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button onClick={handleAddPlayer}>Guardar Jugador</Button>
             </DialogContent>
@@ -119,6 +139,7 @@ export default function TeamDetailsPage() {
                 </CardHeader>
                 <CardContent className="p-4 flex-grow">
                   <h3 className="text-xl font-bold font-headline mt-2">{player.name}</h3>
+                   <p className="text-sm text-muted-foreground">{player.position}</p>
                 </CardContent>
               </Card>
             ))}

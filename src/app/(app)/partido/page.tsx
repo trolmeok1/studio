@@ -7,11 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { upcomingMatches, type Match } from '@/lib/mock-data';
+import { upcomingMatches, type Match, type Player } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-const PlayerMarker = ({ player, className }: { player: { name: string; photoUrl: string }; className?: string }) => (
+const PlayerMarker = ({ player, className }: { player: Player; className?: string }) => (
   <div className={cn('flex flex-col items-center gap-1', className)}>
     <Avatar className="w-12 h-12 border-2 border-white/50">
       <AvatarImage src={player.photoUrl} alt={player.name} data-ai-hint="player portrait" />
@@ -22,13 +22,28 @@ const PlayerMarker = ({ player, className }: { player: { name: string; photoUrl:
 );
 
 const MatchField = ({ match }: { match: Match }) => {
-    // Simple formation layout - can be made more complex later
-    const homeFormation = {
-        goalkeeper: [match.lineup.home[0]],
-        defenders: match.lineup.home.slice(1, 5),
-        midfielders: match.lineup.home.slice(5, 9),
-        forwards: match.lineup.home.slice(9, 11),
+    // Filter players by position for a 4-4-2 formation
+    const lineup = match.lineup.home;
+    const goalkeeper = lineup.filter(p => p.position === 'Portero').slice(0, 1);
+    const defenders = lineup.filter(p => p.position === 'Defensa').slice(0, 4);
+    const midfielders = lineup.filter(p => p.position === 'Mediocampista').slice(0, 4);
+    const forwards = lineup.filter(p => p.position === 'Delantero').slice(0, 2);
+
+    // Fill remaining spots if categories don't have enough players, to ensure 11 players are shown
+    const displayedPlayers = new Set([...goalkeeper, ...defenders, ...midfielders, ...forwards].map(p => p.id));
+    const remainingPlayers = lineup.filter(p => !displayedPlayers.has(p.id));
+    
+    const fillPlayers = (target: Player[], count: number) => {
+        while(target.length < count && remainingPlayers.length > 0) {
+            target.push(remainingPlayers.shift()!);
+        }
     }
+
+    fillPlayers(forwards, 2);
+    fillPlayers(midfielders, 4);
+    fillPlayers(defenders, 4);
+    fillPlayers(goalkeeper, 1);
+
 
     return (
         <div className="relative w-full max-w-md mx-auto aspect-[2/3] bg-green-600/80 rounded-lg overflow-hidden p-4 flex flex-col justify-around" style={{
@@ -40,20 +55,20 @@ const MatchField = ({ match }: { match: Match }) => {
             boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
         }}>
             {/* Forwards */}
-            <div className="flex justify-around">
-                {homeFormation.forwards.map(p => <PlayerMarker key={p.id} player={p} />)}
+            <div className="flex justify-around h-1/4 items-center">
+                {forwards.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Midfielders */}
-            <div className="flex justify-around">
-                 {homeFormation.midfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
+            <div className="flex justify-around h-1/4 items-center">
+                 {midfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Defenders */}
-            <div className="flex justify-around">
-                 {homeFormation.defenders.map(p => <PlayerMarker key={p.id} player={p} />)}
+            <div className="flex justify-around h-1/4 items-center">
+                 {defenders.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Goalkeeper */}
-            <div className="flex justify-around">
-                 {homeFormation.goalkeeper.map(p => <PlayerMarker key={p.id} player={p} />)}
+            <div className="flex justify-around h-1/4 items-center">
+                 {goalkeeper.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
         </div>
     );
