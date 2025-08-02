@@ -21,15 +21,13 @@ const PlayerMarker = ({ player, className }: { player: Player; className?: strin
   </div>
 );
 
-const MatchField = ({ match }: { match: Match }) => {
-    // Filter players by position for a 4-4-2 formation
-    const lineup = match.lineup.home;
+const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'away' }) => {
+    const lineup = match.lineup[teamType];
     const goalkeeper = lineup.filter(p => p.position === 'Portero').slice(0, 1);
     const defenders = lineup.filter(p => p.position === 'Defensa').slice(0, 4);
     const midfielders = lineup.filter(p => p.position === 'Mediocampista').slice(0, 4);
     const forwards = lineup.filter(p => p.position === 'Delantero').slice(0, 2);
 
-    // Fill remaining spots if categories don't have enough players, to ensure 11 players are shown
     const displayedPlayers = new Set([...goalkeeper, ...defenders, ...midfielders, ...forwards].map(p => p.id));
     const remainingPlayers = lineup.filter(p => !displayedPlayers.has(p.id));
     
@@ -46,7 +44,7 @@ const MatchField = ({ match }: { match: Match }) => {
 
 
     return (
-        <div className="relative w-full max-w-md mx-auto aspect-[2/3] bg-green-600/80 rounded-lg overflow-hidden p-4 flex flex-col justify-around" style={{
+        <div className="relative w-full max-w-md mx-auto aspect-[2/3] bg-green-600/80 rounded-lg overflow-hidden p-4 flex flex-col justify-around mt-4" style={{
             backgroundImage: `
                 linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
@@ -131,7 +129,18 @@ export default function PartidoPage() {
                     <TabsContent value="lineup">
                          <Card className="bg-transparent border-0">
                             <CardContent className="p-2">
-                                <MatchField match={currentMatch} />
+                                <Tabs defaultValue="home" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="home">{currentMatch.teams.home.name}</TabsTrigger>
+                                        <TabsTrigger value="away">{currentMatch.teams.away.name}</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="home">
+                                        <MatchField match={currentMatch} teamType="home" />
+                                    </TabsContent>
+                                    <TabsContent value="away">
+                                        <MatchField match={currentMatch} teamType="away" />
+                                    </TabsContent>
+                                </Tabs>
                             </CardContent>
                         </Card>
                     </TabsContent>
