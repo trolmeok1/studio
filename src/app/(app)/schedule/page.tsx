@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -182,15 +181,20 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     useEffect(() => { setIsClient(true) }, []);
 
     const groupedMatches = useMemo(() => {
+        const teamCount = teams.length;
+        if (teamCount === 0) return {};
+
         return generatedMatches
             .filter(m => m.category === category)
-            .reduce((acc, match, index, arr) => {
-                const roundSize = (teams.length - (teams.length % 2 === 0 ? 2 : 1)) / 2;
-                const totalRounds = (teams.length - (teams.length % 2 === 0 ? 0 : 1) -1);
-                
-                let leg = 'Ida';
-                let currentRound = Math.floor(index / roundSize) + 1;
+            .reduce((acc, match) => {
+                const roundSize = Math.floor(teamCount / 2);
+                const totalRounds = (teamCount - (teamCount % 2 === 0 ? 0 : 1) -1);
 
+                const matchIndexInSchedule = generatedMatches.filter(m => m.category === category).indexOf(match);
+
+                let leg = 'Ida';
+                let currentRound = Math.floor(matchIndexInSchedule / roundSize) + 1;
+                
                 if (currentRound > totalRounds) {
                     leg = 'Vuelta';
                     currentRound = currentRound - totalRounds;
@@ -299,7 +303,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                             <div key={roundName}>
                                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{roundName} - <span className="font-normal">{roundData.date}</span></h3>
                                 <div className="space-y-2">
-                                    {roundData.matches.sort((a,b) => a.date!.getTime() - b.date!.getTime()).map((match, index) => <MatchCard key={index} match={match} />)}
+                                    {roundData.matches.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => <MatchCard key={index} match={match} />)}
                                 </div>
                             </div>
                         )) : (
@@ -312,15 +316,21 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     );
 };
 
-const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Record<string, boolean>, startTimes: Record<string, string>) => void }) => {
+const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string; end: string }>) => void }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(new Date());
     const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
         '0': true, // Sunday
         '1': false, '2': false, '3': false, '4': false, '5': false, 
         '6': true, // Saturday
     });
-    const [startTimes, setStartTimes] = useState<Record<string, string>>({
-        '0': '09:00', '6': '10:00',
+     const [dayConfigs, setDayConfigs] = useState<Record<string, { start: string; end: string }>>({
+        '0': { start: '09:00', end: '17:00' }, 
+        '1': { start: '08:00', end: '18:00' },
+        '2': { start: '08:00', end: '18:00' },
+        '3': { start: '08:00', end: '18:00' },
+        '4': { start: '08:00', end: '18:00' },
+        '5': { start: '08:00', end: '18:00' },
+        '6': { start: '10:00', end: '18:00' },
     });
     
     const daysOfWeek = [
@@ -330,7 +340,7 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Re
 
     const handleGenerateClick = () => {
         if (startDate) {
-            onGenerate(startDate, selectedDays, startTimes);
+            onGenerate(startDate, selectedDays, dayConfigs);
         }
     };
     
@@ -373,7 +383,7 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Re
                         </Popover>
                     </div>
                     <div className="space-y-2">
-                         <Label>Días y Hora de Juego</Label>
+                         <Label>Días y Horarios de Juego</Label>
                          <div className="grid grid-cols-1 gap-4">
                              {daysOfWeek.map(day => (
                                 <div key={day.id} className="flex items-center space-x-4 p-2 rounded-md bg-muted/50">
@@ -385,13 +395,23 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: Re
                                     <label htmlFor={day.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-grow">
                                         {day.label}
                                     </label>
-                                     <Input
-                                        type="time"
-                                        className="w-32"
-                                        disabled={!selectedDays[day.id]}
-                                        value={startTimes[day.id] || '08:00'}
-                                        onChange={(e) => setStartTimes(prev => ({...prev, [day.id]: e.target.value}))}
-                                     />
+                                    <div className="flex items-center gap-2">
+                                         <Input
+                                            type="time"
+                                            className="w-28"
+                                            disabled={!selectedDays[day.id]}
+                                            value={dayConfigs[day.id]?.start || '08:00'}
+                                            onChange={(e) => setDayConfigs(prev => ({...prev, [day.id]: { ...prev[day.id], start: e.target.value }}))}
+                                         />
+                                          <span>-</span>
+                                         <Input
+                                            type="time"
+                                            className="w-28"
+                                            disabled={!selectedDays[day.id]}
+                                            value={dayConfigs[day.id]?.end || '18:00'}
+                                            onChange={(e) => setDayConfigs(prev => ({...prev, [day.id]: { ...prev[day.id], end: e.target.value }}))}
+                                         />
+                                    </div>
                                 </div>
                             ))}
                          </div>
@@ -415,20 +435,18 @@ export default function SchedulePage() {
 
   useEffect(() => { setIsClient(true) }, []);
 
-  const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, startTimes: Record<string, string>) => {
+  const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string, end: string }>) => {
       const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-      const finalSchedule: GeneratedMatch[] = [];
+      let finalSchedule: GeneratedMatch[] = [];
       const matchDurationHours = 2;
       const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
       let currentDate = new Date(startDate);
+      let matchQueue: GeneratedMatch[] = [];
 
       categories.forEach(category => {
-          let categoryMatches: GeneratedMatch[] = [];
           let teams = getTeamsByCategory(category).map(t => t.id);
+          if (teams.length < 2) return;
 
-          if (teams.length < 2) return; // Not enough teams to play
-
-          // Randomize team order for fair matchups
           teams.sort(() => 0.5 - Math.random());
 
           if (teams.length % 2 !== 0) {
@@ -450,7 +468,7 @@ export default function SchedulePage() {
                           home = teamsForScheduling[teamsForScheduling.length - 1 - j];
                       }
                       if (home !== "BYE" && away !== "BYE") {
-                          categoryMatches.push({ home, away, category });
+                          matchQueue.push({ home, away, category });
                       }
                   }
                   const lastTeam = teamsForScheduling.pop();
@@ -459,34 +477,40 @@ export default function SchedulePage() {
                   }
               }
           }
-          
-          let matchIndex = 0;
-          while (matchIndex < categoryMatches.length) {
-              while (!enabledPlayDays.includes(currentDate.getDay())) {
-                  currentDate = addDays(currentDate, 1);
-              }
-
-              const dayOfWeek = currentDate.getDay();
-              const startTimeString = startTimes[dayOfWeek] || '08:00';
-              const [startHour, startMinute] = startTimeString.split(':').map(Number);
-              let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
-              
-              const matchesPerDay = Math.floor((18 - startHour) / matchDurationHours);
-              const matchesForThisDay = Math.min(half, matchesPerDay);
-
-              for(let k = 0; k < matchesForThisDay && matchIndex < categoryMatches.length; k++) {
-                  const match = categoryMatches[matchIndex];
-                  finalSchedule.push({
-                      ...match,
-                      date: new Date(matchTime),
-                      time: format(matchTime, 'HH:mm'),
-                  });
-                  matchIndex++;
-                  matchTime = addDays(matchTime, matchDurationHours / 24);
-              }
-              currentDate = addDays(currentDate, 1);
-          }
       });
+      
+      // Prioritize Máxima > Primera > Segunda
+      matchQueue.sort((a, b) => {
+          const priority = { 'Máxima': 1, 'Primera': 2, 'Segunda': 3 };
+          return priority[a.category] - priority[b.category];
+      });
+
+      let matchIndex = 0;
+      while(matchIndex < matchQueue.length) {
+            while (!enabledPlayDays.includes(currentDate.getDay())) {
+                currentDate = addDays(currentDate, 1);
+            }
+
+            const dayOfWeek = currentDate.getDay();
+            const config = dayConfigs[dayOfWeek] || { start: '08:00', end: '18:00' };
+            const [startHour, startMinute] = config.start.split(':').map(Number);
+            const [endHour, endMinute] = config.end.split(':').map(Number);
+            
+            let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
+            const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
+
+            while(matchTime < endTime && matchIndex < matchQueue.length) {
+                const match = matchQueue[matchIndex];
+                finalSchedule.push({
+                    ...match,
+                    date: new Date(matchTime),
+                    time: format(matchTime, 'HH:mm'),
+                });
+                matchIndex++;
+                matchTime = addDays(matchTime, matchDurationHours / 24);
+            }
+            currentDate = addDays(currentDate, 1);
+      }
       
       setGeneratedMatches(finalSchedule);
   }
@@ -536,5 +560,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
