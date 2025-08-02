@@ -150,7 +150,7 @@ const MatchCard = ({ match }: { match: GeneratedMatch }) => {
             </div>
             <div className="flex items-center gap-2 font-semibold text-left w-2/5">
                 <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
-                <span className="truncate">{awayTeam?.name || match.away}</span>
+                <span className="truncate">{awayTeam?.name || 'Away'}</span>
             </div>
         </div>
     </Link>
@@ -522,46 +522,46 @@ export default function SchedulePage() {
         return matches;
     };
     
-    let allGeneratedMatches: GeneratedMatch[] = [];
-    
     const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
     if (enabledPlayDays.length === 0) return;
+
+    let maximaMatches: GeneratedMatch[] = [];
+    let primeraMatches: GeneratedMatch[] = [];
+    let segundaMatches: GeneratedMatch[] = [];
+
+    // Generate matches for each category
+    const maximaTeams = getTeamsByCategory('Máxima');
+    maximaTeams.sort(() => 0.5 - Math.random());
+    maximaMatches = generateRoundRobinMatches(maximaTeams, 'Máxima');
+
+    const primeraTeams = getTeamsByCategory('Primera');
+    primeraTeams.sort(() => 0.5 - Math.random());
+    primeraMatches = generateRoundRobinMatches(primeraTeams, 'Primera');
+
+    let segundaTeams = getTeamsByCategory('Segunda');
+    segundaTeams.sort(() => 0.5 - Math.random());
+    if (segundaTeams.length >= 16) {
+        const groupA = segundaTeams.slice(0, Math.ceil(segundaTeams.length / 2));
+        const groupB = segundaTeams.slice(Math.ceil(segundaTeams.length / 2));
+        groupA.forEach(t => t.group = 'A');
+        groupB.forEach(t => t.group = 'B');
+        segundaMatches = [
+            ...generateRoundRobinMatches(groupA, 'Segunda', 'A'),
+            ...generateRoundRobinMatches(groupB, 'Segunda', 'B')
+        ];
+    } else {
+        segundaMatches = generateRoundRobinMatches(segundaTeams, 'Segunda');
+    }
+
+    // Prioritized match queue
+    const matchQueue: GeneratedMatch[] = [...maximaMatches, ...primeraMatches, ...segundaMatches];
+    let scheduledMatches: GeneratedMatch[] = [];
+    let matchIndex = 0;
     
-    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-    let categoryMatchesQueue: { [key in Category]?: GeneratedMatch[] } = {};
-
-    categories.forEach(category => {
-        let teamsForScheduling: Team[] = getTeamsByCategory(category);
-        
-        teamsForScheduling.sort(() => 0.5 - Math.random());
-
-        if (category === 'Segunda' && teamsForScheduling.length >= 16) {
-            const groupA = teamsForScheduling.slice(0, Math.ceil(teamsForScheduling.length / 2));
-            const groupB = teamsForScheduling.slice(Math.ceil(teamsForScheduling.length / 2));
-            groupA.forEach(t => t.group = 'A');
-            groupB.forEach(t => t.group = 'B');
-            
-            categoryMatchesQueue[category] = [
-                ...generateRoundRobinMatches(groupA, category, 'A'),
-                ...generateRoundRobinMatches(groupB, category, 'B')
-            ];
-        } else {
-            categoryMatchesQueue[category] = generateRoundRobinMatches(teamsForScheduling, category);
-        }
-    });
-
     let currentDate = new Date(startDate);
-    let weekCounter = 0;
 
-    let maximaPrimeraQueue = [...(categoryMatchesQueue['Máxima'] || []), ...(categoryMatchesQueue['Primera'] || [])];
-    let segundaQueue = [...(categoryMatchesQueue['Segunda'] || [])];
-
-    let mpIndex = 0;
-    let sIndex = 0;
-
-    while(mpIndex < maximaPrimeraQueue.length || sIndex < segundaQueue.length) {
-        const isSegundaWeek = weekCounter % 2 !== 0;
-        
+    while(matchIndex < matchQueue.length) {
+        // Find the next available play day
         while (!enabledPlayDays.includes(currentDate.getDay())) {
             currentDate = addDays(currentDate, 1);
         }
@@ -574,51 +574,28 @@ export default function SchedulePage() {
         let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
         const endTime = setMinutes(setHours(new Date(currentDate), endHour), endMinute);
 
-        while (matchTime < endTime) {
-            for (let field = 1; field <= numberOfFields; field++) {
-                let matchToSchedule: GeneratedMatch | undefined;
+        // Schedule matches for the current day
+        while (matchTime < endTime && matchIndex < matchQueue.length) {
+            for (let field = 1; field <= numberOfFields && matchIndex < matchQueue.length; field++) {
+                let matchToSchedule = matchQueue[matchIndex];
                 
-                if (isSegundaWeek && sIndex < segundaQueue.length) {
-                    matchToSchedule = segundaQueue[sIndex];
-                    sIndex++;
-                } else if (!isSegundaWeek && mpIndex < maximaPrimeraQueue.length) {
-                    matchToSchedule = maximaPrimeraQueue[mpIndex];
-                    mpIndex++;
-                } else {
-                    // No matches for this week type, break field loop
-                    break;
-                }
-
-                if (matchToSchedule) {
-                     allGeneratedMatches.push({
-                        ...matchToSchedule,
-                        date: new Date(matchTime),
-                        time: format(matchTime, 'HH:mm'),
-                        field
-                    });
-                }
+                scheduledMatches.push({
+                    ...matchToSchedule,
+                    date: new Date(matchTime),
+                    time: format(matchTime, 'HH:mm'),
+                    field
+                });
+                matchIndex++;
             }
              
             matchTime = addHours(matchTime, 2);
-
-            if ((isSegundaWeek && sIndex >= segundaQueue.length && mpIndex < maximaPrimeraQueue.length) || 
-                (!isSegundaWeek && mpIndex >= maximaPrimeraQueue.length && sIndex < segundaQueue.length)) {
-                // If we finished all matches for this week type, but there are matches for the other type,
-                // we should break the time loop to advance the day and potentially the week.
-                break;
-            }
         }
 
-        const oldDay = currentDate.getDay();
+        // Move to the next day
         currentDate = addDays(currentDate, 1);
-        // A new week starts if we cross over a weekend (e.g. from Sunday to Monday)
-        // A simpler way is to check if the new day is less than the old day.
-        if (currentDate.getDay() < oldDay) {
-             weekCounter++;
-        }
     }
     
-    setGeneratedMatches(allGeneratedMatches);
+    setGeneratedMatches(scheduledMatches);
     setIsDrawDialogOpen(false);
     setIsSuccessDialogOpen(true);
 };
@@ -709,3 +686,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
