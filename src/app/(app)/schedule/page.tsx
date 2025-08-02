@@ -524,7 +524,7 @@ export default function SchedulePage() {
     
     const enabledPlayDays = Object.keys(playDays).filter(day => playDays[day]).map(Number);
     if (enabledPlayDays.length === 0) return;
-
+    
     let maximaMatches: GeneratedMatch[] = [];
     let primeraMatches: GeneratedMatch[] = [];
     let segundaMatches: GeneratedMatch[] = [];
@@ -556,31 +556,32 @@ export default function SchedulePage() {
     // Prioritized match queue
     const matchQueue: GeneratedMatch[] = [...maximaMatches, ...primeraMatches, ...segundaMatches];
     let scheduledMatches: GeneratedMatch[] = [];
-    let matchIndex = 0;
-    let currentDate = startOfDay(new Date(startDate));
-
+    
     // Time slots generation
     const timeSlots: { date: Date, field: number }[] = [];
-    let tempDate = startOfDay(new Date(startDate));
+    let currentDate = startOfDay(new Date(startDate));
 
-    for (let i = 0; i < 365 && timeSlots.length < matchQueue.length; i++) {
-        if (enabledPlayDays.includes(getDay(tempDate))) {
-            const dayOfWeek = getDay(tempDate);
+    // Keep generating slots until we have enough for all matches
+    while(timeSlots.length < matchQueue.length) {
+        const dayOfWeek = getDay(currentDate);
+        if (enabledPlayDays.includes(dayOfWeek)) {
             const config = dayConfigs[dayOfWeek];
             const [startHour, startMinute] = config.start.split(':').map(Number);
             const [endHour, endMinute] = config.end.split(':').map(Number);
 
-            let slotTime = setMinutes(setHours(startOfDay(tempDate), startHour), startMinute);
-            const endTime = setMinutes(setHours(startOfDay(tempDate), endHour), endMinute);
+            let slotTime = setMinutes(setHours(startOfDay(currentDate), startHour), startMinute);
+            const endTime = setMinutes(setHours(startOfDay(currentDate), endHour), endMinute);
             
             while (slotTime < endTime) {
                 for (let field = 1; field <= numberOfFields; field++) {
-                    timeSlots.push({ date: new Date(slotTime), field });
+                    if(timeSlots.length < matchQueue.length) {
+                        timeSlots.push({ date: new Date(slotTime), field });
+                    }
                 }
-                slotTime = addHours(slotTime, 2);
+                slotTime = addHours(slotTime, 2); // Assuming 2-hour slots
             }
         }
-        tempDate = addDays(tempDate, 1);
+        currentDate = addDays(currentDate, 1);
     }
 
     // Assign matches to time slots
