@@ -16,10 +16,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TeamDetailsPage() {
   const params = useParams();
   const teamId = typeof params.id === 'string' ? params.id : '';
+  const { user } = useAuth();
+  const canEdit = user.role === 'admin';
 
   const [team, setTeam] = useState<Team | undefined>(undefined);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -116,53 +119,55 @@ export default function TeamDetailsPage() {
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Plantilla de Jugadores ({players.length})</CardTitle>
-                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Agregar Jugador
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="name" className="text-right">
-                            Nombres
-                          </Label>
-                          <Input
-                            id="name"
-                            value={newPlayer.name}
-                            onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                            className="col-span-3"
-                            placeholder="Nombres y apellidos completos"
-                          />
+                  {canEdit && (
+                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Agregar Jugador
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                              Nombres
+                            </Label>
+                            <Input
+                              id="name"
+                              value={newPlayer.name}
+                              onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                              className="col-span-3"
+                              placeholder="Nombres y apellidos completos"
+                            />
+                          </div>
+                           <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="position" className="text-right">
+                              Posición
+                            </Label>
+                             <Select
+                              onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })}
+                              value={newPlayer.position}
+                            >
+                              <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Selecciona una posición" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Portero">Portero</SelectItem>
+                                <SelectItem value="Defensa">Defensa</SelectItem>
+                                <SelectItem value="Mediocampista">Mediocampista</SelectItem>
+                                <SelectItem value="Delantero">Delantero</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                         <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="position" className="text-right">
-                            Posición
-                          </Label>
-                           <Select
-                            onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })}
-                            value={newPlayer.position}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Selecciona una posición" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Portero">Portero</SelectItem>
-                              <SelectItem value="Defensa">Defensa</SelectItem>
-                              <SelectItem value="Mediocampista">Mediocampista</SelectItem>
-                              <SelectItem value="Delantero">Delantero</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <Button onClick={handleAddPlayer}>Guardar Jugador</Button>
-                    </DialogContent>
-                  </Dialog>
+                        <Button onClick={handleAddPlayer}>Guardar Jugador</Button>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </CardHeader>
                 <CardContent>
                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

@@ -16,11 +16,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Calendar, Upload, Search, PlusCircle, Trash2, ShieldCheck, Flag, Users } from 'lucide-react';
+import { Printer, Upload, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { players, teams, type Player } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock data - we'll replace this with dynamic data later
 const matchData = {
@@ -187,6 +188,9 @@ const PhysicalMatchSheet = () => {
 }
 
 const DigitalMatchSheet = () => {
+    const { user } = useAuth();
+    const canEdit = user.role === 'admin' || user.role === 'secretary';
+
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
     const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -237,8 +241,8 @@ const DigitalMatchSheet = () => {
                     <div>
                          <Label>Evidencia de Vocalía Física</Label>
                         <div className="flex items-center gap-2 mt-1">
-                            <Input type="file" className="flex-grow" />
-                            <Button variant="outline"><Upload className="mr-2" /> Subir</Button>
+                            <Input type="file" className="flex-grow" disabled={!canEdit} />
+                            <Button variant="outline" disabled={!canEdit}><Upload className="mr-2" /> Subir</Button>
                         </div>
                     </div>
                     
@@ -252,8 +256,9 @@ const DigitalMatchSheet = () => {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                disabled={!canEdit}
                             />
-                            <Button onClick={handleSearch}><Search className="mr-2" /> Buscar</Button>
+                            <Button onClick={handleSearch} disabled={!canEdit}><Search className="mr-2" /> Buscar</Button>
                         </div>
                     </div>
 
@@ -269,9 +274,9 @@ const DigitalMatchSheet = () => {
                                             <p className="text-sm text-muted-foreground">{player.team} | ID: {player.id}</p>
                                         </div>
                                         <div className="flex gap-1">
-                                            <Button size="sm" onClick={() => addEvent(player, 'goal')}>Gol</Button>
-                                            <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => addEvent(player, 'yellow_card')}>T.A.</Button>
-                                            <Button size="sm" variant="destructive" onClick={() => addEvent(player, 'red_card')}>T.R.</Button>
+                                            <Button size="sm" onClick={() => addEvent(player, 'goal')} disabled={!canEdit}>Gol</Button>
+                                            <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => addEvent(player, 'yellow_card')} disabled={!canEdit}>T.A.</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => addEvent(player, 'red_card')} disabled={!canEdit}>T.R.</Button>
                                         </div>
                                     </div>
                                 ))}
@@ -287,12 +292,12 @@ const DigitalMatchSheet = () => {
                         <div className="text-center space-y-2">
                             <Image src={matchData.teamA.logoUrl} alt={matchData.teamA.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
                             <h4 className="font-bold">{matchData.teamA.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamA} onChange={(e) => setFinalScore({...finalScore, teamA: parseInt(e.target.value) || 0})} />
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamA} onChange={(e) => setFinalScore({...finalScore, teamA: parseInt(e.target.value) || 0})} disabled={!canEdit} />
                         </div>
                          <div className="text-center space-y-2">
                              <Image src={matchData.teamB.logoUrl} alt={matchData.teamB.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
                             <h4 className="font-bold">{matchData.teamB.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamB} onChange={(e) => setFinalScore({...finalScore, teamB: parseInt(e.target.value) || 0})} />
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={finalScore.teamB} onChange={(e) => setFinalScore({...finalScore, teamB: parseInt(e.target.value) || 0})} disabled={!canEdit} />
                         </div>
                      </div>
                      <Card>
@@ -319,9 +324,11 @@ const DigitalMatchSheet = () => {
                                                 <TableCell>{event.teamName}</TableCell>
                                                 <TableCell>{getEventBadge(event.event)}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeEvent(index)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
+                                                    {canEdit && (
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeEvent(index)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -330,7 +337,7 @@ const DigitalMatchSheet = () => {
                             )}
                         </CardContent>
                      </Card>
-                      <Button className="w-full" size="lg">Guardar Resultado del Partido</Button>
+                      <Button className="w-full" size="lg" disabled={!canEdit}>Guardar Resultado del Partido</Button>
                 </div>
 
             </CardContent>
@@ -340,7 +347,8 @@ const DigitalMatchSheet = () => {
 
 
 export default function CommitteesPage() {
-  const [activeTab, setActiveTab] = useState('physical');
+  const [activeTab, setActiveTab] = useState('digital');
+  const { user } = useAuth();
   const handlePrint = () => {
     window.print();
   };
@@ -352,10 +360,10 @@ export default function CommitteesPage() {
           Hoja de Vocalía
         </h2>
         <div className="flex items-center gap-4">
-             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="physical">
+             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="digital">
                 <TabsList>
-                    <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
                     <TabsTrigger value="digital">Vocalía Digital (Registrar)</TabsTrigger>
+                    <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
                 </TabsList>
             </Tabs>
             {activeTab === 'physical' && (
@@ -367,7 +375,7 @@ export default function CommitteesPage() {
         </div>
       </div>
 
-       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="physical" className="space-y-4">
+       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="digital" className="space-y-4">
           <TabsContent value="physical" className="mt-0">
             <PhysicalMatchSheet />
           </TabsContent>

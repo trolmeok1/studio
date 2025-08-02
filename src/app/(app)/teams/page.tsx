@@ -13,8 +13,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TeamsPage() {
+  const { user } = useAuth();
+  const canEdit = user.role === 'admin';
+
   const [teams, setTeams] = useState<Team[]>(initialTeams);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTeam, setNewTeam] = useState({ name: '', category: '' as Category | '' });
@@ -42,52 +46,54 @@ export default function TeamsPage() {
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           Equipos
         </h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Agregar Equipo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Agregar Nuevo Equipo</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nombre
-                </Label>
-                <Input
-                  id="name"
-                  value={newTeam.name}
-                  onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
-                  className="col-span-3"
-                />
+        {canEdit && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Agregar Equipo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Agregar Nuevo Equipo</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Nombre
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newTeam.name}
+                    onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Categoría
+                  </Label>
+                  <Select
+                    onValueChange={(value) => setNewTeam({ ...newTeam, category: value as Category })}
+                    value={newTeam.category}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Máxima">Máxima</SelectItem>
+                      <SelectItem value="Primera">Primera</SelectItem>
+                      <SelectItem value="Segunda">Segunda</SelectItem>
+                      <SelectItem value="Copa">Copa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">
-                  Categoría
-                </Label>
-                <Select
-                  onValueChange={(value) => setNewTeam({ ...newTeam, category: value as Category })}
-                  value={newTeam.category}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Máxima">Máxima</SelectItem>
-                    <SelectItem value="Primera">Primera</SelectItem>
-                    <SelectItem value="Segunda">Segunda</SelectItem>
-                    <SelectItem value="Copa">Copa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={handleAddTeam}>Guardar Equipo</Button>
-          </DialogContent>
-        </Dialog>
+              <Button onClick={handleAddTeam}>Guardar Equipo</Button>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
