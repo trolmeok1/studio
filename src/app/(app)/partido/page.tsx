@@ -22,44 +22,56 @@ const PlayerMarker = ({ player, className }: { player: Player; className?: strin
 );
 
 const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'away' }) => {
-    const lineup = match.lineup[teamType];
-    
-    // Defensive copy to avoid mutation issues
-    const availablePlayers = [...lineup];
+    const lineup = match.lineup[teamType] || [];
 
-    const getPlayersByPosition = (position: string, count: number) => {
-      const players = [];
-      const remainingPlayers = [];
-      for (const player of availablePlayers) {
-        if (player.position === position && players.length < count) {
-          players.push(player);
-        } else {
-          remainingPlayers.push(player);
+    const getPlayersForPosition = (
+        players: Player[],
+        position: Player['position'],
+        count: number
+    ): [Player[], Player[]] => {
+        const positionPlayers: Player[] = [];
+        const remainingPlayers: Player[] = [];
+        const tempPlayers = [...players];
+
+        for (const player of tempPlayers) {
+            if (player.position === position && positionPlayers.length < count) {
+                positionPlayers.push(player);
+            } else {
+                remainingPlayers.push(player);
+            }
         }
-      }
-      // This is a simple way to update the available players pool
-      // A more robust implementation might use IDs to track who has been placed
-      availablePlayers.length = 0;
-      availablePlayers.push(...remainingPlayers);
-      return players;
+        return [positionPlayers, remainingPlayers];
     };
-    
-    const fillPlayers = (target: Player[], count: number) => {
-        while (target.length < count && availablePlayers.length > 0) {
-            target.push(availablePlayers.shift()!);
+
+    const fillFormation = (
+        players: Player[],
+        allPlayers: Player[]
+    ): Player[] => {
+        const formation: Player[] = [...players];
+        const playerIdsInFormation = new Set(formation.map(p => p.id));
+        const remainingPlayers = allPlayers.filter(p => !playerIdsInFormation.has(p.id));
+        
+        while (formation.length < 11 && remainingPlayers.length > 0) {
+            formation.push(remainingPlayers.shift()!);
         }
+        return formation;
     }
+    
+    const [forwards, remainingAfterForwards] = getPlayersForPosition(lineup, 'Delantero', 2);
+    const [midfielders, remainingAfterMid] = getPlayersForPosition(remainingAfterForwards, 'Mediocampista', 4);
+    const [defenders, remainingAfterDef] = getPlayersForPosition(remainingAfterMid, 'Defensa', 4);
+    const [goalkeeper, remainingAfterGk] = getPlayersForPosition(remainingAfterDef, 'Portero', 1);
 
-    const forwards = getPlayersByPosition('Delantero', 2);
-    const midfielders = getPlayersByPosition('Mediocampista', 4);
-    const defenders = getPlayersByPosition('Defensa', 4);
-    const goalkeeper = getPlayersByPosition('Portero', 1);
+    const fullLineup = fillFormation(
+        [...forwards, ...midfielders, ...defenders, ...goalkeeper],
+        lineup
+    );
 
-    // Fill remaining spots to ensure 11 players are on the field
-    fillPlayers(forwards, 2);
-    fillPlayers(midfielders, 4);
-    fillPlayers(defenders, 4);
-    fillPlayers(goalkeeper, 1);
+    // Re-slice based on ideal formation counts, now that we have a full 11.
+    const finalForwards = fullLineup.slice(0, 2);
+    const finalMidfielders = fullLineup.slice(2, 6);
+    const finalDefenders = fullLineup.slice(6, 10);
+    const finalGoalkeeper = fullLineup.slice(10, 11);
 
 
     return (
@@ -73,19 +85,19 @@ const MatchField = ({ match, teamType }: { match: Match, teamType: 'home' | 'awa
         }}>
             {/* Forwards */}
             <div className="flex justify-around h-1/4 items-center">
-                {forwards.map(p => <PlayerMarker key={p.id} player={p} />)}
+                {finalForwards.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Midfielders */}
             <div className="flex justify-around h-1/4 items-center">
-                 {midfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {finalMidfielders.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Defenders */}
             <div className="flex justify-around h-1/4 items-center">
-                 {defenders.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {finalDefenders.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
              {/* Goalkeeper */}
             <div className="flex justify-around h-1/4 items-center">
-                 {goalkeeper.map(p => <PlayerMarker key={p.id} player={p} />)}
+                 {finalGoalkeeper.map(p => <PlayerMarker key={p.id} player={p} />)}
             </div>
         </div>
     );
