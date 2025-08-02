@@ -8,10 +8,11 @@ import { Dices, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean; }) => (
   <div
-    className={`flex items-center justify-between w-40 h-10 px-3 border-y border-r rounded-r-md text-sm
+    className={`flex items-center justify-between w-48 h-10 px-3 border rounded-md text-sm
       ${isWinner ? 'bg-primary/20 border-primary font-bold text-primary-foreground' : 'bg-muted/50'}
       ${!team ? 'border-dashed' : 'border-solid'}`}
   >
@@ -19,76 +20,57 @@ const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boole
   </div>
 );
 
-const Matchup = ({ children, round, matchIndex }: { children: React.ReactNode, round: number, matchIndex: number }) => (
-    <div className="relative flex flex-col justify-center my-4">
-        {children}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center" style={{ right: '-2.5rem' }}>
-            <div className="w-10 h-px bg-muted-foreground"></div>
-            <div className="w-px h-20 bg-muted-foreground absolute -right-px"></div>
-        </div>
+const Matchup = ({ teamA, teamB, isWinnerA }: { teamA: string | null; teamB: string | null; isWinnerA: boolean; }) => (
+    <div className="inline-flex flex-col items-center gap-2">
+       <BracketNode team={teamA} isWinner={isWinnerA} />
+       <span className="text-xs font-bold text-muted-foreground">VS</span>
+       <BracketNode team={teamB} isWinner={!isWinnerA} />
     </div>
 );
 
-const Round = ({ children, title }: { children: React.ReactNode, title: string }) => (
-  <div className="flex flex-col justify-around text-center">
-    <h3 className="text-lg font-bold font-headline mb-8 tracking-wider uppercase">{title}</h3>
-    <div className="flex flex-col justify-around h-full gap-8">
-        {children}
-    </div>
-  </div>
-);
 
-const FinalMatch = ({ winner }: { winner: string | null }) => (
-    <div className="flex flex-col items-center justify-center h-full text-center">
-        <h3 className="text-3xl font-bold font-headline mb-4 text-amber-400">FINAL</h3>
-        <div className="p-4 border-2 border-amber-400 rounded-lg bg-card shadow-xl min-h-[12rem] flex flex-col justify-center items-center">
-             <BracketNode team="Equipo A (Sim)" isWinner={true} />
-             <div className="font-bold text-muted-foreground my-2">VS</div>
-             <BracketNode team="Equipo B (Sim)" />
-        </div>
-         <div className="mt-4">
-            <p className="text-sm text-muted-foreground">Campeón</p>
-            <p className="text-2xl font-bold text-amber-400">🏆 {winner || 'Por definir'} 🏆</p>
-        </div>
-    </div>
+const RoundSection = ({ title, matchups }: { title: string; matchups: { teamA: string; teamB: string; }[] }) => (
+    <AccordionItem value={title}>
+        <AccordionTrigger className="text-xl font-bold font-headline tracking-wider uppercase">{title}</AccordionTrigger>
+        <AccordionContent>
+            <div className="p-4 bg-background/50 rounded-md overflow-x-auto">
+                 <div className="flex flex-nowrap gap-8 pb-4">
+                    {matchups.map((match, i) => (
+                        <Matchup key={i} teamA={match.teamA} teamB={match.teamB} isWinnerA={Math.random() > 0.5} />
+                    ))}
+                </div>
+            </div>
+        </AccordionContent>
+    </AccordionItem>
 );
-
 
 const CopaBracket = () => {
     // This is a visual representation, logic for actual matchups would be more complex
+    const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: `Equipo ${i * 2 + 1}`, teamB: `Equipo ${i * 2 + 2}` }));
+    const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: `Ganador Octavos ${i * 2 + 1}`, teamB: `Ganador Octavos ${i * 2 + 2}` }));
+    const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: `Ganador Cuartos ${i * 2 + 1}`, teamB: `Ganador Cuartos ${i * 2 + 2}` }));
+    const final = [{ teamA: 'Ganador Semifinal 1', teamB: 'Ganador Semifinal 2' }];
+
     return (
-        <div className="flex justify-center p-8 overflow-x-auto min-w-max">
-            <div className="flex items-center space-x-16">
-                <Round title="Octavos de Final">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <Matchup key={`octavos-${i}`} round={1} matchIndex={i}>
-                            <BracketNode team={`Equipo ${i * 2 + 1}`} isWinner={true} />
-                            <div className="h-4"></div>
-                            <BracketNode team={`Equipo ${i * 2 + 2}`} />
-                        </Matchup>
-                    ))}
-                </Round>
-                <Round title="Cuartos de Final">
-                     {Array.from({ length: 4 }).map((_, i) => (
-                        <Matchup key={`cuartos-${i}`} round={2} matchIndex={i}>
-                            <BracketNode team={`Equipo ${i*2+1}`} isWinner={true} />
-                            <div className="h-4"></div>
-                            <BracketNode team="Por definir" />
-                        </Matchup>
-                    ))}
-                </Round>
-                <Round title="Semifinal">
-                    {Array.from({ length: 2 }).map((_, i) => (
-                        <Matchup key={`semi-${i}`} round={3} matchIndex={i}>
-                           <BracketNode team="Por definir" isWinner={true} />
-                           <div className="h-4"></div>
-                           <BracketNode team="Por definir" />
-                        </Matchup>
-                    ))}
-                </Round>
-                <FinalMatch winner="Equipo A (Sim)" />
-            </div>
-        </div>
+        <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="Octavos de Final">
+            <RoundSection title="Octavos de Final" matchups={octavos} />
+            <RoundSection title="Cuartos de Final" matchups={cuartos} />
+            <RoundSection title="Semifinal" matchups={semifinal} />
+            <AccordionItem value="Final">
+                 <AccordionTrigger className="text-xl font-bold font-headline tracking-wider uppercase text-amber-400">Final</AccordionTrigger>
+                 <AccordionContent>
+                     <div className="p-4 bg-background/50 rounded-md flex justify-center">
+                         <div className="flex flex-col items-center">
+                            <Matchup teamA={final[0].teamA} teamB={final[0].teamB} isWinnerA={true} />
+                            <div className="mt-8 text-center">
+                                <p className="text-lg text-muted-foreground">Campeón</p>
+                                <p className="text-3xl font-bold text-amber-400">🏆 {final[0].teamA} 🏆</p>
+                            </div>
+                         </div>
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
     );
 };
 
@@ -100,9 +82,17 @@ const SegundaLeague = () => {
     }, []);
 
     const standings = useMemo(() => {
-        return mockStandings
+        // Find the team logos from the main teams list
+        const teamsWithLogos = mockStandings.map(s => {
+            const team = teams.find(t => t.id === s.teamId);
+            return {
+                ...s,
+                teamLogoUrl: team?.logoUrl || 'https://placehold.co/100x100.png'
+            };
+        });
+        return teamsWithLogos
             .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
-    }, []);
+    }, [teams]);
 
 
     return (
@@ -129,7 +119,7 @@ const SegundaLeague = () => {
                     </TableHeader>
                     <TableBody>
                         {standings.map((s, index) => (
-                            <TableRow key={s.teamId}>
+                            <TableRow key={s.teamId} className={index < 2 ? 'bg-primary/10' : ''}>
                                 <TableCell className="font-bold">{index + 1}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
@@ -151,11 +141,17 @@ const SegundaLeague = () => {
                 </Table>
                  <div className="mt-8 flex justify-around">
                     <div className="text-center">
-                        <h4 className="font-bold font-headline text-lg">FINAL</h4>
+                        <h4 className="font-bold font-headline text-lg text-primary">FINAL</h4>
                          <div className="mt-2 p-4 rounded-lg bg-muted/50 flex items-center gap-4">
-                            <span>{standings[0]?.teamName || 'Primero'}</span>
+                            <div className="flex items-center gap-2">
+                                <Image src={standings[0]?.teamLogoUrl || ''} alt={standings[0]?.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                <span>{standings[0]?.teamName || 'Primero'}</span>
+                            </div>
                             <span className="font-bold text-primary">VS</span>
-                             <span>{standings[1]?.teamName || 'Segundo'}</span>
+                             <div className="flex items-center gap-2">
+                                <Image src={standings[1]?.teamLogoUrl || ''} alt={standings[1]?.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                <span>{standings[1]?.teamName || 'Segundo'}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -197,9 +193,9 @@ export default function SchedulePage() {
            <Card>
             <CardHeader>
               <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
-              <CardDescription>Torneo de eliminación directa con 32 equipos.</CardDescription>
+              <CardDescription>Torneo de eliminación directa con 32 equipos. Haz clic en cada ronda para expandir.</CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent>
               <CopaBracket />
             </CardContent>
           </Card>
@@ -211,8 +207,8 @@ export default function SchedulePage() {
            <Card>
             <CardHeader>
               <CardTitle>Bracket del Torneo - Primera</CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
+            </Header>
+            <CardContent>
                 <p className="text-muted-foreground">Bracket para la categoría Primera no disponible aún. Realiza el sorteo para empezar.</p>
             </CardContent>
           </Card>
