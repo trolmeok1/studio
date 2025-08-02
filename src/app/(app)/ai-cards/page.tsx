@@ -152,8 +152,8 @@ export default function AiCardsPage() {
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(2, 1fr);
             gap: 0.5cm;
-            width: 28.7cm; /* A4 landscape width - margins */
-            height: 20cm; /* A4 landscape height - margins */
+            height: 100%;
+            width: 100%;
           }
           .id-card-wrapper {
              padding: 0;
@@ -164,8 +164,11 @@ export default function AiCardsPage() {
              align-items: center;
              justify-content: center;
           }
-          .id-card-wrapper .max-w-\\[300px\\] { /* The card itself */
-            transform: scale(0.95);
+          .id-card-wrapper .max-w-\\[300px\\] {
+            width: 100% !important;
+            max-width: none !important;
+            height: 100%;
+            transform: scale(0.98);
             transform-origin: center;
           }
           .print\:hidden {
