@@ -1,6 +1,5 @@
 
 
-
 export type Category = 'Copa' | 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -12,6 +11,7 @@ export interface Player {
   birthDate: string;
   jerseyNumber: number;
   photoUrl: string;
+  idCardUrl?: string; // Image of the full ID card
   team: string;
   teamId: string;
   category: Category;
