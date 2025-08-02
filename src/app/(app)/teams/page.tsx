@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { teams as initialTeams, type Team, type Category } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Image from 'next/image';
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>(initialTeams);
@@ -25,6 +26,9 @@ export default function TeamsPage() {
         name: newTeam.name,
         category: newTeam.category as Category,
         logoUrl: 'https://placehold.co/100x100.png',
+        abbreviation: newTeam.name.substring(0,3).toUpperCase(),
+        foundationDate: new Date().toISOString().split('T')[0],
+        manager: 'N/A'
       };
       setTeams([...teams, newTeamData]);
       setNewTeam({ name: '', category: '' });
@@ -75,6 +79,7 @@ export default function TeamsPage() {
                   <SelectContent>
                     <SelectItem value="Máxima">Máxima</SelectItem>
                     <SelectItem value="Primera">Primera</SelectItem>
+                    <SelectItem value="Segunda">Segunda</SelectItem>
                     <SelectItem value="Copa">Copa</SelectItem>
                   </SelectContent>
                 </Select>
@@ -88,9 +93,9 @@ export default function TeamsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team) => (
           <Card key={team.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:scale-[1.02]">
-             <CardHeader className="flex-row items-center justify-between p-4">
-                <CardTitle className="text-xl font-headline">{team.name}</CardTitle>
-                <div className="text-sm text-muted-foreground">{team.category}</div>
+             <CardHeader className="p-4">
+                <CardTitle className="text-xl font-headline truncate">{team.name}</CardTitle>
+                <Badge variant="secondary" className="w-fit">{team.category}</Badge>
              </CardHeader>
             <CardContent className="p-4 flex-grow flex items-center justify-center">
                  <Image
@@ -98,15 +103,15 @@ export default function TeamsPage() {
                     alt={`Logo de ${team.name}`}
                     width={150}
                     height={150}
-                    className="rounded-full object-cover"
+                    className="rounded-full object-cover aspect-square"
                     data-ai-hint="team logo"
                 />
             </CardContent>
-            <div className="p-4 bg-muted/50">
+            <CardFooter className="p-4 bg-muted/50">
                  <Button asChild className="w-full">
                     <Link href={`/teams/${team.id}`}>Administrar</Link>
                 </Button>
-            </div>
+            </CardFooter>
           </Card>
         ))}
       </div>

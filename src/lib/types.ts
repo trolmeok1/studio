@@ -23,6 +23,9 @@ export interface Team {
   name: string;
   logoUrl: string;
   category: Category;
+  abbreviation?: string;
+  foundationDate?: string;
+  manager?: string;
 }
 
 export interface Match {
