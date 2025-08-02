@@ -67,29 +67,39 @@ const Round = ({ title, matchups, children }: { title: string; matchups?: { team
 }
 
 const CopaBracket = () => {
-    let teams = getTeamsByCategory('Máxima').concat(getTeamsByCategory('Primera')).concat(getTeamsByCategory('Segunda'));
-    // Shuffle teams for random bracket
-    teams = teams.sort(() => 0.5 - Math.random());
+    const [bracketTeams, setBracketTeams] = useState<Team[]>([]);
 
-    if (teams.length < 16) {
-        // Pad with placeholder teams if less than 16
-        const placeholderCount = 16 - teams.length;
-        for(let i = 0; i < placeholderCount; i++) {
-             teams.push({
-                id: `fake-${i + 1}`,
-                name: `Equipo ${i + 1}`,
-                logoUrl: 'https://placehold.co/100x100.png',
-                category: 'Copa' as any // temp category
-            });
+    useEffect(() => {
+        let allTeams = getTeamsByCategory('Máxima').concat(getTeamsByCategory('Primera')).concat(getTeamsByCategory('Segunda'));
+        
+        // Shuffle teams for random bracket - client side only
+        allTeams = allTeams.sort(() => 0.5 - Math.random());
+
+        if (allTeams.length < 16) {
+            // Pad with placeholder teams if less than 16
+            const placeholderCount = 16 - allTeams.length;
+            for(let i = 0; i < placeholderCount; i++) {
+                 allTeams.push({
+                    id: `fake-${i + 1}`,
+                    name: `Equipo ${i + 1}`,
+                    logoUrl: 'https://placehold.co/100x100.png',
+                    category: 'Máxima' // temp category
+                });
+            }
+        } else {
+            allTeams = allTeams.slice(0, 16);
         }
-    } else {
-        teams = teams.slice(0, 16);
+        setBracketTeams(allTeams);
+    }, []);
+
+    if (bracketTeams.length === 0) {
+        return <div>Generando bracket...</div>
     }
 
-    const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: teams[i*2], teamB: teams[i*2+1] }));
-    const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: teams[i*2], teamB: teams[i*2+1] })); // Dummy winners
-    const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: teams[i*2], teamB: teams[i*2+1] })); // Dummy winners
-    const final = { teamA: teams[0], teamB: teams[1] }; // Dummy winners
+    const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] }));
+    const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] })); // Dummy winners
+    const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] })); // Dummy winners
+    const final = { teamA: bracketTeams[0], teamB: bracketTeams[1] }; // Dummy winners
 
     return (
         <div className="flex justify-center items-stretch gap-4 md:gap-8 p-4 bg-background/50 rounded-md overflow-x-auto">
@@ -496,5 +506,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
