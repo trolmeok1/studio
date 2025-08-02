@@ -41,7 +41,7 @@ const Matchup = ({ teamA, teamB }: { teamA: string | null; teamB: string | null;
     );
 };
 
-const Round = ({ title, matchups, children }: { title: string; matchups?: { teamA: Team; teamB: Team; }[], children?: React.ReactNode }) => {
+const Round = ({ title, matchups, children }: { title: string; matchups?: { teamA: {name: string}; teamB: {name: string}; }[], children?: React.ReactNode }) => {
     return (
         <div className="flex flex-col justify-around items-center w-48 gap-4">
             <h3 className="text-lg font-bold font-headline tracking-wider uppercase text-center">{title}</h3>
@@ -56,9 +56,16 @@ const Round = ({ title, matchups, children }: { title: string; matchups?: { team
 }
 
 const CopaBracket = () => {
-    // Mock data for a 16-team bracket for brevity
-    const teams = getTeamsByCategory('Copa');
-    if (teams.length < 16) return <p>No hay suficientes equipos en la categoría Copa para generar el bracket.</p>;
+    let teams = getTeamsByCategory('Copa');
+
+    if (teams.length < 16) {
+        teams = Array.from({ length: 16 }, (_, i) => ({
+            id: `fake-${i + 1}`,
+            name: `Equipo ${i + 1}`,
+            logoUrl: 'https://placehold.co/100x100.png',
+            category: 'Copa'
+        }));
+    }
 
     const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: teams[i*2], teamB: teams[i*2+1] }));
     const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: teams[i*2], teamB: teams[i*2+1] })); // Dummy winners
