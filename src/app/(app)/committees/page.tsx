@@ -18,25 +18,27 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import { players, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType } from '@/lib/mock-data';
+import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches, getPlayersByTeamId } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { MatchEvent, MatchEventType } from '@/lib/types';
+import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
 
 
-const PhysicalMatchSheet = () => {
-    const handlePrint = () => {
-        window.print();
-    };
+const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 
-    const PlayerRow = ({ number }: { number: number }) => (
+    const teamA = match?.teams.home;
+    const teamB = match?.teams.away;
+    const playersA = teamA ? getPlayersByTeamId(teamA.id) : [];
+    const playersB = teamB ? getPlayersByTeamId(teamB.id) : [];
+    
+    const PlayerRow = ({ player, number }: { player?: Player, number: number }) => (
         <TableRow className="h-8">
             <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{number}</TableCell>
-            <TableCell className="border p-1 text-left w-[200px]"></TableCell>
+            <TableCell className="border p-1 text-left w-[200px] text-xs">{player?.name || ''}</TableCell>
             <TableCell className="border text-center p-1 w-[40px]"></TableCell>
         </TableRow>
     );
@@ -112,7 +114,7 @@ const PhysicalMatchSheet = () => {
                     </div>
                     <div className="text-center font-bold text-2xl border-y-2 border-black py-1">ACTA DE JUEGO</div>
                      <div className="flex justify-between items-center text-xs">
-                        <span><strong>CATEGORIA:</strong> ______________________</span>
+                        <span><strong>CATEGORIA:</strong> {match?.category || '______________________'}</span>
                         <span><strong>DÍA:</strong> ____________</span>
                         <span><strong>DE:</strong> ____________</span>
                         <span><strong>DEL:</strong> 20__</span>
@@ -127,7 +129,7 @@ const PhysicalMatchSheet = () => {
                     {/* Team A */}
                     <div>
                          <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
-                           <h3 className="font-bold uppercase text-sm">EQUIPO: ______________________</h3>
+                           <h3 className="font-bold uppercase text-sm truncate max-w-[250px]">EQUIPO: {teamA?.name || '______________________'}</h3>
                            <div className="w-16 h-8 border-2 border-black bg-white"></div>
                         </div>
                         <Table className="border-collapse border border-gray-400">
@@ -140,7 +142,7 @@ const PhysicalMatchSheet = () => {
                             </TableHeader>
                             <TableBody>
                                 {Array.from({ length: 15 }).map((_, index) => (
-                                    <PlayerRow key={`A-${index}`} number={index + 1} />
+                                    <PlayerRow key={`A-${index}`} player={playersA[index]} number={index + 1} />
                                 ))}
                             </TableBody>
                         </Table>
@@ -165,7 +167,7 @@ const PhysicalMatchSheet = () => {
                     {/* Team B */}
                     <div>
                          <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
-                           <h3 className="font-bold uppercase text-sm">EQUIPO: ______________________</h3>
+                           <h3 className="font-bold uppercase text-sm truncate max-w-[250px]">EQUIPO: {teamB?.name || '______________________'}</h3>
                            <div className="w-16 h-8 border-2 border-black bg-white"></div>
                         </div>
                         <Table className="border-collapse border border-gray-400">
@@ -178,7 +180,7 @@ const PhysicalMatchSheet = () => {
                             </TableHeader>
                             <TableBody>
                                  {Array.from({ length: 15 }).map((_, index) => (
-                                    <PlayerRow key={`B-${index}`} number={index + 1} />
+                                    <PlayerRow key={`B-${index}`} player={playersB[index]} number={index + 1} />
                                 ))}
                             </TableBody>
                         </Table>
@@ -265,7 +267,7 @@ const DigitalMatchSheet = () => {
             toast({ title: "Información incompleta", description: "Por favor, selecciona equipo y número de camiseta.", variant: "destructive" });
             return;
         }
-        const results = players.filter(p => 
+        const results = allPlayers.filter(p => 
             p.teamId === selectedTeamId &&
             p.id.slice(-2) === playerNumber.padStart(2, '0') // Assuming player number is last 2 digits of ID
         );
@@ -579,10 +581,22 @@ const DigitalMatchSheet = () => {
 
 export default function CommitteesPage() {
   const [activeTab, setActiveTab] = useState('digital');
+  const [isClient, setIsClient] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+
   const { user } = useAuth();
   const handlePrint = () => {
     window.print();
   };
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const handleMatchSelect = (matchId: string) => {
+    const match = upcomingMatches.find(m => m.id === matchId);
+    setSelectedMatch(match || null);
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-background">
@@ -597,28 +611,48 @@ export default function CommitteesPage() {
                     <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
                 </TabsList>
             </Tabs>
-            {activeTab === 'physical' && (
-                <Button onClick={handlePrint} id="print-button">
-                    <Printer className="mr-2" />
-                    Imprimir Vocalía
-                </Button>
-            )}
         </div>
       </div>
 
        <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="digital" className="space-y-4">
-          <TabsContent value="physical" className="mt-0">
-            <PhysicalMatchSheet />
+          <TabsContent value="physical" className="mt-0 space-y-4">
+            <Card className="print:hidden">
+                <CardHeader>
+                    <CardTitle>Generar Hoja de Vocalía Física</CardTitle>
+                    <CardContent className="p-0 pt-4 flex gap-4 items-end">
+                        <div className="flex-grow">
+                             <Label>Seleccionar Partido</Label>
+                             <Select onValueChange={handleMatchSelect}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Elige un partido del calendario..."/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {isClient && upcomingMatches.map(match => (
+                                        <SelectItem key={match.id} value={match.id}>
+                                            {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button onClick={handlePrint} disabled={!selectedMatch}>
+                            <Printer className="mr-2" />
+                            Imprimir Vocalía
+                        </Button>
+                    </CardContent>
+                </CardHeader>
+            </Card>
+            <div className="hidden print:block">
+                 <PhysicalMatchSheet match={selectedMatch}/>
+            </div>
+             <div className="print:hidden">
+                 <PhysicalMatchSheet match={selectedMatch}/>
+            </div>
           </TabsContent>
           <TabsContent value="digital" className="mt-0">
              <DigitalMatchSheet />
           </TabsContent>
         </Tabs>
-
-        {/* This is a hidden element that will only be visible for printing the physical sheet */}
-        <div className="hidden print:block">
-            <PhysicalMatchSheet />
-        </div>
 
       <style jsx global>{`
         @media print {
@@ -640,6 +674,7 @@ export default function CommitteesPage() {
           }
           .flex-1.space-y-4 {
             padding: 0;
+            margin: 0;
           }
           #print-area {
             box-shadow: none !important;
