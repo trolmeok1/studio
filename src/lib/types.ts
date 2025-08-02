@@ -35,8 +35,8 @@ export interface Team {
   name: string;
   logoUrl: string;
   category: Category;
-  manager?: string;
   president?: Person;
+  vicePresident?: Person;
   secretary?: Person;
   treasurer?: Person;
   vocal?: Person;

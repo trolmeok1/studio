@@ -7,15 +7,15 @@ export let teams: Team[] = [
     name: 'Cosmic Comets', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Máxima', 
-    manager: 'Danilo Guano',
-    president: { name: 'Juan Pérez', phone: '0991234567' },
-    secretary: { name: 'Ana Gómez', phone: '0987654321' },
-    treasurer: { name: 'Pedro Páramo', phone: '0998887766' },
-    vocal: { name: 'Maria Sol', phone: '0976543210' },
+    president: { name: 'Carlos Emilio Lasso Cuasapaz', phone: '0995168089' },
+    vicePresident: { name: 'Ricardo Nepas Cholca', phone: '0992767019' },
+    secretary: { name: 'Jeanette Toapanta', phone: '0987192255' },
+    treasurer: { name: 'Patricio Cobos', phone: '0986695854' },
+    vocal: { name: 'Juan Caiza Cumbal', phone: '0969134043' },
     delegates: [
-        { name: 'Carlos Ruíz', phone: '0965432109' },
-        { name: 'Sofía Naranjo', phone: '0954321098' },
-        { name: 'Luis Andrade' }
+        { name: 'Carlos Emilio Lasso Cuasapaz', phone: '0995168089' },
+        { name: 'Juan Caiza Cumbal', phone: '0969134043' },
+        { name: 'Jeanette Toapanta', phone: '0987192255' }
     ]
   },
   { 
@@ -23,7 +23,6 @@ export let teams: Team[] = [
     name: 'Solar Flares', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Máxima', 
-    manager: 'John Doe',
     president: { name: 'John Doe', phone: '0991112233' },
   },
   { 
@@ -31,7 +30,6 @@ export let teams: Team[] = [
     name: 'Galaxy Gliders', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Máxima', 
-    manager: 'Jane Smith',
     president: { name: 'Jane Smith', phone: '0993334455' },
   },
   { 
@@ -39,119 +37,119 @@ export let teams: Team[] = [
     name: 'Orion Stars', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Máxima', 
-    manager: 'Peter Jones' 
+    president: { name: 'Peter Jones' } 
   },
   { 
     id: '5', 
     name: 'Vortex Voyagers', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Primera', 
-    manager: 'Mary Johnson' 
+    president: { name: 'Mary Johnson' } 
   },
   { 
     id: '6', 
     name: 'Pulsar Pioneers', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Primera', 
-    manager: 'James Brown' 
+    president: { name: 'James Brown' } 
   },
   { 
     id: '7', 
     name: 'Quasar Quest', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Copa', 
-    manager: 'Patricia Taylor' 
+    president: { name: 'Patricia Taylor' } 
   },
   { 
     id: '8', 
     name: 'Nebula Nomads', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Copa', 
-    manager: 'Robert Wilson' 
+    president: { name: 'Robert Wilson' } 
   },
   { 
     id: '9', 
     name: 'Asteroide FC', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Linda Garcia' 
+    president: { name: 'Linda Garcia' } 
   },
   { 
     id: '10', 
     name: 'Supernova SC', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Michael Miller' 
+    president: { name: 'Michael Miller' } 
   },
   { 
     id: '11', 
     name: 'Blackhole United', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Barbara Davis' 
+    president: { name: 'Barbara Davis' } 
   },
   { 
     id: '12', 
     name: 'Rocket Rangers', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'William Rodriguez' 
+    president: { name: 'William Rodriguez' } 
   },
   { 
     id: '13', 
     name: 'Mars Rovers', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Elizabeth Martinez' 
+    president: { name: 'Elizabeth Martinez' } 
   },
   { 
     id: '14', 
     name: 'Jupiter Giants', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'David Hernandez' 
+    president: { name: 'David Hernandez' } 
   },
   { 
     id: '15', 
     name: 'Saturn Rings', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Jennifer Lopez' 
+    president: { name: 'Jennifer Lopez' } 
   },
   { 
     id: '16', 
     name: 'Neptune Knights', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Richard Gonzalez' 
+    president: { name: 'Richard Gonzalez' } 
   },
   { 
     id: '17', 
     name: 'Pluto Pups', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Susan Perez' 
+    president: { name: 'Susan Perez' } 
   },
   { 
     id: '18', 
     name: 'Mercury Meteors', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Joseph Sanchez' 
+    president: { name: 'Joseph Sanchez' } 
   },
   { 
     id: '19', 
     name: 'Venus Vipers', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Thomas Ramirez' 
+    president: { name: 'Thomas Ramirez' } 
   },
   { 
     id: '20', 
     name: 'Earth Eagles', 
     logoUrl: 'https://placehold.co/100x100.png', 
     category: 'Segunda', 
-    manager: 'Charles Torres' 
+    president: { name: 'Charles Torres' } 
   },
 ];
 

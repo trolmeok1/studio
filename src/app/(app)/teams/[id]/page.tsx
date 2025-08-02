@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, Award, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -121,7 +121,7 @@ export default function TeamDetailsPage() {
                 />
                 <div className="flex-grow text-center md:text-left">
                     <h2 className="text-4xl font-bold tracking-tight font-headline">{team.name}</h2>
-                    <p className="text-lg text-primary">Representado por {team.manager || 'No asignado'}</p>
+                    <p className="text-lg text-primary">Presidente: {team.president?.name || 'No asignado'}</p>
                     <Badge className="mt-2 text-md">{team.category}</Badge>
                 </div>
             </div>
@@ -139,12 +139,21 @@ export default function TeamDetailsPage() {
         </TabsList>
         <TabsContent value="info">
             <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Información del Club</CardTitle>
+                     {canEdit && (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href={`/teams/${teamId}/info`}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Imprimir Información
+                            </Link>
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <InfoRow icon={UserIcon} label="Presidente" person={team.president} showContact={canEdit} />
+                         <InfoRow icon={UserIcon} label="Vicepresidente" person={team.vicePresident} showContact={canEdit} />
                          <InfoRow icon={UserIcon} label="Secretario" person={team.secretary} showContact={canEdit} />
                          <InfoRow icon={UserIcon} label="Tesorero" person={team.treasurer} showContact={canEdit} />
                          <InfoRow icon={UserIcon} label="Vocal Principal" person={team.vocal} showContact={canEdit} />
@@ -154,6 +163,9 @@ export default function TeamDetailsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {team.delegates?.map((delegate, index) => (
                                 <InfoRow key={index} icon={UserSquare} label={`Delegado ${index + 1}`} person={delegate} showContact={canEdit} />
+                            ))}
+                             {Array.from({ length: Math.max(0, 3 - (team.delegates?.length || 0)) }).map((_, index) => (
+                                <InfoRow key={`empty-${index}`} icon={UserSquare} label={`Delegado ${ (team.delegates?.length || 0) + index + 1}`} showContact={false} />
                             ))}
                         </div>
                     </div>
