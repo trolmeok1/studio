@@ -696,5 +696,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
