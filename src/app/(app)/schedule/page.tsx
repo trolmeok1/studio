@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, setHours, setMinutes, setSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,13 +70,13 @@ const CopaBracket = () => {
     const [bracketTeams, setBracketTeams] = useState<Team[]>([]);
 
     useEffect(() => {
+        // This logic runs only on the client, preventing hydration errors
         let allTeams = getTeamsByCategory('Máxima').concat(getTeamsByCategory('Primera')).concat(getTeamsByCategory('Segunda'));
         
-        // Shuffle teams for random bracket - client side only
-        allTeams = allTeams.sort(() => 0.5 - Math.random());
+        // Shuffle teams for random bracket
+        allTeams.sort(() => 0.5 - Math.random());
 
         if (allTeams.length < 16) {
-            // Pad with placeholder teams if less than 16
             const placeholderCount = 16 - allTeams.length;
             for(let i = 0; i < placeholderCount; i++) {
                  allTeams.push({
@@ -118,27 +118,12 @@ const CopaBracket = () => {
 };
 
 const MatchCard = ({ match }: { match: GeneratedMatch }) => {
-    const allTeams = getTeamsByCategory('Máxima').concat(getTeamsByCategory('Primera')).concat(getTeamsByCategory('Segunda'));
+    const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
-    const fullMatch = initialMatches.find(m => (m.teams.home.id === match.home && m.teams.away.id === match.away) || (m.teams.home.id === match.away && m.teams.away.id === match.home));
     
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
-
-    const getStatusBadge = () => {
-        if (!fullMatch) return null;
-        switch (fullMatch.status) {
-            case 'finished':
-                return <Badge variant="secondary" className="bg-green-600/80 text-white">Finalizado</Badge>;
-            case 'in-progress':
-                return <Badge variant="default" className="bg-blue-500 animate-pulse">Jugando ahora</Badge>;
-            case 'future':
-                 return <Badge variant="outline">{new Date(fullMatch.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</Badge>;
-            default:
-                return null;
-        }
-    };
     
     return (
     <Link href={`/partido`}>
@@ -148,12 +133,8 @@ const MatchCard = ({ match }: { match: GeneratedMatch }) => {
                 <Image src={homeTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={homeTeam?.name || 'Home'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
             </div>
              <div className="text-center w-1/5">
-                {fullMatch && fullMatch.status === 'finished' ? (
-                    <span className="font-bold">{fullMatch.score?.home} - {fullMatch.score?.away}</span>
-                ) : (
-                    <span className="text-primary font-bold mx-2">VS</span>
-                )}
-                 <div className="mt-1 text-xs text-muted-foreground">{isClient && match.date ? format(match.date, 'PPP', {locale: es}) : 'Por definir'}</div>
+                <span className="text-primary font-bold mx-2">VS</span>
+                 <div className="mt-1 text-xs text-muted-foreground">{isClient && match.time ? match.time : 'Por definir'}</div>
             </div>
             <div className="flex items-center gap-2 font-semibold text-left w-2/5">
                 <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
@@ -167,62 +148,7 @@ const MatchCard = ({ match }: { match: GeneratedMatch }) => {
 
 const LeagueView = ({ category }: { category: Category }) => {
     const [teams, setTeams] = useState<Team[]>([]);
-    const [schedule, setSchedule] = useState<GeneratedMatch[][][]>([]);
-
-    const generateSchedule = (startDate: Date, playDays: number[]) => {
-        let teamSlice = teams.map(t => t.id);
-
-        if (teamSlice.length % 2 !== 0) {
-            teamSlice.push("BYE");
-        }
-        
-        const rounds = teamSlice.length - 1;
-        const half = teamSlice.length / 2;
-        const generatedSchedule: GeneratedMatch[][] = [];
-
-        const teamsForScheduling = teamSlice.map(id => ({ id }));
-        
-        for (let i = 0; i < rounds; i++) {
-            const roundMatches: GeneratedMatch[] = [];
-            for (let j = 0; j < half; j++) {
-                const home = teamsForScheduling[j];
-                const away = teamsForScheduling[teamsForScheduling.length - 1 - j];
-                if(home.id !== "BYE" && away.id !== "BYE") {
-                   roundMatches.push({ home: home.id, away: away.id });
-                }
-            }
-            generatedSchedule.push(roundMatches);
-
-            const lastTeam = teamsForScheduling.pop();
-            if(lastTeam) {
-              teamsForScheduling.splice(1, 0, lastTeam);
-            }
-        }
-        
-        const secondLeg = generatedSchedule.map(round => 
-            round.map(match => ({ home: match.away, away: match.home }))
-        );
-
-        const fullScheduleRaw = [generatedSchedule, secondLeg];
-        let currentDate = new Date(startDate);
-        const fullScheduleWithDates = fullScheduleRaw.map(leg => 
-            leg.map(round => {
-                const roundWithDates = round.map(match => {
-                    while (!playDays.includes(currentDate.getDay())) {
-                         currentDate = addDays(currentDate, 1);
-                    }
-                    const matchWithDate = { ...match, date: new Date(currentDate) };
-                    return matchWithDate;
-                });
-                 currentDate = addDays(currentDate, 1); // Move to next day for next round
-                return roundWithDates;
-            })
-        );
-
-
-        setSchedule(fullScheduleWithDates);
-    }
-
+    
     useEffect(() => {
         const categoryTeams = getTeamsByCategory(category);
         setTeams(categoryTeams);
@@ -264,7 +190,6 @@ const LeagueView = ({ category }: { category: Category }) => {
                     <CardTitle>Torneo {category}</CardTitle>
                     <CardDescription>Partidos de ida y vuelta. Los dos primeros clasifican a la final.</CardDescription>
                 </div>
-                 <DrawDialog onGenerate={generateSchedule} />
             </CardHeader>
             <CardContent>
                 <Table>
@@ -323,43 +248,6 @@ const LeagueView = ({ category }: { category: Category }) => {
                         </div>
                     </div>
                 )}
-
-                {schedule.length > 0 && (
-                    <div className="mt-12">
-                        <h3 className="text-2xl font-bold text-center mb-4 font-headline">PRIMERA VUELTA</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {schedule[0].map((round, roundIndex) => (
-                                <Card key={`round-1-${roundIndex}`}>
-                                    <CardHeader>
-                                        <CardTitle className="text-center text-lg">Etapa {roundIndex + 1}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        {round.map((match, matchIndex) => (
-                                            <MatchCard key={matchIndex} match={match} />
-                                        ))}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-
-                        <h3 className="text-2xl font-bold text-center mt-12 mb-4 font-headline">SEGUNDA VUELTA</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {schedule[1].map((round, roundIndex) => (
-                                <Card key={`round-2-${roundIndex}`}>
-                                    <CardHeader>
-                                        <CardTitle className="text-center text-lg">Etapa {roundIndex + schedule[0].length + 1}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        {round.map((match, matchIndex) => (
-                                             <MatchCard key={matchIndex} match={match} />
-                                        ))}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
             </CardContent>
         </Card>
     );
@@ -368,13 +256,13 @@ const LeagueView = ({ category }: { category: Category }) => {
 const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: number[]) => void }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(new Date());
     const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
-        '0': false, // Sunday
-        '1': false, // Monday
-        '2': false, // Tuesday
-        '3': false, // Wednesday
-        '4': false, // Thursday
-        '5': false, // Friday
-        '6': false, // Saturday
+        '0': true, // Sunday
+        '1': false,
+        '2': false, 
+        '3': false, 
+        '4': false, 
+        '5': false, 
+        '6': true, // Saturday
     });
 
     const daysOfWeek = [
@@ -458,6 +346,105 @@ const DrawDialog = ({ onGenerate }: { onGenerate: (startDate: Date, playDays: nu
 
 
 export default function SchedulePage() {
+  const [isClient, setIsClient] = useState(false);
+  const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
+
+  useEffect(() => { setIsClient(true) }, []);
+
+  const generateMasterSchedule = (startDate: Date, playDays: number[]) => {
+      const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+      const allMatchesToSchedule: (GeneratedMatch & { category: Category })[] = [];
+      const timeSlots = [8, 10, 12, 14, 16]; // 8 AM to 4 PM start times
+
+      // 1. Generate all round-robin matches for each category
+      categories.forEach(category => {
+          let teams = getTeamsByCategory(category).map(t => t.id);
+          if (teams.length % 2 !== 0) {
+              teams.push("BYE");
+          }
+          const rounds = teams.length - 1;
+          const half = teams.length / 2;
+          
+          const teamsForScheduling = [...teams];
+          
+          // First leg
+          for (let i = 0; i < rounds; i++) {
+              for (let j = 0; j < half; j++) {
+                  const home = teamsForScheduling[j];
+                  const away = teamsForScheduling[teams.length - 1 - j];
+                  if (home !== "BYE" && away !== "BYE") {
+                      allMatchesToSchedule.push({ home, away, category });
+                  }
+              }
+              const lastTeam = teamsForScheduling.pop();
+              if (lastTeam) {
+                  teamsForScheduling.splice(1, 0, lastTeam);
+              }
+          }
+           // Second leg (reverse home/away)
+           for (let i = 0; i < rounds; i++) {
+              for (let j = 0; j < half; j++) {
+                  const away = teamsForScheduling[j]; // reversed
+                  const home = teamsForScheduling[teams.length - 1 - j]; // reversed
+                  if (home !== "BYE" && away !== "BYE") {
+                      allMatchesToSchedule.push({ home, away, category });
+                  }
+              }
+              const lastTeam = teamsForScheduling.pop();
+              if (lastTeam) {
+                  teamsForScheduling.splice(1, 0, lastTeam);
+              }
+          }
+      });
+      
+      // 2. Prioritize matches: Maxima > Primera > Segunda
+      allMatchesToSchedule.sort((a, b) => {
+          const priority = { 'Máxima': 1, 'Primera': 2, 'Segunda': 3 };
+          return priority[a.category] - priority[b.category];
+      });
+
+      // 3. Assign dates and times
+      const finalSchedule: GeneratedMatch[] = [];
+      let currentDate = new Date(startDate);
+      let matchIndex = 0;
+
+      while (matchIndex < allMatchesToSchedule.length) {
+          // Find next available play day
+          while (!playDays.includes(currentDate.getDay())) {
+              currentDate = addDays(currentDate, 1);
+          }
+
+          // Fill time slots for the current day
+          for (const hour of timeSlots) {
+              if (matchIndex < allMatchesToSchedule.length) {
+                  const match = allMatchesToSchedule[matchIndex];
+                  let matchDate = setSeconds(setMinutes(setHours(new Date(currentDate), hour), 0), 0);
+                  
+                  finalSchedule.push({
+                      ...match,
+                      date: matchDate,
+                      time: format(matchDate, 'HH:mm'),
+                  });
+                  matchIndex++;
+              }
+          }
+          currentDate = addDays(currentDate, 1);
+      }
+      setGeneratedMatches(finalSchedule);
+  }
+
+  const groupedMatches = useMemo(() => {
+    return generatedMatches.reduce((acc, match) => {
+        const date = isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : '';
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(match);
+        return acc;
+    }, {} as Record<string, GeneratedMatch[]>);
+  }, [generatedMatches, isClient]);
+
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="flex items-center justify-between">
@@ -467,21 +454,39 @@ export default function SchedulePage() {
         <Card className="p-2 bg-card/50">
             <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold mr-2">Admin:</span>
-                <Button>
-                    <RefreshCw className="mr-2" />
-                    Actualizar Bracket
-                </Button>
+                 <DrawDialog onGenerate={generateMasterSchedule} />
             </div>
         </Card>
       </div>
 
-      <Tabs defaultValue="copa" className="space-y-4">
+      <Tabs defaultValue="general" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="general">Calendario General</TabsTrigger>
           <TabsTrigger value="copa">Copa La Luz</TabsTrigger>
           <TabsTrigger value="segunda">Segunda</TabsTrigger>
           <TabsTrigger value="primera">Primera</TabsTrigger>
           <TabsTrigger value="maxima">Máxima</TabsTrigger>
         </TabsList>
+         <TabsContent value="general">
+             <Card>
+                <CardHeader>
+                  <CardTitle>Calendario General de Partidos</CardTitle>
+                  <CardDescription>Todos los partidos programados, priorizando Máxima.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches).map(([date, matchesOnDate]) => (
+                        <div key={date}>
+                            <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
+                            <div className="space-y-2">
+                                {matchesOnDate.sort((a,b) => a.date!.getTime() - b.date!.getTime()).map((match, index) => <MatchCard key={index} match={match} />)}
+                            </div>
+                        </div>
+                    )) : (
+                        <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Equipos".</p>
+                    )}
+                </CardContent>
+             </Card>
+        </TabsContent>
         <TabsContent value="copa">
            <Card>
             <CardHeader>
@@ -506,3 +511,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
