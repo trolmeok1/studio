@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -24,6 +24,7 @@ import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const initialNewPlayerState = {
     firstName: '',
@@ -36,6 +37,120 @@ const initialNewPlayerState = {
     statusReason: '',
 };
 
+const EditTeamDialog = ({ team, onSave }: { team: Team, onSave: (updatedTeam: Team) => void }) => {
+    const [editedTeam, setEditedTeam] = useState(team);
+
+    const handleDirectiveChange = (role: keyof typeof editedTeam, field: 'name' | 'phone', value: string) => {
+        if (typeof editedTeam[role] === 'object' && editedTeam[role] !== null && 'name' in (editedTeam[role] as any)) {
+            setEditedTeam({
+                ...editedTeam,
+                [role]: { ...(editedTeam[role] as Person), [field]: value }
+            });
+        }
+    };
+    
+    const handleDelegateChange = (index: number, field: 'name' | 'phone', value: string) => {
+        const updatedDelegates = [...(editedTeam.delegates || [])];
+        updatedDelegates[index] = { ...updatedDelegates[index], [field]: value };
+        setEditedTeam({ ...editedTeam, delegates: updatedDelegates });
+    };
+
+    return (
+         <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Editar Información del Club</DialogTitle>
+                <DialogDescription>
+                    Actualice los datos del equipo y su directiva.
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[60vh] pr-6">
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nombre del Equipo</Label>
+                        <Input id="name" value={editedTeam.name} onChange={(e) => setEditedTeam({ ...editedTeam, name: e.target.value })} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="logoUrl">Logo del Equipo</Label>
+                        <div className="flex items-center gap-2">
+                            <Input id="logoUrl" type="file" className="flex-grow" />
+                            <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
+                        </div>
+                    </div>
+                    
+                    <h4 className="font-semibold text-lg border-t pt-4 mt-4">Directiva</h4>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Presidente</Label>
+                            <Input placeholder="Nombre" value={editedTeam.president?.name} onChange={(e) => handleDirectiveChange('president', 'name', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Teléfono</Label>
+                            <Input placeholder="099..." value={editedTeam.president?.phone} onChange={(e) => handleDirectiveChange('president', 'phone', e.target.value)} />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Vicepresidente</Label>
+                            <Input placeholder="Nombre" value={editedTeam.vicePresident?.name} onChange={(e) => handleDirectiveChange('vicePresident', 'name', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Teléfono</Label>
+                            <Input placeholder="099..." value={editedTeam.vicePresident?.phone} onChange={(e) => handleDirectiveChange('vicePresident', 'phone', e.target.value)} />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Secretario/a</Label>
+                            <Input placeholder="Nombre" value={editedTeam.secretary?.name} onChange={(e) => handleDirectiveChange('secretary', 'name', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Teléfono</Label>
+                            <Input placeholder="099..." value={editedTeam.secretary?.phone} onChange={(e) => handleDirectiveChange('secretary', 'phone', e.target.value)} />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Tesorero/a</Label>
+                            <Input placeholder="Nombre" value={editedTeam.treasurer?.name} onChange={(e) => handleDirectiveChange('treasurer', 'name', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Teléfono</Label>
+                            <Input placeholder="099..." value={editedTeam.treasurer?.phone} onChange={(e) => handleDirectiveChange('treasurer', 'phone', e.target.value)} />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Vocal Principal</Label>
+                            <Input placeholder="Nombre" value={editedTeam.vocal?.name} onChange={(e) => handleDirectiveChange('vocal', 'name', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Teléfono</Label>
+                            <Input placeholder="099..." value={editedTeam.vocal?.phone} onChange={(e) => handleDirectiveChange('vocal', 'phone', e.target.value)} />
+                        </div>
+                    </div>
+
+                    <h4 className="font-semibold text-lg border-t pt-4 mt-4">Delegados</h4>
+                    {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Delegado {index + 1}</Label>
+                                <Input placeholder="Nombre" value={editedTeam.delegates?.[index]?.name || ''} onChange={(e) => handleDelegateChange(index, 'name', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Teléfono</Label>
+                                <Input placeholder="099..." value={editedTeam.delegates?.[index]?.phone || ''} onChange={(e) => handleDelegateChange(index, 'phone', e.target.value)} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+            <Button onClick={() => onSave(editedTeam)} className="w-full mt-4">Guardar Cambios</Button>
+        </DialogContent>
+    );
+};
+
+
 export default function TeamDetailsPage() {
   const params = useParams();
   const teamId = typeof params.id === 'string' ? params.id : '';
@@ -44,7 +159,8 @@ export default function TeamDetailsPage() {
 
   const [team, setTeam] = useState<Team | undefined>(undefined);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
   const [newPlayer, setNewPlayer] = useState(initialNewPlayerState);
   const [isClient, setIsClient] = useState(false);
 
@@ -61,6 +177,12 @@ export default function TeamDetailsPage() {
     // This could be a loading state in a real app
     return <div>Cargando...</div>;
   }
+  
+  const handleUpdateTeam = (updatedTeam: Team) => {
+    setTeam(updatedTeam);
+    // Here you would also update the global state/DB
+    setIsTeamDialogOpen(false);
+  };
 
   const handleAddPlayer = () => {
     if (newPlayer.firstName && newPlayer.lastName && newPlayer.position && newPlayer.birthDate) {
@@ -81,7 +203,7 @@ export default function TeamDetailsPage() {
       };
       setPlayers([...players, newPlayerData]);
       setNewPlayer(initialNewPlayerState);
-      setIsDialogOpen(false);
+      setIsPlayerDialogOpen(false);
     }
   };
 
@@ -124,6 +246,16 @@ export default function TeamDetailsPage() {
                     <p className="text-lg text-primary">Presidente: {team.president?.name || 'No asignado'}</p>
                     <Badge className="mt-2 text-md">{team.category}</Badge>
                 </div>
+                 {canEdit && (
+                    <Dialog open={isTeamDialogOpen} onOpenChange={setIsTeamDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Pencil className="h-5 w-5" />
+                            </Button>
+                        </DialogTrigger>
+                        <EditTeamDialog team={team} onSave={handleUpdateTeam} />
+                    </Dialog>
+                )}
             </div>
         </CardContent>
       </Card>
@@ -184,7 +316,7 @@ export default function TeamDetailsPage() {
                                 Descargar Nómina
                             </Link>
                         </Button>
-                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <Dialog open={isPlayerDialogOpen} onOpenChange={setIsPlayerDialogOpen}>
                           <DialogTrigger asChild>
                             <Button size="sm">
                               <PlusCircle className="mr-2 h-4 w-4" />
