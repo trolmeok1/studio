@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { players, teams } from '@/lib/mock-data';
 import Image from 'next/image';
-import { User, QrCode, Shield, Trophy, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 export default function AiCardsPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -61,50 +61,61 @@ export default function AiCardsPage() {
              <div id="card-grid" className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {selectedTeamPlayers.map(selectedPlayer => (
                      <div key={selectedPlayer.id} className="id-card-wrapper">
-                         <Card className="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white rounded-2xl shadow-lg p-4 space-y-2 relative overflow-hidden border-accent/20 border-2 aspect-[3.375/2.125] flex flex-col justify-between">
-                            <div className="absolute top-0 left-0 w-full h-1.5 bg-accent"></div>
-                            <div className="text-center">
-                                <h2 className="text-xs font-bold font-headline tracking-tight uppercase text-accent">LIGA DEPORTIVA BARRIAL LA LUZ</h2>
-                            </div>
+                         <Card className="w-full max-w-[300px] aspect-[2.125/3.375] bg-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans border-2 border-gray-200">
+                           {/* Background Pattern */}
+                           <div className="absolute inset-0 bg-repeat bg-center" style={{backgroundImage: `linear-gradient(135deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(225deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(45deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(315deg, rgba(128,0,0,0.1) 25%, #fff 25%)`, backgroundSize: '10px 10px'}}></div>
+                           
+                           {/* Vertical Text */}
+                           <div className="absolute top-0 left-0 h-full flex items-center justify-center" style={{writingMode: 'vertical-rl'}}>
+                               <span className="text-sm font-bold text-gray-500 transform rotate-180 tracking-wider">Ciudad de Quito</span>
+                           </div>
+                            <div className="absolute top-0 right-0 h-full flex items-center justify-center" style={{writingMode: 'vertical-rl'}}>
+                               <span className="text-sm font-bold text-gray-500 tracking-wider">C.D. José Miguel</span>
+                           </div>
 
-                            <div className="flex items-start gap-3">
-                                <div className="flex flex-col items-center">
-                                    <Image
-                                        src={selectedPlayer.photoUrl}
-                                        alt={`ID of ${selectedPlayer.name}`}
-                                        width={80}
-                                        height={80}
-                                        className="rounded-md border-2 border-accent object-cover aspect-square"
-                                        data-ai-hint="player portrait"
-                                    />
-                                     <div className="mt-1 text-center bg-background/10 rounded-md px-2 py-0.5">
-                                        <p className="text-[0.6rem] text-accent tracking-widest">N°</p>
-                                        <p className="text-xl font-bold">{selectedPlayer.id.slice(-2)}</p>
-                                    </div>
-                                </div>
+                           <div className="relative z-10 flex flex-col flex-grow p-2">
+                               {/* Header */}
+                               <header className="flex justify-between items-start p-2">
+                                   <Image src="https://placehold.co/100x100.png" alt="Logo Ciudad de Quito" width={50} height={50} data-ai-hint="city logo" />
+                                   <div className="text-center bg-red-800 text-white p-2 rounded-lg shadow-md">
+                                       <p className="font-bold text-lg leading-tight">{selectedPlayer.category}</p>
+                                       <p className="text-xs underline">Categoría</p>
+                                   </div>
+                               </header>
 
-                                <div className="flex-1 space-y-1">
-                                    <div>
-                                        <p className="text-[0.6rem] uppercase tracking-wider text-accent">Nombres</p>
-                                        <p className="text-sm font-bold leading-tight">{selectedPlayer.name}</p>
-                                    </div>
-                                     <div>
-                                        <p className="text-[0.6rem] uppercase tracking-wider text-accent">Cédula</p>
-                                        <p className="text-xs font-semibold">1712345678</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[0.6rem] uppercase tracking-wider text-accent">Categoría</p>
-                                        <p className="text-xs font-semibold">{selectedPlayer.category}</p>
-                                    </div>
-                                     <div>
-                                        <p className="text-[0.6rem] uppercase tracking-wider text-accent">Equipo</p>
-                                        <div className="flex items-center gap-1">
-                                             <Image src="https://placehold.co/40x40.png" alt={selectedPlayer.team} width={16} height={16} className="rounded-full bg-white" data-ai-hint="team logo" />
-                                            <p className="text-xs font-semibold">{selectedPlayer.team}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                               {/* Main Content */}
+                               <main className="flex-grow flex flex-col items-center justify-center text-center mt-2">
+                                   <p className="font-bold text-3xl">Carlos</p>
+                                   <p className="font-light text-2xl -mt-1">Ortega C.</p>
+                                   <Image
+                                       src={selectedPlayer.photoUrl}
+                                       alt={`Foto de ${selectedPlayer.name}`}
+                                       width={120}
+                                       height={120}
+                                       className="rounded-lg border-4 border-white shadow-lg mt-2 object-cover aspect-square"
+                                       data-ai-hint="player portrait"
+                                   />
+                                   <div className="text-xs mt-2 text-left bg-white/50 px-2 py-1 rounded">
+                                       <p><strong className="font-semibold">Cédula:</strong> 1753002268</p>
+                                       <p><strong className="font-semibold">F. Nac.:</strong> Septiembre 05, 2006</p>
+                                   </div>
+                               </main>
+                               
+                               {/* Footer */}
+                               <footer className="bg-red-800 text-white mt-2 p-2 rounded-lg shadow-inner flex items-center justify-around">
+                                   <div className="w-16 h-16 bg-white flex items-center justify-center rounded-md">
+                                        {/* QR Code Placeholder */}
+                                        <div className="w-14 h-14 bg-gray-200 flex items-center justify-center text-xs text-gray-500">QR</div>
+                                   </div>
+                                   <div className="text-center">
+                                       <p className="text-5xl font-bold">{selectedPlayer.id.slice(-2)}</p>
+                                       <p className="text-sm -mt-1 underline">No.</p>
+                                   </div>
+                                   <div className="bg-white p-1 rounded-full">
+                                        <Image src="https://placehold.co/100x100.png" alt={selectedPlayer.team} width={50} height={50} className="rounded-full" data-ai-hint="team logo" />
+                                   </div>
+                               </footer>
+                           </div>
                          </Card>
                      </div>
                  ))}
