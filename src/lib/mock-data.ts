@@ -2,7 +2,7 @@
 import { getPlayerById as getPlayerByIdFromAll } from './mock-data-internal';
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, PlayerPosition } from './types';
 
-export const teams: Team[] = [
+export let teams: Team[] = [
   { id: '1', name: 'Cosmic Comets', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', abbreviation: 'COS', foundationDate: '2015-03-12', manager: 'Danilo Guano' },
   { id: '2', name: 'Solar Flares', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', abbreviation: 'SOL', foundationDate: '2016-07-20', manager: 'John Doe' },
   { id: '3', name: 'Galaxy Gliders', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', abbreviation: 'GAL', foundationDate: '2017-01-30', manager: 'Jane Smith' },
@@ -72,7 +72,7 @@ players = [...players, ...generatePlayersForTeam('19', 'Venus Vipers', 'Segunda'
 players = [...players, ...generatePlayersForTeam('20', 'Earth Eagles', 'Segunda', 18, 2000)];
 
 
-export const standings: Standing[] = [
+export let standings: Standing[] = [
   { rank: 1, teamId: '9', teamName: 'Asteroide FC', played: 10, wins: 8, draws: 1, losses: 1, points: 25, goalsFor: 20, goalsAgainst: 5 },
   { rank: 2, teamId: '10', teamName: 'Supernova SC', played: 10, wins: 7, draws: 2, losses: 1, points: 23, goalsFor: 25, goalsAgainst: 10 },
   { rank: 3, teamId: '11', teamName: 'Blackhole United', played: 10, wins: 7, draws: 1, losses: 2, points: 22, goalsFor: 18, goalsAgainst: 8 },
@@ -88,7 +88,7 @@ export const standings: Standing[] = [
 ];
 
 
-export const topScorers: Scorer[] = players
+export const getTopScorers = (): Scorer[] => players
     .sort((a, b) => b.stats.goals - a.stats.goals)
     .slice(0, 10)
     .map((player, index) => ({
@@ -101,8 +101,9 @@ export const topScorers: Scorer[] = players
         goals: player.stats.goals,
     }));
 
+export let topScorers = getTopScorers();
 
-export const sanctions: Sanction[] = players
+export let sanctions: Sanction[] = players
     .filter(p => p.stats.redCards > 0)
     .map((player, index) => ({
         id: `s${index + 1}`,
@@ -115,6 +116,14 @@ export const sanctions: Sanction[] = players
         gamesSuspended: 1,
         date: '2024-07-20',
 }));
+
+export const addSanction = (newSanction: Sanction) => {
+    // Avoid adding duplicate sanctions for the same player on the same day
+    const existing = sanctions.find(s => s.playerId === newSanction.playerId && s.date === newSanction.date);
+    if (!existing) {
+        sanctions = [newSanction, ...sanctions];
+    }
+}
 
 export const achievements: Achievement[] = [
     { teamName: 'Athletic Bilbao Jr', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Campeón', category: 'Categoría Máxima', year: '2018-2019' },
@@ -178,8 +187,19 @@ export const upcomingMatches: Match[] = [
     }
 ];
 
-
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
 export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
 export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
 export const getTeamsByCategory = (category: Category): Team[] => teams.filter(t => t.category === category);
+
+// Function to update player stats
+export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number, yellowCards: number, redCards: number }) => {
+    const playerIndex = players.findIndex(p => p.id === playerId);
+    if (playerIndex !== -1) {
+        players[playerIndex].stats.goals += statsUpdate.goals;
+        players[playerIndex].stats.yellowCards += statsUpdate.yellowCards;
+        players[playerIndex].stats.redCards += statsUpdate.redCards;
+        // Recalculate top scorers after stats update
+        topScorers = getTopScorers();
+    }
+};

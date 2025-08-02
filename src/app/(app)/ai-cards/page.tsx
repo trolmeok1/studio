@@ -43,8 +43,8 @@ export default function AiCardsPage() {
         </h2>
       </div>
 
-      <Card className="lg:col-span-2 print:shadow-none print:border-none">
-        <CardContent className="pt-6">
+      <Card className="lg:col-span-2 print:shadow-none print:border-none print:bg-transparent">
+        <CardContent className="pt-6 print:p-0">
           <div className="grid gap-4 md:grid-cols-3 print:hidden">
             <div>
               <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
@@ -206,6 +206,9 @@ export default function AiCardsPage() {
            .print\\:border-none {
               border: none !important;
           }
+           .print\\:bg-transparent {
+              background-color: transparent !important;
+           }
         }
       `}</style>
     </div>

@@ -18,10 +18,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { players, teams, type Player } from '@/lib/mock-data';
+import { players, teams, type Player, updatePlayerStats, addSanction } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+
 
 // Mock data - we'll replace this with dynamic data later
 const matchData = {
@@ -42,11 +44,13 @@ const matchData = {
   },
 };
 
+type MatchEventType = 'goal' | 'yellow_card' | 'red_card';
 type MatchEvent = {
+    id: string;
     playerId: string;
     playerName: string;
     teamName: string;
-    event: 'goal' | 'yellow_card' | 'red_card';
+    event: MatchEventType;
 };
 
 const PhysicalMatchSheet = () => {
@@ -189,6 +193,7 @@ const PhysicalMatchSheet = () => {
 
 const DigitalMatchSheet = () => {
     const { user } = useAuth();
+    const { toast } = useToast();
     const canEdit = user.role === 'admin' || user.role === 'secretary';
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -208,21 +213,74 @@ const DigitalMatchSheet = () => {
         setSearchResults(results);
     };
 
-    const addEvent = (player: Player, eventType: 'goal' | 'yellow_card' | 'red_card') => {
+    const addEvent = (player: Player, eventType: MatchEventType) => {
         const newEvent: MatchEvent = {
+            id: `evt-${Date.now()}`,
             playerId: player.id,
             playerName: player.name,
             teamName: player.team,
             event: eventType,
         };
-        setEvents([...events, newEvent]);
+        setEvents(prevEvents => [newEvent, ...prevEvents]);
+
+        // Update player stats
+        const statsUpdate = {
+            goals: eventType === 'goal' ? 1 : 0,
+            yellowCards: eventType === 'yellow_card' ? 1 : 0,
+            redCards: eventType === 'red_card' ? 1 : 0,
+        };
+        updatePlayerStats(player.id, statsUpdate);
+        
+        let toastMessage = '';
+        if (eventType === 'goal') toastMessage = `Gol registrado para ${player.name}!`;
+        if (eventType === 'yellow_card') toastMessage = `Tarjeta amarilla para ${player.name}.`;
+        if (eventType === 'red_card') {
+            toastMessage = `Tarjeta ROJA para ${player.name}. ¡Será suspendido!`;
+            addSanction({
+                id: `sanc-${Date.now()}`,
+                playerId: player.id,
+                playerName: player.name,
+                playerPhotoUrl: player.photoUrl,
+                teamName: player.team,
+                teamId: player.teamId,
+                reason: 'Tarjeta Roja Directa',
+                gamesSuspended: 1,
+                date: new Date().toISOString().split('T')[0],
+            });
+        }
+        
+        toast({
+            title: "Evento Registrado",
+            description: toastMessage,
+        });
+
+        setSearchTerm('');
+        setSearchResults([]);
     };
     
-    const removeEvent = (index: number) => {
-        setEvents(events.filter((_, i) => i !== index));
+    const removeEvent = (eventId: string) => {
+        const eventToRemove = events.find(e => e.id === eventId);
+        if (!eventToRemove) return;
+
+        // Revert player stats
+        const statsUpdate = {
+            goals: eventToRemove.event === 'goal' ? -1 : 0,
+            yellowCards: eventToRemove.event === 'yellow_card' ? -1 : 0,
+            redCards: eventToRemove.event === 'red_card' ? -1 : 0,
+        };
+        updatePlayerStats(eventToRemove.playerId, statsUpdate);
+
+        // Remove the event
+        setEvents(events.filter((e) => e.id !== eventId));
+        
+        toast({
+            title: "Evento Eliminado",
+            description: `Se ha revertido el evento para ${eventToRemove.playerName}.`,
+            variant: "destructive",
+        });
     };
 
-    const getEventBadge = (event: 'goal' | 'yellow_card' | 'red_card') => {
+    const getEventBadge = (event: MatchEventType) => {
         switch(event) {
             case 'goal': return <Badge variant="default">GOL</Badge>;
             case 'yellow_card': return <Badge variant="secondary" className="bg-yellow-400 text-black">T.A.</Badge>;
@@ -318,14 +376,14 @@ const DigitalMatchSheet = () => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {events.map((event, index) => (
-                                            <TableRow key={index}>
+                                        {events.map((event) => (
+                                            <TableRow key={event.id}>
                                                 <TableCell>{event.playerName}</TableCell>
                                                 <TableCell>{event.teamName}</TableCell>
                                                 <TableCell>{getEventBadge(event.event)}</TableCell>
                                                 <TableCell className="text-right">
                                                     {canEdit && (
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeEvent(index)}>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeEvent(event.id)}>
                                                             <Trash2 className="h-4 w-4 text-destructive" />
                                                         </Button>
                                                     )}
@@ -395,16 +453,16 @@ export default function CommitteesPage() {
             background: white !important;
             color: black !important;
           }
-          .print\:hidden {
+          .print\\:hidden {
               display: none !important;
           }
-           .print\:block {
+           .print\\:block {
               display: block !important;
           }
-           .print\:shadow-none {
+           .print\\:shadow-none {
               box-shadow: none !important;
           }
-           .print\:border-none {
+           .print\\:border-none {
               border: none !important;
           }
           .flex-1.space-y-4 {
