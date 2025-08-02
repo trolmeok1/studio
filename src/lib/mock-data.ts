@@ -13,7 +13,7 @@ export const teams: Team[] = [
 ];
 
 export const players: Player[] = [
-  // Cosmic Comets (Team 1) - For Lineup
+  // Cosmic Comets (Team 1)
   { id: '101', name: 'Leo Astral', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 22, assists: 15, yellowCards: 3, redCards: 0 } },
   { id: '109', name: 'Player Nine', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   { id: '110', name: 'Player Ten', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
@@ -25,6 +25,11 @@ export const players: Player[] = [
   { id: '116', name: 'Player Sixteen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   { id: '117', name: 'Player Seventeen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   { id: '118', name: 'Player Eighteen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Portero', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '119', name: 'Player Nineteen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '120', name: 'Player Twenty', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '121', name: 'Player Twenty-One', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '122', name: 'Player Twenty-Two', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
+  { id: '123', name: 'Player Twenty-Three', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
   
   // Solar Flares (Team 2)
   { id: '102', name: 'Chris Nova', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 18, assists: 10, yellowCards: 5, redCards: 1 } },
@@ -38,6 +43,11 @@ export const players: Player[] = [
   { id: '208', name: 'Draco Ember', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 10, yellowCards: 1, redCards: 0 } },
   { id: '209', name: 'Cygnus Fire', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 7, assists: 8, yellowCards: 2, redCards: 0 } },
   { id: '210', name: 'Corona Flash', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
+  { id: '211', name: 'Player SF 11', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
+  { id: '212', name: 'Player SF 12', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
+  { id: '213', name: 'Player SF 13', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
+  { id: '214', name: 'Player SF 14', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
+  { id: '215', name: 'Player SF 15', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 15, assists: 5, yellowCards: 3, redCards: 0 } },
 
   // Other players
   { id: '103', name: 'Alex Comet', photoUrl: 'https://placehold.co/400x400.png', team: 'Galaxy Gliders', teamId: '3', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 20, yellowCards: 1, redCards: 0 } },
@@ -46,14 +56,6 @@ export const players: Player[] = [
   { id: '106', name: 'Taylor Pulsar', photoUrl: 'https://placehold.co/400x400.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Mediocampista', stats: { goals: 20, assists: 18, yellowCards: 4, redCards: 0 } },
   { id: '107', name: 'Morgan Quasar', photoUrl: 'https://placehold.co/400x400.png', team: 'Quasar Quest', teamId: '7', category: 'Copa', position: 'Delantero', stats: { goals: 30, assists: 5, yellowCards: 6, redCards: 1 } },
   { id: '108', name: 'Casey Nebula', photoUrl: 'https://placehold.co/400x400.png', team: 'Nebula Nomads', teamId: '8', category: 'Copa', position: 'Portero', stats: { goals: 28, assists: 9, yellowCards: 1, redCards: 0 } },
-
-  // More players for Cosmic Comets (Team 1) to reach 16+ for printing test
-  { id: '119', name: 'Player Nineteen', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
-  { id: '120', name: 'Player Twenty', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
-  { id: '121', name: 'Player Twenty-One', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
-  { id: '122', name: 'Player Twenty-Two', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
-  { id: '123', name: 'Player Twenty-Three', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
-  { id: '124', name: 'Player Twenty-Four', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Portero', stats: { goals: 5, assists: 5, yellowCards: 1, redCards: 0 } },
 ];
 
 export const standings: Standing[] = [
@@ -142,3 +144,4 @@ export const upcomingMatches: Match[] = [
 export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
 export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
 export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
+
