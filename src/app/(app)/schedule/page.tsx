@@ -80,7 +80,7 @@ const CopaBracket = () => {
     const [bracketTeams, setBracketTeams] = useState<Team[]>([]);
 
     useEffect(() => {
-        let allTeams: Team[] = [
+        const allTeams: Team[] = [
             ...getTeamsByCategory('Máxima'),
             ...getTeamsByCategory('Primera'),
             ...getTeamsByCategory('Segunda')
@@ -143,7 +143,10 @@ const MatchCard = ({ match }: { match: GeneratedMatch }) => {
             </div>
              <div className="text-center w-1/5">
                 <span className="text-primary font-bold mx-2">VS</span>
-                 <div className="mt-1 text-xs text-muted-foreground">{isClient && match.time ? match.time : 'Por definir'}</div>
+                 <div className="mt-1 text-xs text-muted-foreground">
+                    {isClient && match.time ? `${match.time}` : 'Por definir'}
+                    {match.field && <span className="block">Cancha {match.field}</span>}
+                </div>
             </div>
             <div className="flex items-center gap-2 font-semibold text-left w-2/5">
                 <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
@@ -318,8 +321,9 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     );
 };
 
-const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string; end: string }>) => void, onOpenChange: (open: boolean) => void, open: boolean }) => {
+const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string; end: string }>, numberOfFields: number) => void, onOpenChange: (open: boolean) => void, open: boolean }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(new Date());
+    const [numberOfFields, setNumberOfFields] = useState(1);
     const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
         '0': true, // Sunday
         '4': false, '5': false, 
@@ -338,7 +342,7 @@ const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate
 
     const handleGenerateClick = () => {
         if (startDate) {
-            onGenerate(startDate, selectedDays, dayConfigs);
+            onGenerate(startDate, selectedDays, dayConfigs, numberOfFields);
         }
     };
     
@@ -352,27 +356,33 @@ const DrawDialog = ({ onGenerate, onOpenChange, open }: { onGenerate: (startDate
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label>Fecha de Inicio del Torneo</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {startDate ? format(startDate, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={startDate}
-                                    onSelect={setStartDate}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Fecha de Inicio del Torneo</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {startDate ? format(startDate, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={startDate}
+                                        onSelect={setStartDate}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="fields">Número de Canchas</Label>
+                            <Input id="fields" type="number" min="1" value={numberOfFields} onChange={(e) => setNumberOfFields(parseInt(e.target.value) || 1)} />
+                         </div>
                     </div>
                     <div className="space-y-2">
                          <Label>Días y Horarios de Juego</Label>
@@ -476,7 +486,7 @@ export default function SchedulePage() {
       setResetAlertStep(0);
   }
 
-  const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string, end: string }>) => {
+  const generateMasterSchedule = (startDate: Date, playDays: Record<string, boolean>, dayConfigs: Record<string, { start: string, end: string }>, numberOfFields: number) => {
       const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
       let finalSchedule: GeneratedMatch[] = [];
       const matchDurationHours = 2;
@@ -485,82 +495,51 @@ export default function SchedulePage() {
       let currentDate = new Date(startDate);
       let matchQueue: GeneratedMatch[] = [];
 
-      // Create a master queue of all matches from all categories
       categories.forEach(category => {
           let teams = getTeamsByCategory(category).map(t => t.id);
           if (teams.length < 2) return;
-
-          // Shuffle teams for random pairings each time
           teams.sort(() => 0.5 - Math.random());
-
-          if (teams.length % 2 !== 0) {
-              teams.push("BYE");
-          }
+          if (teams.length % 2 !== 0) teams.push("BYE");
           const rounds = teams.length - 1;
           const half = teams.length / 2;
-          
-          let legMatches: GeneratedMatch[] = [];
-
-          for (let leg = 0; leg < 2; leg++) { // Two legs: home and away
+          for (let leg = 0; leg < 2; leg++) {
               let teamsForScheduling = [...teams];
               for (let i = 0; i < rounds; i++) {
                   for (let j = 0; j < half; j++) {
                       let home, away;
-                      // Swap home/away for the second leg
-                      if (leg === 0) {
-                          home = teamsForScheduling[j];
-                          away = teamsForScheduling[teamsForScheduling.length - 1 - j];
-                      } else {
-                          away = teamsForScheduling[j];
-                          home = teamsForScheduling[teamsForScheduling.length - 1 - j];
-                      }
-                      if (home !== "BYE" && away !== "BYE") {
-                          legMatches.push({ home, away, category });
-                      }
+                      if (leg === 0) { home = teamsForScheduling[j]; away = teamsForScheduling[teamsForScheduling.length - 1 - j]; } 
+                      else { away = teamsForScheduling[j]; home = teamsForScheduling[teamsForScheduling.length - 1 - j]; }
+                      if (home !== "BYE" && away !== "BYE") matchQueue.push({ home, away, category });
                   }
-                  // Rotate teams for next round, keeping first team fixed
                   const lastTeam = teamsForScheduling.pop();
-                  if (lastTeam) {
-                      teamsForScheduling.splice(1, 0, lastTeam);
-                  }
+                  if (lastTeam) teamsForScheduling.splice(1, 0, lastTeam);
               }
           }
-          matchQueue.push(...legMatches);
       });
       
-      // Prioritize Máxima > Primera > Segunda
-      matchQueue.sort((a, b) => {
-          const priority = { 'Máxima': 1, 'Primera': 2, 'Segunda': 3 };
-          return priority[a.category] - priority[b.category];
-      });
-
       let matchIndex = 0;
       while(matchIndex < matchQueue.length) {
-            // Find the next available play day
             while (!enabledPlayDays.includes(currentDate.getDay())) {
                 currentDate = addDays(currentDate, 1);
             }
-
             const dayOfWeek = currentDate.getDay();
             const config = dayConfigs[dayOfWeek] || { start: '08:00', end: '18:00' };
             const [startHour, startMinute] = config.start.split(':').map(Number);
             const [endHour] = config.end.split(':').map(Number);
-            
             let matchTime = setMinutes(setHours(new Date(currentDate), startHour), startMinute);
             const endTime = setMinutes(setHours(new Date(currentDate), endHour), 0);
-
-            // Fill the day with matches
+            
             while(matchTime.getTime() < endTime.getTime() && matchIndex < matchQueue.length) {
-                const match = matchQueue[matchIndex];
-                finalSchedule.push({
-                    ...match,
-                    date: new Date(matchTime),
-                    time: format(matchTime, 'HH:mm'),
-                });
-                matchIndex++;
-                matchTime = addDays(matchTime, matchDurationHours / 24); // Add 2 hours
+                for (let field = 1; field <= numberOfFields; field++) {
+                    if (matchIndex < matchQueue.length) {
+                        const match = matchQueue[matchIndex];
+                        finalSchedule.push({ ...match, date: new Date(matchTime), time: format(matchTime, 'HH:mm'), field });
+                        matchIndex++;
+                    }
+                }
+                matchTime = addDays(matchTime, matchDurationHours / 24);
             }
-            currentDate = addDays(currentDate, 1); // Move to the next day to continue scheduling
+            currentDate = addDays(currentDate, 1);
       }
       
       setGeneratedMatches(finalSchedule);
