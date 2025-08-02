@@ -77,10 +77,10 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive('/teams')} tooltip="Equipos">
-                  <Link href="/teams">
-                      <Shield />
-                      <span>Equipos</span>
+              <SidebarMenuButton asChild isActive={isActive('/players')} tooltip="Jugadores">
+                  <Link href="/players">
+                      <Users />
+                      <span>Jugadores</span>
                   </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
@@ -145,6 +145,14 @@ export function AppSidebar() {
         <SidebarGroup>
            {isAdmin && <SidebarGroupLabel>Configuración</SidebarGroupLabel>}
             <SidebarMenu>
+               <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/teams')} tooltip="Equipos">
+                      <Link href="/teams">
+                          <Shield />
+                          <span>Equipos</span>
+                      </Link>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
                 {isAdmin && (
                   <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive('/roles')} tooltip="Roles">
