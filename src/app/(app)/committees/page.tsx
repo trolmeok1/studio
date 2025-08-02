@@ -16,22 +16,28 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Calendar, Upload, Search, PlusCircle, Trash2 } from 'lucide-react';
+import { Printer, Calendar, Upload, Search, PlusCircle, Trash2, ShieldCheck, Flag, Users } from 'lucide-react';
 import Image from 'next/image';
 import { players, teams, type Player } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Mock data - we'll replace this with dynamic data later
 const matchData = {
   date: '2024-07-28',
+  time: '14:00',
+  category: 'Máxima',
+  phase: 'Fase de Grupos',
+  matchday: 'Jornada 5',
+  field: 'Cancha Principal',
   vocalTeam: 'Galaxy Gliders',
   teamA: {
     ...teams.find(t => t.id === '1')!,
-    players: players.filter(p => p.teamId === '1').slice(0, 16),
+    players: players.filter(p => p.teamId === '1').slice(0, 18),
   },
   teamB: {
     ...teams.find(t => t.id === '2')!,
-     players: players.filter(p => p.teamId === '2').slice(0, 16),
+     players: players.filter(p => p.teamId === '2').slice(0, 18),
   },
 };
 
@@ -46,98 +52,131 @@ const PhysicalMatchSheet = () => {
     const handlePrint = () => {
         window.print();
     };
+
+    const PlayerRow = ({player, index}: {player: Player, index: number}) => (
+        <TableRow className="h-8">
+            <TableCell className="border text-center p-1 w-[40px]"><Checkbox /></TableCell>
+            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
+            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
+            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
+            <TableCell className="border text-center p-1 w-[40px] h-full"><div className="h-6 border-r"></div></TableCell>
+            <TableCell className="border text-center font-bold p-1 w-[40px]">{String(index + 1).padStart(2, '0')}</TableCell>
+            <TableCell className="border p-1">{player.name}</TableCell>
+        </TableRow>
+    );
+
     return (
-        <Card id="print-area" className="p-6 md:p-8 print:shadow-none print:border-none">
+        <Card id="print-area" className="p-4 md:p-6 print:shadow-none print:border-none bg-white text-black">
             <CardContent className="p-0">
-                 <header className="flex flex-col items-center mb-6">
-                    <div className="flex w-full justify-between items-center mb-4">
-                        <Image src="https://placehold.co/100x100.png" alt="Logo Izquierdo" width={80} height={80} data-ai-hint="league logo" />
-                        <div className="text-center">
-                            <h1 className="text-xl font-bold uppercase">Campeonato Independiente F.I.Q. 2024</h1>
-                            <h2 className="text-2xl font-bold uppercase mt-1">Hoja de Vocalía</h2>
-                        </div>
-                        <Image src="https://placehold.co/100x100.png" alt="Logo Derecho" width={80} height={80} data-ai-hint="league logo" />
+                 <header className="mb-4">
+                    <div className="flex justify-between items-center text-xs mb-2">
+                        <span><strong>Categoría:</strong> {matchData.category}</span>
+                        <span><strong>Fecha:</strong> {matchData.date}</span>
+                        <span><strong>Hora:</strong> {matchData.time}</span>
+                        <span><strong>Cancha:</strong> {matchData.field}</span>
                     </div>
-                     <div className="w-full flex justify-between items-center text-lg">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5"/>
-                            <strong>FECHA:</strong>
-                            <Input className="w-40" type="date" defaultValue={matchData.date} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <strong>EQUIPO VOCAL:</strong>
-                            <Input className="w-64" defaultValue={matchData.vocalTeam} />
-                        </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span><strong>Etapa:</strong> {matchData.phase}</span>
+                        <span><strong>Jornada:</strong> {matchData.matchday}</span>
+                        <span><strong>Vocal:</strong> {matchData.vocalTeam}</span>
                     </div>
                 </header>
 
-                <main className="grid grid-cols-2 gap-8 mb-6">
+                <main className="grid grid-cols-2 gap-4">
                     {/* Team A */}
-                    <div className="space-y-2">
-                        <h3 className="font-bold text-center text-lg uppercase bg-muted p-2 rounded-t-md">EQUIPO: {matchData.teamA.name}</h3>
-                        <div className="border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[10%] text-center">No.</TableHead>
-                                        <TableHead className="w-[90%]">NOMBRES Y APELLIDOS</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {matchData.teamA.players.map((player, index) => (
-                                        <TableRow key={player.id}>
-                                            <TableCell className="font-medium py-1 text-center">{index + 1}</TableCell>
-                                            <TableCell className="font-medium py-1">{player.name}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                    <div>
+                        <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
+                            <div className="flex items-center gap-2">
+                                <Image src={matchData.teamA.logoUrl} alt={matchData.teamA.name} width={30} height={30} data-ai-hint="team logo" />
+                                <h3 className="font-bold uppercase">{matchData.teamA.name}</h3>
+                            </div>
+                            <div className="w-16 h-10 border-2 border-black bg-white"></div>
+                        </div>
+                        <Table className="border-collapse border border-gray-400">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">J</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">C</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">G</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TA</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TR</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">No.</TableHead>
+                                    <TableHead className="border text-center text-black p-1 text-xs">Jugadores</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {matchData.teamA.players.map((player, index) => (
+                                    <PlayerRow key={player.id} player={player} index={index}/>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         <div className="text-xs mt-2 border p-1">
+                            <p><strong>Jugadores sancionados:</strong> ________________________</p>
+                            <p><strong>Total Pagado Vocalía:</strong> $ ____________</p>
+                        </div>
+                        <div className="text-xs mt-2 border p-1 flex items-center">
+                            <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
+                            <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
                         </div>
                     </div>
 
                     {/* Team B */}
-                     <div className="space-y-2">
-                        <h3 className="font-bold text-center text-lg uppercase bg-muted p-2 rounded-t-md">EQUIPO: {matchData.teamB.name}</h3>
-                        <div className="border">
-                             <Table>
-                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[10%] text-center">No.</TableHead>
-                                        <TableHead className="w-[90%]">NOMBRES Y APELLIDOS</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {matchData.teamB.players.map((player, index) => (
-                                       <TableRow key={player.id}>
-                                            <TableCell className="font-medium py-1 text-center">{index + 1}</TableCell>
-                                            <TableCell className="font-medium py-1">{player.name}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                    <div>
+                        <div className="flex items-center justify-between bg-gray-200 p-2 rounded-t-md">
+                            <div className="flex items-center gap-2">
+                                <Image src={matchData.teamB.logoUrl} alt={matchData.teamB.name} width={30} height={30} data-ai-hint="team logo" />
+                                <h3 className="font-bold uppercase">{matchData.teamB.name}</h3>
+                            </div>
+                            <div className="w-16 h-10 border-2 border-black bg-white"></div>
+                        </div>
+                        <Table className="border-collapse border border-gray-400">
+                             <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">J</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">C</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">G</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TA</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">TR</TableHead>
+                                    <TableHead className="w-[40px] border text-center text-black p-1 text-xs">No.</TableHead>
+                                    <TableHead className="border text-center text-black p-1 text-xs">Jugadores</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                               {matchData.teamB.players.map((player, index) => (
+                                    <PlayerRow key={player.id} player={player} index={index}/>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         <div className="text-xs mt-2 border p-1">
+                            <p><strong>Jugadores sancionados:</strong> ________________________</p>
+                            <p><strong>Total Pagado Vocalía:</strong> $ ____________</p>
+                        </div>
+                        <div className="text-xs mt-2 border p-1 flex items-center">
+                            <p className="mr-2"><strong>Capitán:</strong> ________________________</p>
+                            <Image src="https://placehold.co/40x40.png" width={30} height={30} alt="Captain signature" />
                         </div>
                     </div>
                 </main>
             
-                <footer className="space-y-4">
+                <footer className="space-y-4 mt-6">
                      <div className="grid grid-cols-2 gap-8">
                         <div>
-                             <Label className="font-bold">REPORTE DEL ÁRBITRO:</Label>
-                            <Textarea rows={5}/>
+                             <Label className="font-bold text-sm">REPORTE DEL ÁRBITRO:</Label>
+                            <Textarea rows={5} className="bg-white border-gray-400"/>
                         </div>
                          <div>
-                            <Label className="font-bold">REPORTE DEL VOCAL:</Label>
-                            <Textarea rows={5}/>
+                            <Label className="font-bold text-sm">REPORTE DEL VOCAL:</Label>
+                            <Textarea rows={5} className="bg-white border-gray-400"/>
                          </div>
                      </div>
                       <div className="grid grid-cols-3 gap-16 pt-16 text-center">
-                        <div className="border-t w-64 mx-auto pt-2">
+                        <div className="border-t-2 border-black w-64 mx-auto pt-2">
                             <p className="font-bold">FIRMA DIRIGENTE EQUIPO A</p>
                         </div>
-                        <div className="border-t w-64 mx-auto pt-2">
+                        <div className="border-t-2 border-black w-64 mx-auto pt-2">
                             <p className="font-bold">FIRMA DIRIGENTE EQUIPO B</p>
                         </div>
-                         <div className="border-t w-64 mx-auto pt-2">
+                         <div className="border-t-2 border-black w-64 mx-auto pt-2">
                             <p className="font-bold">FIRMA DEL VOCAL</p>
                         </div>
                     </div>
@@ -311,21 +350,29 @@ export default function CommitteesPage() {
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           Hoja de Vocalía
         </h2>
-        <Button onClick={handlePrint}>
+         <Tabs defaultValue="physical">
+            <TabsList>
+                <TabsTrigger value="physical" onClick={() => {
+                    const printButton = document.getElementById('print-button');
+                    if (printButton) printButton.style.display = 'block';
+                }}>Vocalía Física (Imprimir)</TabsTrigger>
+                <TabsTrigger value="digital" onClick={() => {
+                     const printButton = document.getElementById('print-button');
+                    if (printButton) printButton.style.display = 'none';
+                }}>Vocalía Digital (Registrar)</TabsTrigger>
+            </TabsList>
+        </Tabs>
+        <Button onClick={handlePrint} id="print-button">
           <Printer className="mr-2" />
-          Imprimir Vocalía Física
+          Imprimir Vocalía
         </Button>
       </div>
 
-       <Tabs defaultValue="physical" className="space-y-4 print:hidden">
-          <TabsList>
-            <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
-            <TabsTrigger value="digital">Vocalía Digital (Registrar)</TabsTrigger>
-          </TabsList>
-          <TabsContent value="physical">
+       <Tabs defaultValue="physical" className="space-y-4">
+          <TabsContent value="physical" className="mt-0">
             <PhysicalMatchSheet />
           </TabsContent>
-          <TabsContent value="digital">
+          <TabsContent value="digital" className="mt-0">
              <DigitalMatchSheet />
           </TabsContent>
         </Tabs>
@@ -339,12 +386,19 @@ export default function CommitteesPage() {
         @media print {
           body {
             background: white !important;
+            color: black !important;
           }
           .print\:hidden {
               display: none !important;
           }
            .print\:block {
               display: block !important;
+          }
+           .print\:shadow-none {
+              box-shadow: none !important;
+          }
+           .print\:border-none {
+              border: none !important;
           }
           .flex-1.space-y-4 {
             padding: 0;
@@ -354,7 +408,12 @@ export default function CommitteesPage() {
             border: none !important;
           }
         }
+         @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
       `}</style>
     </div>
   );
 }
+
