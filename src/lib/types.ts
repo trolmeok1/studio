@@ -1,6 +1,6 @@
 
 
-export type Category = 'Copa' | 'Primera' | 'Máxima' | 'Segunda';
+export type Category = 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
 
@@ -73,6 +73,13 @@ export interface Match {
         home: number;
         away: number;
     };
+}
+
+export interface GeneratedMatch {
+    home: string;
+    away: string;
+    date?: Date;
+    time?: string;
 }
 
 export interface MatchDataTeam extends Team {
@@ -180,3 +187,5 @@ export interface LogEntry {
   category: 'team' | 'player' | 'treasury' | 'system' | 'match';
   description: string;
 }
+
+    

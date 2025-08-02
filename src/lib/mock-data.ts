@@ -64,14 +64,14 @@ export let teams: Team[] = [
     id: '7', 
     name: 'Quasar Quest', 
     logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Copa', 
+    category: 'Segunda', 
     president: { name: 'Patricia Taylor' } 
   },
   { 
     id: '8', 
     name: 'Nebula Nomads', 
     logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Copa', 
+    category: 'Segunda', 
     president: { name: 'Robert Wilson' } 
   },
   { 
@@ -170,7 +170,7 @@ export let players: Player[] = [
     { id: 'p-007', name: 'Luka Modric', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Orion Stars', teamId: '4', category: 'Máxima', position: 'Mediocampista', stats: { goals: 8, assists: 18, yellowCards: 2, redCards: 0 }, idNumber: '1712345684', birthDate: '1985-09-09', jerseyNumber: 10, status: 'activo' },
     { id: 'p-008', name: 'Erling Haaland', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 35, assists: 5, yellowCards: 1, redCards: 0 }, idNumber: '1712345685', birthDate: '2000-07-21', jerseyNumber: 9, status: 'activo' },
     { id: 'p-009', name: 'Mohamed Salah', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 0, redCards: 0 }, idNumber: '1712345686', birthDate: '1992-06-15', jerseyNumber: 11, status: 'activo' },
-    { id: 'p-010', name: 'Alisson Becker', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Quasar Quest', teamId: '7', category: 'Copa', position: 'Portero', stats: { goals: 0, assists: 1, yellowCards: 1, redCards: 0 }, idNumber: '1712345687', birthDate: '1992-10-02', jerseyNumber: 1, status: 'activo' },
+    { id: 'p-010', name: 'Alisson Becker', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Quasar Quest', teamId: '7', category: 'Segunda', position: 'Portero', stats: { goals: 0, assists: 1, yellowCards: 1, redCards: 0 }, idNumber: '1712345687', birthDate: '1992-10-02', jerseyNumber: 1, status: 'activo' },
 ];
 
 
@@ -298,7 +298,7 @@ export const upcomingMatches: Match[] = [
      {
         id: 'm3',
         date: today.toISOString(),
-        category: 'Copa',
+        category: 'Segunda',
         teams: {
             home: { ...teams[6], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
             away: { ...teams[7], attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0, paymentStatus: 'pending'} }
@@ -406,3 +406,5 @@ export const systemLogs: LogEntry[] = [
         description: "eliminó al jugador 'Neymar Jr' del equipo 'Cosmic Comets'."
     },
 ];
+
+    
