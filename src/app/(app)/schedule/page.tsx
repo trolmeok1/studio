@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { standings as mockStandings, getTeamsByCategory, Team } from '@/lib/mock-data';
+import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Dices, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -103,19 +103,18 @@ const MatchCard = ({ match, homeTeam, awayTeam }: { match: { home: string, away:
 );
 
 
-const SegundaLeague = () => {
+const LeagueView = ({ category }: { category: Category }) => {
     const [teams, setTeams] = useState<Team[]>([]);
     const [schedule, setSchedule] = useState<{ home: string, away: string }[][][]>([]);
 
     useEffect(() => {
-        const segundaTeams = getTeamsByCategory('Segunda');
-        setTeams(segundaTeams);
+        const categoryTeams = getTeamsByCategory(category);
+        setTeams(categoryTeams);
 
-        if (segundaTeams.length >= 12) {
-            const teamIds = segundaTeams.map(t => t.id).slice(0, 12);
-            let teamSlice = teamIds.slice();
+        if (categoryTeams.length >= 2) { // Need at least 2 teams for a match
+            let teamSlice = categoryTeams.map(t => t.id);
 
-            // Ensure there's an even number of teams
+            // Ensure there's an even number of teams for scheduling
             if (teamSlice.length % 2 !== 0) {
                 teamSlice.push("BYE");
             }
@@ -137,7 +136,7 @@ const SegundaLeague = () => {
                 }
                 generatedSchedule.push(roundMatches);
 
-                // Rotate teams
+                // Rotate teams - keep the first one fixed
                 const lastTeam = teamsForScheduling.pop();
                 if(lastTeam) {
                   teamsForScheduling.splice(1, 0, lastTeam);
@@ -151,11 +150,14 @@ const SegundaLeague = () => {
 
             setSchedule([generatedSchedule, secondLeg]);
         }
-    }, []);
+    }, [category]);
 
     const standings = useMemo(() => {
         if (teams.length === 0) return [];
-        const teamsWithLogos = [...mockStandings].map(s => {
+        // Filter mock standings for the current category teams
+        const categoryStandings = [...mockStandings].filter(s => teams.some(t => t.id === s.teamId));
+
+        const teamsWithLogos = categoryStandings.map(s => {
             const teamData = teams.find(t => t.id === s.teamId);
             return {
                 ...s,
@@ -168,11 +170,24 @@ const SegundaLeague = () => {
 
 
     const getTeam = (id: string) => teams.find(t => t.id === id);
+    
+    if(teams.length === 0) {
+         return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Torneo {category}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">No hay equipos registrados en esta categoría.</p>
+                </CardContent>
+             </Card>
+         )
+    }
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Torneo Segunda - 12 Equipos</CardTitle>
+                <CardTitle>Torneo {category}</CardTitle>
                 <CardDescription>Partidos de ida y vuelta. Los dos primeros clasifican a la final.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -192,7 +207,7 @@ const SegundaLeague = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {standings.slice(0, 12).map((s, index) => (
+                        {standings.map((s, index) => (
                             <TableRow key={s.teamId} className={index < 2 ? 'bg-primary/10' : ''}>
                                 <TableCell className="font-bold">{index + 1}</TableCell>
                                 <TableCell>
@@ -213,22 +228,25 @@ const SegundaLeague = () => {
                         ))}
                     </TableBody>
                 </Table>
-                <div className="mt-8 flex justify-around">
-                    <div className="text-center">
-                        <h4 className="font-bold font-headline text-lg text-primary">FINAL</h4>
-                        <div className="mt-2 p-4 rounded-lg bg-muted/50 flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <Image src={standings[0]?.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={standings[0]?.teamName || 'Primero'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                <span>{standings[0]?.teamName || 'Primero'}</span>
-                            </div>
-                            <span className="font-bold text-primary">VS</span>
-                            <div className="flex items-center gap-2">
-                                <Image src={standings[1]?.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={standings[1]?.teamName || 'Segundo'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                <span>{standings[1]?.teamName || 'Segundo'}</span>
+                
+                {standings.length >= 2 && (
+                    <div className="mt-8 flex justify-around">
+                        <div className="text-center">
+                            <h4 className="font-bold font-headline text-lg text-primary">FINAL</h4>
+                            <div className="mt-2 p-4 rounded-lg bg-muted/50 flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <Image src={standings[0]?.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={standings[0]?.teamName || 'Primero'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                    <span>{standings[0]?.teamName || 'Primero'}</span>
+                                </div>
+                                <span className="font-bold text-primary">VS</span>
+                                <div className="flex items-center gap-2">
+                                    <Image src={standings[1]?.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={standings[1]?.teamName || 'Segundo'} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                    <span>{standings[1]?.teamName || 'Segundo'}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {schedule.length > 0 && (
                     <div className="mt-12">
@@ -253,7 +271,7 @@ const SegundaLeague = () => {
                             {schedule[1].map((round, roundIndex) => (
                                 <Card key={`round-2-${roundIndex}`}>
                                     <CardHeader>
-                                        <CardTitle className="text-center text-lg">Etapa {roundIndex + 12}</CardTitle>
+                                        <CardTitle className="text-center text-lg">Etapa {roundIndex + schedule[0].length + 1}</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                         {round.map((match, matchIndex) => (
@@ -299,6 +317,7 @@ export default function SchedulePage() {
           <TabsTrigger value="copa">Copa La Luz</TabsTrigger>
           <TabsTrigger value="segunda">Segunda</TabsTrigger>
           <TabsTrigger value="primera">Primera</TabsTrigger>
+          <TabsTrigger value="maxima">Máxima</TabsTrigger>
         </TabsList>
         <TabsContent value="copa">
            <Card>
@@ -312,17 +331,13 @@ export default function SchedulePage() {
           </Card>
         </TabsContent>
          <TabsContent value="segunda">
-           <SegundaLeague />
+           <LeagueView category="Segunda" />
         </TabsContent>
          <TabsContent value="primera">
-           <Card>
-            <CardHeader>
-              <CardTitle>Bracket del Torneo - Primera</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">Bracket para la categoría Primera no disponible aún. Realiza el sorteo para empezar.</p>
-            </CardContent>
-          </Card>
+           <LeagueView category="Primera" />
+        </TabsContent>
+        <TabsContent value="maxima">
+           <LeagueView category="Máxima" />
         </TabsContent>
       </Tabs>
     </div>
