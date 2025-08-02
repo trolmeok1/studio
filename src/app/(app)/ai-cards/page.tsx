@@ -13,12 +13,6 @@ export default function AiCardsPage() {
 
   const selectedPlayer = players.find((p) => p.id === selectedPlayerId) || null;
 
-  const qrCodeUrl = selectedPlayer
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-        `/players/${selectedPlayer.id}`
-      )}`
-    : `https://placehold.co/150x150.png`;
-
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -92,13 +86,6 @@ export default function AiCardsPage() {
                                 </div>
                             </div>
                         </div>
-                         <Image
-                            src={qrCodeUrl}
-                            alt="Player Profile QR Code"
-                            width={120}
-                            height={120}
-                            className="rounded-lg bg-white p-1"
-                        />
                     </div>
                  </Card>
              </div>
