@@ -8,11 +8,13 @@ import {
 
 export default function AppLayout({ children }: PropsWithChildren) {
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <AppSidebar />
-      </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
-    </SidebarProvider>
+    <div className="dark bg-background text-foreground" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/football.png')", backgroundAttachment: 'fixed' }}>
+      <SidebarProvider>
+        <Sidebar>
+          <AppSidebar />
+        </Sidebar>
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }

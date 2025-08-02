@@ -73,7 +73,7 @@ const pieData = [
 
 export default function DashboardPage() {
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-gray-50/50" style={{backgroundImage: 'radial-gradient(#d1d5db 0.5px, transparent 0.5px)', backgroundSize: '15px 15px'}}>
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           Dashboard
@@ -86,12 +86,12 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
 
         <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-blue-100 p-4 rounded-xl shadow-sm">
+          <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-blue-900/50 backdrop-blur-sm p-4 rounded-xl shadow-lg border-blue-500/30">
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="shadow-none">
+                <Card className="shadow-none bg-white/10 border-white/20 text-white">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">CATEGORÍAS</CardTitle>
-                    <List className="h-4 w-4 text-muted-foreground" />
+                    <List className="h-4 w-4 text-white/70" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -99,28 +99,28 @@ export default function DashboardPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="shadow-none">
+                <Card className="shadow-none bg-white/10 border-white/20 text-white">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">ETAPAS</CardTitle>
-                    <Flag className="h-4 w-4 text-muted-foreground" />
+                    <Flag className="h-4 w-4 text-white/70" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{dashboardStats.stages}</div>
                   </CardContent>
                 </Card>
-                <Card className="shadow-none">
+                <Card className="shadow-none bg-white/10 border-white/20 text-white">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">ÁRBITROS</CardTitle>
-                    <UserSquare className="h-4 w-4 text-muted-foreground" />
+                    <UserSquare className="h-4 w-4 text-white/70" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{dashboardStats.referees}</div>
                   </CardContent>
                 </Card>
-                <Card className="shadow-none">
+                <Card className="shadow-none bg-white/10 border-white/20 text-white">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">MULTAS</CardTitle>
-                    <Gavel className="h-4 w-4 text-muted-foreground" />
+                    <Gavel className="h-4 w-4 text-white/70" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">${dashboardStats.fines}</div>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="col-span-1 md:col-span-2 bg-blue-500 text-white">
+          <Card className="col-span-1 md:col-span-2 bg-blue-500/80 backdrop-blur-sm text-white border-blue-400/50">
             <CardContent className="flex items-center justify-between p-4">
               <div>
                 <p className="text-lg">Partidos Jugados</p>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-green-500 text-white">
+          <Card className="bg-green-500/80 backdrop-blur-sm text-white border-green-400/50">
             <CardContent className="flex items-center justify-between p-4">
               <div>
                 <p className="text-lg">Goles Marcados</p>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
               <Goal className="h-12 w-12 opacity-50" />
             </CardContent>
           </Card>
-           <Card className="bg-yellow-500 text-white">
+           <Card className="bg-yellow-500/80 backdrop-blur-sm text-white border-yellow-400/50">
             <CardContent className="flex items-center justify-between p-4">
               <div>
                 <p className="text-lg">T.A. Exhibidas</p>
@@ -163,7 +163,7 @@ export default function DashboardPage() {
                <RectangleHorizontal className="h-12 w-12 opacity-50 transform -rotate-45" />
             </CardContent>
           </Card>
-            <Card className="bg-red-500 text-white">
+            <Card className="bg-red-500/80 backdrop-blur-sm text-white border-red-400/50">
             <CardContent className="flex items-center justify-between p-4">
               <div>
                 <p className="text-lg">T.R. Exhibidas</p>
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                <RectangleHorizontal className="h-12 w-12 opacity-50 transform -rotate-45"/>
             </CardContent>
           </Card>
-          <Card className="bg-blue-400 text-white">
+          <Card className="bg-blue-400/80 backdrop-blur-sm text-white border-blue-300/50">
             <CardContent className="flex items-center justify-between p-4">
                <div>
                 <p className="text-sm">EQUIPOS</p>
@@ -181,7 +181,7 @@ export default function DashboardPage() {
               <p className="text-4xl font-bold">{dashboardStats.teams.registered}</p>
             </CardContent>
           </Card>
-          <Card className="bg-green-400 text-white">
+          <Card className="bg-green-400/80 backdrop-blur-sm text-white border-green-300/50">
              <CardContent className="flex items-center justify-between p-4">
                <div>
                 <p className="text-sm">EQUIPOS</p>
@@ -190,7 +190,7 @@ export default function DashboardPage() {
               <p className="text-4xl font-bold">{dashboardStats.teams.approved}</p>
             </CardContent>
           </Card>
-           <Card className="bg-yellow-400 text-white">
+           <Card className="bg-yellow-400/80 backdrop-blur-sm text-white border-yellow-300/50">
              <CardContent className="flex items-center justify-between p-4">
                <div>
                 <p className="text-sm">EQUIPOS</p>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
               <p className="text-4xl font-bold">{dashboardStats.teams.rejected}</p>
             </CardContent>
           </Card>
-          <Card className="bg-red-400 text-white">
+          <Card className="bg-red-400/80 backdrop-blur-sm text-white border-red-300/50">
              <CardContent className="flex items-center justify-between p-4">
                <div>
                 <p className="text-sm">EQUIPOS</p>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="lg:col-span-3 space-y-4">
-          <Card className="bg-green-500 text-white">
+          <Card className="bg-green-500/80 backdrop-blur-sm text-white border-green-400/50">
             <CardContent className="p-4 flex justify-between items-center">
               <Check className="h-8 w-8" />
               <div>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-blue-500 text-white">
+          <Card className="bg-blue-500/80 backdrop-blur-sm text-white border-blue-400/50">
             <CardContent className="p-4 flex justify-between items-center">
               <Plus className="h-8 w-8" />
                <div>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-           <Card className="bg-yellow-500 text-white">
+           <Card className="bg-yellow-500/80 backdrop-blur-sm text-white border-yellow-400/50">
             <CardContent className="p-4 flex justify-between items-center">
               <Ban className="h-8 w-8" />
                <div>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <Card className="lg:col-span-7">
+      <Card className="lg:col-span-7 bg-white/5 backdrop-blur-sm border-white/10 text-white">
           <CardHeader>
             <CardTitle className="font-headline">Logros</CardTitle>
           </CardHeader>
@@ -253,9 +253,9 @@ export default function DashboardPage() {
                 <div key={achievement.teamName} className="flex flex-col items-center text-center">
                     <Image src={achievement.teamLogoUrl} alt={achievement.teamName} width={80} height={80} data-ai-hint="team logo" />
                     <p className="font-bold mt-2">{achievement.teamName}</p>
-                    <p className="text-sm text-primary">{achievement.achievement}</p>
-                    <p className="text-xs text-muted-foreground">{achievement.category}</p>
-                    <p className="text-xs text-muted-foreground">{achievement.year}</p>
+                    <p className="text-sm text-blue-400">{achievement.achievement}</p>
+                    <p className="text-xs text-white/60">{achievement.category}</p>
+                    <p className="text-xs text-white/60">{achievement.year}</p>
                 </div>
              ))}
           </CardContent>
