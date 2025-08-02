@@ -136,12 +136,12 @@ export default function AiCardsPage() {
         @media print {
           @page {
             size: A4;
-            margin: 1cm;
+            margin: 0.5cm;
           }
           body {
-            background: white;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .flex-1.space-y-4 {
             padding: 0;
@@ -149,16 +149,17 @@ export default function AiCardsPage() {
           }
           #card-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1cm;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5cm;
             width: 100%;
-            height: auto;
           }
           .id-card-wrapper {
              padding: 0;
              margin: 0;
-             transform: scale(0.65);
+             transform: scale(0.48);
              transform-origin: top left;
+             width: 6.3cm; 
+             height: 10cm;
           }
           .print\:hidden {
               display: none !important;
