@@ -230,7 +230,7 @@ export default function TeamsPage() {
             </CardContent>
             <CardFooter className="p-4 bg-muted/50">
                  <Button asChild className="w-full">
-                    <Link href={`/teams/${team.id}`}>Administrar</Link>
+                    <Link href={`/teams/${team.id}`}>Ver</Link>
                 </Button>
             </CardFooter>
           </Card>
