@@ -1,4 +1,6 @@
 
+'use client';
+
 import { getPlayerById, getTeamById, getPlayersByTeamId } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
