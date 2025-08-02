@@ -33,16 +33,16 @@ export default function DigitalIdCardPage({ params }: { params: { id: string } }
           <div className="flex items-center gap-4 pt-4">
             <Image
               src={player.photoUrl}
-              alt={`ID of ${player.name}`}
+              alt={`ID de ${player.name}`}
               width={128}
               height={128}
               className="rounded-full border-4 border-accent object-cover aspect-square"
               data-ai-hint="player portrait"
             />
             <div className="flex-1">
-              <p className="text-sm uppercase tracking-wider text-accent">Player</p>
+              <p className="text-sm uppercase tracking-wider text-accent">Jugador</p>
               <p className="text-2xl font-bold">{player.name}</p>
-              <p className="text-sm uppercase tracking-wider text-accent mt-2">Team</p>
+              <p className="text-sm uppercase tracking-wider text-accent mt-2">Equipo</p>
               <p className="text-lg font-semibold">{player.team}</p>
             </div>
           </div>
@@ -50,21 +50,21 @@ export default function DigitalIdCardPage({ params }: { params: { id: string } }
           <div className="flex items-center gap-4">
              <Image
               src={qrCodeUrl}
-              alt="Player Profile QR Code"
+              alt="Código QR del Perfil del Jugador"
               width={100}
               height={100}
               className="rounded-lg bg-white p-1"
             />
             <div className="text-sm">
-                <p><strong className="text-accent">Category:</strong> {player.category}</p>
+                <p><strong className="text-accent">Categoría:</strong> {player.category}</p>
                 <p><strong className="text-accent">ID:</strong> P-{player.id}</p>
-                 <p className="mt-2 text-xs opacity-70">Scan to view full profile</p>
+                 <p className="mt-2 text-xs opacity-70">Escanea para ver el perfil completo</p>
             </div>
           </div>
         </Card>
         <Button className="w-full mt-6" size="lg">
           <Download className="mr-2 h-4 w-4" />
-          Download PDF
+          Descargar PDF
         </Button>
       </div>
     </div>

@@ -21,7 +21,7 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
           <Card className="overflow-hidden sticky top-8">
             <Image
               src={player.photoUrl}
-              alt={`Profile of ${player.name}`}
+              alt={`Perfil de ${player.name}`}
               width={600}
               height={600}
               className="w-full h-auto object-cover"
@@ -34,7 +34,7 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
               <Button asChild size="lg" className="w-full mt-6">
                 <Link href={`/players/${player.id}/id-card`}>
                   <CreditCard className="mr-2 h-5 w-5" />
-                  View Digital ID
+                  Ver Carnet Digital
                 </Link>
               </Button>
             </CardContent>
@@ -44,7 +44,7 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2">
-                <Trophy /> Season Statistics
+                <Trophy /> Estadísticas de la Temporada
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -52,22 +52,22 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <Goal className="mx-auto h-8 w-8 text-primary" />
                   <p className="text-3xl font-bold mt-2">{player.stats.goals}</p>
-                  <p className="text-sm text-muted-foreground">Goals</p>
+                  <p className="text-sm text-muted-foreground">Goles</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <Handshake className="mx-auto h-8 w-8 text-primary" />
                   <p className="text-3xl font-bold mt-2">{player.stats.assists}</p>
-                  <p className="text-sm text-muted-foreground">Assists</p>
+                  <p className="text-sm text-muted-foreground">Asistencias</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="inline-block bg-yellow-400 h-8 w-6 rounded-sm mx-auto"></div>
                   <p className="text-3xl font-bold mt-2">{player.stats.yellowCards}</p>
-                  <p className="text-sm text-muted-foreground">Yellow Cards</p>
+                  <p className="text-sm text-muted-foreground">Tarjetas Amarillas</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="inline-block bg-red-600 h-8 w-6 rounded-sm mx-auto"></div>
                   <p className="text-3xl font-bold mt-2">{player.stats.redCards}</p>
-                  <p className="text-sm text-muted-foreground">Red Cards</p>
+                  <p className="text-sm text-muted-foreground">Tarjetas Rojas</p>
                 </div>
               </div>
             </CardContent>
@@ -76,13 +76,13 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2">
-                <Shield /> Team Information
+                <Shield /> Información del Equipo
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div>
-                    <p className="text-sm text-muted-foreground">Current Team</p>
+                    <p className="text-sm text-muted-foreground">Equipo Actual</p>
                     <p className="text-xl font-semibold">{player.team}</p>
                   </div>
                   <Button asChild variant="ghost" size="icon">

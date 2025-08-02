@@ -81,11 +81,11 @@ export function AppSidebar() {
             <SidebarMenuButton
               asChild
               isActive={isActive('/players')}
-              tooltip="Players"
+              tooltip="Jugadores"
             >
               <Link href="/players">
                 <Users />
-                <span>Players</span>
+                <span>Jugadores</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -144,7 +144,7 @@ export function AppSidebar() {
               <AvatarFallback>AU</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="font-semibold text-sm">Admin User</span>
+              <span className="font-semibold text-sm">Usuario Admin</span>
               <span className="text-xs text-muted-foreground">admin@teamlink.hub</span>
             </div>
         </div>

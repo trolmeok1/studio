@@ -22,48 +22,48 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <h2 className="text-3xl font-bold tracking-tight font-headline">
-        Tournament Dashboard
+        Dashboard del Torneo
       </h2>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Players</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Jugadores</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{players.length}</div>
-            <p className="text-xs text-muted-foreground">Registered in all categories</p>
+            <p className="text-xs text-muted-foreground">Registrados en todas las categorías</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Teams</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Equipos</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{teams.length}</div>
-            <p className="text-xs text-muted-foreground">Competing this season</p>
+            <p className="text-xs text-muted-foreground">Compitiendo esta temporada</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Matches Played</CardTitle>
+            <CardTitle className="text-sm font-medium">Partidos Jugados</CardTitle>
             <Swords className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">124</div>
-            <p className="text-xs text-muted-foreground">Across all tournaments</p>
+            <p className="text-xs text-muted-foreground">En todos los torneos</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Match Day</CardTitle>
+            <CardTitle className="text-sm font-medium">Próxima Jornada</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">July 28, 2024</div>
-            <p className="text-xs text-muted-foreground">Weekend fixtures</p>
+            <div className="text-2xl font-bold">28 de Julio, 2024</div>
+            <p className="text-xs text-muted-foreground">Partidos del fin de semana</p>
           </CardContent>
         </Card>
       </div>
@@ -71,18 +71,18 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle className="font-headline">Standings (Máxima)</CardTitle>
+            <CardTitle className="font-headline">Tabla de Posiciones (Máxima)</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[80px]">Rank</TableHead>
-                  <TableHead>Team</TableHead>
+                  <TableHead className="w-[80px]">Pos</TableHead>
+                  <TableHead>Equipo</TableHead>
+                  <TableHead className="text-center">PJ</TableHead>
+                  <TableHead className="text-center">G</TableHead>
+                  <TableHead className="text-center">E</TableHead>
                   <TableHead className="text-center">P</TableHead>
-                  <TableHead className="text-center">W</TableHead>
-                  <TableHead className="text-center">D</TableHead>
-                  <TableHead className="text-center">L</TableHead>
                   <TableHead className="text-right">Pts</TableHead>
                 </TableRow>
               </TableHeader>
@@ -110,7 +110,7 @@ export default function DashboardPage() {
         
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle className="font-headline">Top Scorers</CardTitle>
+            <CardTitle className="font-headline">Goleadores</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium leading-none">{scorer.playerName}</p>
                     <p className="text-sm text-muted-foreground">{scorer.teamName}</p>
                   </div>
-                  <div className="ml-auto font-medium">{scorer.goals} Goals</div>
+                  <div className="ml-auto font-medium">{scorer.goals} Goles</div>
                 </div>
               ))}
             </div>
@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-7">
           <CardHeader>
-            <CardTitle className="font-headline">Recent Sanctions</CardTitle>
+            <CardTitle className="font-headline">Sanciones Recientes</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="space-y-4">
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                     <p className="font-semibold">{sanction.playerName} <span className="text-muted-foreground font-normal">({sanction.teamName})</span></p>
                     <p className="text-sm text-muted-foreground">{sanction.reason}</p>
                   </div>
-                   <Badge variant="destructive" className="ml-auto">{sanction.gamesSuspended} Game{sanction.gamesSuspended > 1 ? 's' : ''}</Badge>
+                   <Badge variant="destructive" className="ml-auto">{sanction.gamesSuspended} {sanction.gamesSuspended > 1 ? 'Partidos' : 'Partido'}</Badge>
                 </div>
               ))}
             </div>

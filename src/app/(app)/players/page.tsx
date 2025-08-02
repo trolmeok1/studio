@@ -9,7 +9,7 @@ export default function PlayersPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <h2 className="text-3xl font-bold tracking-tight font-headline">
-        Player Roster
+        Lista de Jugadores
       </h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {players.map((player) => (
@@ -18,7 +18,7 @@ export default function PlayersPage() {
               <Link href={`/players/${player.id}`}>
                 <Image
                   src={player.photoUrl}
-                  alt={`Photo of ${player.name}`}
+                  alt={`Foto de ${player.name}`}
                   width={400}
                   height={400}
                   className="w-full h-auto aspect-square object-cover"
@@ -33,7 +33,7 @@ export default function PlayersPage() {
             </CardContent>
             <CardFooter className="p-4 pt-0">
               <Button asChild className="w-full">
-                <Link href={`/players/${player.id}`}>View Profile</Link>
+                <Link href={`/players/${player.id}`}>Ver Perfil</Link>
               </Button>
             </CardFooter>
           </Card>
