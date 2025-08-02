@@ -25,51 +25,17 @@ export let teams: Team[] = [
   { id: '20', name: 'Earth Eagles', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', abbreviation: 'EAR', foundationDate: '2023-04-19', manager: 'Charles Torres' },
 ];
 
-const generatePlayersForTeam = (teamId: string, teamName: string, category: Category, count: number, startId: number): Player[] => {
-    const players: Player[] = [];
-    const positions: PlayerPosition[] = ['Portero', 'Defensa', 'Mediocampista', 'Delantero'];
-    for (let i = 1; i <= count; i++) {
-        players.push({
-            id: `${startId + i}`,
-            name: `${teamName} Player ${i}`,
-            photoUrl: 'https://placehold.co/400x400.png',
-            team: teamName,
-            teamId: teamId,
-            category: category,
-            position: positions[i % 4],
-            stats: { goals: Math.floor(Math.random() * 20), assists: Math.floor(Math.random() * 15), yellowCards: Math.floor(Math.random() * 10), redCards: Math.floor(Math.random() * 2) }
-        });
-    }
-    return players;
-}
-
 export let players: Player[] = [
-  // Cosmic Comets (Team 1) - 30 players
-  ...generatePlayersForTeam('1', 'Cosmic Comets', 'Máxima', 30, 100),
-  
-  // Solar Flares (Team 2) - 30 players
-  ...generatePlayersForTeam('2', 'Solar Flares', 'Máxima', 30, 200),
-
-  // Other players
-  { id: '301', name: 'Alex Comet', photoUrl: 'https://placehold.co/400x400.png', team: 'Galaxy Gliders', teamId: '3', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 20, yellowCards: 1, redCards: 0 } },
-  { id: '401', name: 'Sam Meteor', photoUrl: 'https://placehold.co/400x400.png', team: 'Orion Stars', teamId: '4', category: 'Máxima', position: 'Defensa', stats: { goals: 12, assists: 8, yellowCards: 7, redCards: 0 } },
-  { id: '501', name: 'Jordan Vortex', photoUrl: 'https://placehold.co/400x400.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 2, redCards: 0 } },
-  { id: '601', name: 'Taylor Pulsar', photoUrl: 'https://placehold.co/400x400.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Mediocampista', stats: { goals: 20, assists: 18, yellowCards: 4, redCards: 0 } },
-  { id: '701', name: 'Morgan Quasar', photoUrl: 'https://placehold.co/400x400.png', team: 'Quasar Quest', teamId: '7', category: 'Copa', position: 'Delantero', stats: { goals: 30, assists: 5, yellowCards: 6, redCards: 1 } },
-  { id: '801', name: 'Casey Nebula', photoUrl: 'https://placehold.co/400x400.png', team: 'Nebula Nomads', teamId: '8', category: 'Copa', position: 'Portero', stats: { goals: 1, assists: 9, yellowCards: 1, redCards: 0 } },
+    { id: '101', name: 'Cosmic Player 1', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 22, assists: 10, yellowCards: 3, redCards: 0 } },
+    { id: '102', name: 'Cosmic Player 2', photoUrl: 'https://placehold.co/400x400.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Mediocampista', stats: { goals: 5, assists: 15, yellowCards: 2, redCards: 0 } },
+    { id: '201', name: 'Solar Player 1', photoUrl: 'https://placehold.co/400x400.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 18, assists: 8, yellowCards: 5, redCards: 1 } },
+    { id: '301', name: 'Alex Comet', photoUrl: 'https://placehold.co/400x400.png', team: 'Galaxy Gliders', teamId: '3', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 20, yellowCards: 1, redCards: 0 } },
+    { id: '401', name: 'Sam Meteor', photoUrl: 'https://placehold.co/400x400.png', team: 'Orion Stars', teamId: '4', category: 'Máxima', position: 'Defensa', stats: { goals: 12, assists: 8, yellowCards: 7, redCards: 0 } },
+    { id: '501', name: 'Jordan Vortex', photoUrl: 'https://placehold.co/400x400.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 2, redCards: 0 } },
+    { id: '601', name: 'Taylor Pulsar', photoUrl: 'https://placehold.co/400x400.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Mediocampista', stats: { goals: 20, assists: 18, yellowCards: 4, redCards: 0 } },
+    { id: '701', name: 'Morgan Quasar', photoUrl: 'https://placehold.co/400x400.png', team: 'Quasar Quest', teamId: '7', category: 'Copa', position: 'Delantero', stats: { goals: 30, assists: 5, yellowCards: 6, redCards: 1 } },
+    { id: '801', name: 'Casey Nebula', photoUrl: 'https://placehold.co/400x400.png', team: 'Nebula Nomads', teamId: '8', category: 'Copa', position: 'Portero', stats: { goals: 1, assists: 9, yellowCards: 1, redCards: 0 } },
 ];
-players = [...players, ...generatePlayersForTeam('9', 'Asteroide FC', 'Segunda', 18, 900)];
-players = [...players, ...generatePlayersForTeam('10', 'Supernova SC', 'Segunda', 18, 1000)];
-players = [...players, ...generatePlayersForTeam('11', 'Blackhole United', 'Segunda', 18, 1100)];
-players = [...players, ...generatePlayersForTeam('12', 'Rocket Rangers', 'Segunda', 18, 1200)];
-players = [...players, ...generatePlayersForTeam('13', 'Mars Rovers', 'Segunda', 18, 1300)];
-players = [...players, ...generatePlayersForTeam('14', 'Jupiter Giants', 'Segunda', 18, 1400)];
-players = [...players, ...generatePlayersForTeam('15', 'Saturn Rings', 'Segunda', 18, 1500)];
-players = [...players, ...generatePlayersForTeam('16', 'Neptune Knights', 'Segunda', 18, 1600)];
-players = [...players, ...generatePlayersForTeam('17', 'Pluto Pups', 'Segunda', 18, 1700)];
-players = [...players, ...generatePlayersForTeam('18', 'Mercury Meteors', 'Segunda', 18, 1800)];
-players = [...players, ...generatePlayersForTeam('19', 'Venus Vipers', 'Segunda', 18, 1900)];
-players = [...players, ...generatePlayersForTeam('20', 'Earth Eagles', 'Segunda', 18, 2000)];
 
 
 export let standings: Standing[] = [
