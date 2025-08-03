@@ -206,33 +206,25 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
         return generatedMatches
             .filter(m => m.category === category)
             .reduce((acc, match) => {
-                const categoryTeams = teams.filter(t => t.category === category && (isGrouped ? t.group === match.group : true));
-                const roundSize = Math.floor(categoryTeams.length / 2);
-                if (roundSize === 0) return acc;
-                
-                const categoryMatches = generatedMatches.filter(m => m.category === category && (isGrouped ? m.group === match.group : true));
-                const totalRounds = (categoryTeams.length - (categoryTeams.length % 2 === 0 ? 0 : 1) -1) * 2; // *2 for two legs
-
-                const matchIndexInSchedule = categoryMatches.indexOf(match);
-
-                let leg = 'Ida';
-                let currentRound = Math.floor(matchIndexInSchedule / roundSize) + 1;
-                
-                const singleLegRounds = totalRounds / 2;
-                if (currentRound > singleLegRounds) {
-                    leg = 'Vuelta';
-                    currentRound = currentRound - singleLegRounds;
-                }
-                
-                const dateKey = `Fecha ${currentRound} (${leg})` + (isGrouped ? ` - Grupo ${match.group}` : '');
+                const dateKey = `Fecha ${match.roundNumber} (${match.leg})` + (isGrouped ? ` - Grupo ${match.group}` : '');
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = {
-                        date: isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : '',
+                        date: isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : 'Por definir',
                         matches: []
                     };
                 }
                 acc[dateKey].matches.push(match);
+                // Find the earliest date for this round to display as the round date
+                const earliestDate = acc[dateKey].matches.reduce((earliest, current) => {
+                    if (!current.date) return earliest;
+                    return earliest && earliest.getTime() < current.date.getTime() ? earliest : current.date;
+                }, null as Date | null);
+                
+                if (isClient && earliestDate) {
+                    acc[dateKey].date = format(earliestDate, 'PPPP', { locale: es });
+                }
+
                 return acc;
             }, {} as Record<string, { date: string, matches: GeneratedMatch[] }>);
     }, [generatedMatches, isClient, teams, category, isGrouped]);
@@ -420,38 +412,9 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
     const groupedMatches = useMemo(() => {
         if (generatedMatches.length === 0) return {};
 
-        const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
-
         return generatedMatches
             .reduce((acc, match) => {
-                const homeTeam = allTeams.find(t => t.id === match.home);
-                if (!homeTeam) return acc;
-                
-                const isGrouped = homeTeam.category === 'Segunda' && getTeamsByCategory('Segunda').length >= 16;
-                const categoryTeams = allTeams.filter(t => t.category === homeTeam.category && (isGrouped ? t.group === match.group : true));
-                const roundSize = categoryTeams.reduce((count, team) => team.id !== 'dummy' ? count + 1 : count, 0) / 2;
-                if (roundSize === 0) return acc;
-
-                const categoryMatches = generatedMatches.filter(m => m.category === homeTeam.category && (isGrouped ? m.group === match.group : true));
-                const matchIndexInSchedule = categoryMatches.findIndex(m => m.home === match.home && m.away === match.away && m.date === match.date);
-                
-                const totalRounds = (categoryTeams.length - (categoryTeams.length % 2 === 0 ? 0 : 1)) * 2; // *2 for two legs
-
-                let leg = 'Ida';
-                let currentRound = Math.floor(matchIndexInSchedule / roundSize) + 1;
-                
-                const singleLegRounds = totalRounds / 2;
-
-                const firstLegMatchesCount = generatedMatches.filter(m => m.leg === 'Ida').length;
-                const matchGlobalIndex = generatedMatches.findIndex(m => m === match);
-
-                if (matchGlobalIndex >= firstLegMatchesCount) {
-                     leg = 'Vuelta';
-                } else {
-                     leg = 'Ida';
-                }
-                 
-                const dateKey = `Fecha ${format(match.date || new Date(), 'PPPP', {locale: es})}`;
+                const dateKey = `Fecha ${isClient ? format(match.date || new Date(), 'PPPP', {locale: es}) : ''}`;
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
@@ -517,7 +480,7 @@ export default function SchedulePage() {
     const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[][] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
-            currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category });
+            currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
         }
 
         const numTeams = currentTeams.length;
@@ -531,10 +494,9 @@ export default function SchedulePage() {
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    // Alternate home/away for fairness in the first leg
                     const match = round % 2 === 0 
-                        ? { home: team1.id, away: team2.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta' }
-                        : { home: team2.id, away: team1.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta' };
+                        ? { home: team1.id, away: team2.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta', roundNumber: round + 1 }
+                        : { home: team2.id, away: team1.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta', roundNumber: round + 1 };
                     rounds[round].push(match);
                 }
             }
@@ -547,7 +509,10 @@ export default function SchedulePage() {
         return rounds;
     };
 
-    let categorySchedules: { [key in Category]?: GeneratedMatch[][] } = {};
+    let allRoundsFirstLeg: GeneratedMatch[][] = [];
+    
+    // 1. Generate all rounds for all categories
+    const categorySchedules: { [key in Category]?: GeneratedMatch[][] } = {};
     let maxRounds = 0;
 
     categories.forEach(category => {
@@ -561,12 +526,12 @@ export default function SchedulePage() {
              const scheduleA = groupA.length > 1 ? generateRoundRobinScheduleForCategory(groupA, category, 'A') : [];
              const scheduleB = groupB.length > 1 ? generateRoundRobinScheduleForCategory(groupB, category, 'B') : [];
              
-             const combinedSchedule = [];
+             const combinedRounds = [];
              const rounds = Math.max(scheduleA.length, scheduleB.length);
              for(let i = 0; i < rounds; i++) {
-                combinedSchedule.push([...(scheduleA[i] || []), ...(scheduleB[i] || [])]);
+                combinedRounds.push([...(scheduleA[i] || []), ...(scheduleB[i] || [])]);
              }
-             categorySchedules[category] = combinedSchedule;
+             categorySchedules[category] = combinedRounds;
         } else {
              categorySchedules[category] = generateRoundRobinScheduleForCategory(teamsForCategory, category);
         }
@@ -574,29 +539,37 @@ export default function SchedulePage() {
             maxRounds = categorySchedules[category]?.length || 0;
         }
     });
-
-    let interleavedFirstLeg: GeneratedMatch[] = [];
+    
+    // 2. Interleave rounds
     for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
+        const mixedRound: GeneratedMatch[] = [];
         categories.forEach(category => {
             if (categorySchedules[category] && categorySchedules[category]![roundIndex]) {
-                interleavedFirstLeg.push(...categorySchedules[category]![roundIndex]);
+                mixedRound.push(...categorySchedules[category]![roundIndex]);
             }
         });
+        allRoundsFirstLeg.push(mixedRound);
     }
+    
+    // 3. Flatten the interleaved rounds into a single list of matches
+    const firstLegMatches = allRoundsFirstLeg.flat();
 
-    const interleavedSecondLeg = interleavedFirstLeg.map(match => ({
+    // 4. Create the second leg by reversing home/away
+    const secondLegMatches = firstLegMatches.map(match => ({
         ...match,
         home: match.away,
         away: match.home,
-        leg: 'Vuelta' as 'Ida' | 'Vuelta'
+        leg: 'Vuelta' as 'Ida' | 'Vuelta',
+        roundNumber: match.roundNumber! + maxRounds
     }));
 
-    const combinedSchedule = [...interleavedFirstLeg, ...interleavedSecondLeg];
+    const combinedSchedule = [...firstLegMatches, ...secondLegMatches];
     
+    // 5. Create available time slots
     let availableSlots: { date: Date, field: number }[] = [];
     let currentDate = startOfDay(settings.startDate);
     
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i < 365 && availableSlots.length < combinedSchedule.length; i++) {
         const dayOfWeek = getDay(currentDate);
         if (settings.gameDays.includes(dayOfWeek)) {
             settings.gameTimes.sort().forEach(time => {
@@ -610,6 +583,7 @@ export default function SchedulePage() {
         currentDate = addDays(currentDate, 1);
     }
 
+    // 6. Assign slots to matches
     const scheduledMatches = combinedSchedule.map((match, index) => {
         if (availableSlots[index]) {
             return {
@@ -654,7 +628,7 @@ export default function SchedulePage() {
                             <Button 
                                 variant={isTournamentStarted ? "destructive" : "outline"}
                                 onClick={handleDrawButtonClick}
-                                disabled={isTournamentStarted}
+                                
                             >
                                 <Dices className="mr-2" />
                                 {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
