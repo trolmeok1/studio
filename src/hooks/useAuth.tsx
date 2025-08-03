@@ -73,6 +73,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: UserRole;
   permissions: Permissions;
   avatarUrl?: string;
@@ -87,9 +88,9 @@ interface AuthContextType {
 }
 
 const mockUsers: User[] = [
-  { id: 'user-1', name: 'Usuario Admin', email: 'admin@ligacontrol.com', role: 'admin', permissions: allPermissionsTrue, avatarUrl: 'https://placehold.co/100x100.png' },
-  { id: 'user-2', name: 'Secretario/a', email: 'secretary@ligacontrol.com', role: 'secretary', permissions: secretaryPermissions, avatarUrl: 'https://placehold.co/100x100.png' },
-  { id: 'user-3', name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest', permissions: guestPermissions, avatarUrl: 'https://placehold.co/100x100.png' },
+  { id: 'user-1', name: 'Usuario Admin', email: 'admin@ligacontrol.com', role: 'admin', permissions: allPermissionsTrue, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
+  { id: 'user-2', name: 'Secretario/a', email: 'secretary@ligacontrol.com', role: 'secretary', permissions: secretaryPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
+  { id: 'user-3', name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest', permissions: guestPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
 ];
 
 const defaultUser = mockUsers.find(u => u.role === 'guest')!;

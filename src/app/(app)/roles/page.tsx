@@ -39,11 +39,11 @@ const permissionModules: { key: keyof Permissions; label: string }[] = [
 ];
 
 const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { user?: User; onSave: (user: User) => void; children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) => {
-    const [userData, setUserData] = useState<Partial<User>>(user || { name: '', email: '' });
+    const [userData, setUserData] = useState<Partial<User>>(user || { name: '', email: '', password: '' });
     const [permissions, setPermissions] = useState<Permissions>(user?.permissions || {} as Permissions);
 
     React.useEffect(() => {
-        setUserData(user || { name: '', email: '' });
+        setUserData(user || { name: '', email: '', password: '' });
         setPermissions(user?.permissions || {} as Permissions);
     }, [user, open]);
 
@@ -77,6 +77,7 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
             id: user?.id || `user-${Date.now()}`,
             name: userData.name || '',
             email: userData.email || '',
+            password: userData.password,
             role: 'guest', // Role can be deprecated or used for a base layer
             permissions: permissions,
             avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
@@ -105,6 +106,12 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
                             <Label htmlFor="email">Email</Label>
                              <Input id="email" type="email" value={userData.email} onChange={(e) => setUserData({...userData, email: e.target.value })} />
                         </div>
+                        {!user && (
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Contraseña</Label>
+                                <Input id="password" type="password" value={userData.password} onChange={(e) => setUserData({...userData, password: e.target.value })} placeholder="Contraseña inicial" />
+                            </div>
+                        )}
                     </div>
                     <div className="md:col-span-2 space-y-4">
                         <h4 className="font-semibold">Permisos por Módulo</h4>
@@ -242,4 +249,3 @@ export default function RolesPage() {
     </div>
   );
 }
-
