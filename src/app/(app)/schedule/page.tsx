@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -128,7 +129,7 @@ const CopaBracket = () => {
     );
 };
 
-const MatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, showCategory?: boolean }) => {
+const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, showCategory?: boolean }) => {
     const allTeams: Team[] = useMemo(() => [
         ...getTeamsByCategory('Máxima'),
         ...getTeamsByCategory('Primera'),
@@ -177,6 +178,39 @@ const MatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, sho
     );
 }
 
+const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
+    const allTeams: Team[] = useMemo(() => [
+        ...getTeamsByCategory('Máxima'),
+        ...getTeamsByCategory('Primera'),
+        ...getTeamsByCategory('Segunda')
+    ], []);
+    const homeTeam = allTeams.find(t => t.id === match.home);
+    const awayTeam = allTeams.find(t => t.id === match.away);
+
+    return (
+        <Link href={`/partido`} className="block group">
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 w-2/5 justify-end">
+                        <span className="font-bold text-sm text-right truncate">{homeTeam?.name || match.home}</span>
+                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
+                    </div>
+
+                    <div className="text-center w-1/5">
+                        <span className="text-lg font-light text-muted-foreground">VS</span>
+                        <Badge variant="outline" className="text-xs">{match.time}</Badge>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-2/5">
+                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
+                        <span className="font-bold text-sm truncate">{awayTeam?.name || match.away}</span>
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
+    );
+};
+
 const LeagueView = ({ category, generatedMatches }: { category: Category, generatedMatches: GeneratedMatch[] }) => {
     const [teams, setTeams] = useState<Team[]>([]);
     
@@ -215,22 +249,20 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     useEffect(() => { setIsClient(true) }, []);
 
     const groupedMatches = useMemo(() => {
-        if (teams.length === 0 || generatedMatches.length === 0 || !isClient) return {};
+        if (!isClient || generatedMatches.length === 0) return {};
 
         const categoryMatches = generatedMatches.filter(m => m.category === category);
 
-        return categoryMatches
-            .reduce((acc, match) => {
-                if (!match.date) return acc;
-                const dateKey = format(match.date, 'PPPP', {locale: es});
-                
-                if (!acc[dateKey]) {
-                    acc[dateKey] = [];
-                }
-                acc[dateKey].push(match);
-                return acc;
-            }, {} as Record<string, GeneratedMatch[]>);
-    }, [generatedMatches, isClient, teams, category]);
+        return categoryMatches.reduce((acc, match) => {
+            if (!match.date) return acc;
+            const dateKey = format(match.date, 'PPPP', { locale: es });
+            if (!acc[dateKey]) {
+                acc[dateKey] = [];
+            }
+            acc[dateKey].push(match);
+            return acc;
+        }, {} as Record<string, GeneratedMatch[]>);
+    }, [generatedMatches, isClient, category]);
 
 
     if(teams.length === 0) {
@@ -305,24 +337,26 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                         ))}
                     </TabsContent>
                     <TabsContent value="schedule" className="space-y-6 mt-6">
-                        {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches)
+                         {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches)
                             .sort(([dateA], [dateB]) => {
                                  try {
-                                     // The date is already a formatted string, so we need to parse it back to compare
                                      const parsedDateA = parse(dateA, 'PPPP', new Date(), { locale: es });
                                      const parsedDateB = parse(dateB, 'PPPP', new Date(), { locale: es });
                                      return parsedDateA.getTime() - parsedDateB.getTime();
                                  } catch (e) {
-                                     return 0; // Fallback for any parsing errors
+                                     return 0;
                                  }
                             })
                             .map(([date, matchesOnDate]) => (
-                            <div key={date}>
-                                <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => <MatchCard key={index} match={match} />)}
+                            <Card key={date} className="p-4">
+                                <h3 className="text-lg font-semibold mb-3 text-muted-foreground">{date}</h3>
+                                 <div className="space-y-2">
+                                    {matchesOnDate
+                                        .sort((a,b) => (a.time || "").localeCompare(b.time || ""))
+                                        .map((match, index) => <CategoryMatchCard key={index} match={match} />)
+                                    }
                                 </div>
-                            </div>
+                            </Card>
                         )) : (
                             <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Equipos".</p>
                         )}
@@ -587,7 +621,7 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => 
-                                <MatchCard key={`${match.home}-${match.away}-${index}`} match={match} showCategory={true} />
+                                <GeneralMatchCard key={`${match.home}-${match.away}-${index}`} match={match} showCategory={true} />
                             )}
                         </div>
                     </div>
