@@ -460,7 +460,7 @@ export default function TeamDetailsPage() {
   
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="space-y-4 p-4 md:p-8">
       <Card>
         <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
@@ -492,14 +492,17 @@ export default function TeamDetailsPage() {
       </Card>
 
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="info"><BadgeInfo className="mr-2" />Información</TabsTrigger>
-            <TabsTrigger value="roster"><Users className="mr-2" />Nómina</TabsTrigger>
-            <TabsTrigger value="finances"><DollarSign className="mr-2" />Finanzas</TabsTrigger>
-            <TabsTrigger value="calendar"><Calendar className="mr-2" />Calendario</TabsTrigger>
-            <TabsTrigger value="stats"><BarChart2 className="mr-2" />Estadísticas</TabsTrigger>
-            <TabsTrigger value="sanctions"><ShieldAlert className="mr-2" />Sanciones</TabsTrigger>
-        </TabsList>
+        <ScrollArea>
+          <TabsList className="w-max">
+              <TabsTrigger value="info"><BadgeInfo className="mr-2" />Información</TabsTrigger>
+              <TabsTrigger value="roster"><Users className="mr-2" />Nómina</TabsTrigger>
+              <TabsTrigger value="finances"><DollarSign className="mr-2" />Finanzas</TabsTrigger>
+              <TabsTrigger value="calendar"><Calendar className="mr-2" />Calendario</TabsTrigger>
+              <TabsTrigger value="stats"><BarChart2 className="mr-2" />Estadísticas</TabsTrigger>
+              <TabsTrigger value="sanctions"><ShieldAlert className="mr-2" />Sanciones</TabsTrigger>
+          </TabsList>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         <TabsContent value="info">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">

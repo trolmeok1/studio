@@ -62,7 +62,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-2">
           <Trophy className="text-primary size-8" />
           <h1 className="text-xl font-bold font-headline">Liga Control</h1>
-          <div className="ml-auto">
+          <div className="ml-auto md:hidden">
             <SidebarTrigger />
           </div>
         </div>
