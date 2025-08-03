@@ -4,7 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft } from 'lucide-react';
+import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, generateFinancialReport, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense } from '@/lib/mock-data';
@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 
 // --- Report Components ---
@@ -69,33 +70,88 @@ const StandingsReport = ({ category }: { category: Category }) => {
 };
 
 const ScheduleReport = ({ week }: { week: string }) => {
-    // This is mock logic. In a real app, you'd filter matches by week.
-    const matches = upcomingMatches.slice(0, 5);
+    const matches = upcomingMatches.slice(0, 4); 
+    const PlayerIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8">
+        <path d="M16 2.8a1.5 1.5 0 0 1 2.4 1.2" />
+        <path d="M16 2.8a1.5 1.5 0 0 0-2.4 1.2" />
+        <path d="M12 11.8a1.5 1.5 0 0 1-2.4-1.2" />
+        <path d="m14 4-2 3" />
+        <path d="M10 4 8 7" />
+        <path d="M12 21v-8l2-3" />
+        <path d="M12 13 8 7.5" />
+        <path d="m3.5 10.5 3 2.5" />
+        <circle cx="12" cy="4" r="2" />
+        <circle cx="4" cy="18" r="2" />
+      </svg>
+    );
+
+    const BallIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 12-2 18" />
+        <path d="M12 12 2 6" />
+        <path d="M12 12 22 6" />
+        <path d="M12 12 22 18" />
+        <path d="m12 12-5.5 10" />
+        <path d="m12 12 5.5 10" />
+        <path d="m12 12-5.5-10" />
+        <path d="m12 12 5.5-10" />
+      </svg>
+    );
+
     return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
-            <header className="flex flex-col items-center text-center mb-6">
-                <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" />
-                <h1 className="text-2xl font-bold mt-2">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
-                <p className="text-lg font-semibold">PROGRAMACIÓN DE PARTIDOS</p>
-                <p className="text-md">{week}</p>
-            </header>
-            <div className="space-y-4">
-                {matches.map(match => (
-                    <Card key={match.id} className="border-black">
-                        <CardHeader className="p-3 bg-gray-200 text-center">
-                            <CardTitle className="text-md">{format(new Date(match.date), "eeee, dd 'de' MMMM, p", { locale: es })}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 grid grid-cols-3 items-center text-center">
-                            <div className="font-bold text-right">{match.teams.home.name}</div>
-                            <div className="text-lg font-bold text-muted-foreground">VS</div>
-                            <div className="font-bold text-left">{match.teams.away.name}</div>
-                        </CardContent>
-                    </Card>
-                ))}
+        <div id="printable-report" className="bg-gray-800 text-white font-headline relative print:border-none aspect-[1/1.414] max-w-2xl mx-auto">
+            <div className="absolute inset-0 z-0">
+                <Image src="/soccer-field-bg.jpg" layout="fill" objectFit="cover" alt="Fondo de estadio" className="opacity-20" data-ai-hint="stadium background" />
+            </div>
+            <div className="relative z-10 p-8 flex flex-col h-full">
+                <header className="text-center mb-8">
+                    <Trophy className="mx-auto h-12 w-12 text-yellow-400" />
+                    <h1 className="text-3xl font-bold tracking-tight uppercase mt-2">Campeonato Barrial</h1>
+                    <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">{week.toUpperCase()}</h2>
+                </header>
+
+                <main className="flex-grow space-y-4">
+                    {matches.map(match => (
+                         <div key={match.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/20">
+                            {/* Team A */}
+                            <div className="flex flex-col items-end text-right">
+                                <p className="text-lg font-bold uppercase">{match.teams.home.name}</p>
+                                <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
+                                    <span>Cancha {match.id.slice(-1)}</span>
+                                     <Home className="h-3 w-3" />
+                                </div>
+                            </div>
+                            
+                            {/* VS */}
+                            <div className="flex flex-col items-center">
+                                <div className="bg-yellow-400 text-black rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
+                                    VS
+                                </div>
+                                 <p className="text-xs text-yellow-400 mt-1">{format(new Date(match.date), 'HH:mm')}</p>
+                            </div>
+
+                            {/* Team B */}
+                            <div className="flex flex-col items-start text-left">
+                                <p className="text-lg font-bold uppercase">{match.teams.away.name}</p>
+                                <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
+                                     <CalendarClock className="h-3 w-3" />
+                                     <span>{format(new Date(match.date), "dd MMM", { locale: es })}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </main>
+
+                <footer className="text-center text-xs text-gray-400 mt-8">
+                    www.ligalaluz.com
+                </footer>
             </div>
         </div>
     );
-}
+};
+
 
 const SanctionsReport = () => {
     return (
@@ -186,6 +242,7 @@ export default function ReportsPage() {
                     @media print {
                       body {
                         background-color: white !important;
+                        background-image: none !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                       }
@@ -201,7 +258,7 @@ export default function ReportsPage() {
                     }
                     @page {
                         size: A4 portrait;
-                        margin: 1.5cm;
+                        margin: 0;
                     }
                 `}</style>
             </div>
@@ -339,3 +396,4 @@ export default function ReportsPage() {
         </div>
     );
 }
+
