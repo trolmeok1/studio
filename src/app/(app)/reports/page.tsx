@@ -4,7 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User } from 'lucide-react';
+import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, generateFinancialReport, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense } from '@/lib/mock-data';
@@ -109,7 +109,7 @@ const ScheduleReport = ({ week }: { week: string }) => {
                 <header className="text-center mb-8">
                     <Trophy className="mx-auto h-12 w-12 text-yellow-400" />
                     <h1 className="text-3xl font-bold tracking-tight uppercase mt-2">Campeonato Barrial</h1>
-                    <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">{week.toUpperCase()}</h2>
+                    <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">PROGRAMACIÓN</h2>
                 </header>
 
                 <main className="flex-grow space-y-4">
@@ -120,7 +120,7 @@ const ScheduleReport = ({ week }: { week: string }) => {
                                 <p className="text-lg font-bold uppercase">{match.teams.home.name}</p>
                                 <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
                                     <span>Cancha {match.id.slice(-1)}</span>
-                                     <Home className="h-3 w-3" />
+                                     <PlayerIcon />
                                 </div>
                             </div>
                             
@@ -136,7 +136,7 @@ const ScheduleReport = ({ week }: { week: string }) => {
                             <div className="flex flex-col items-start text-left">
                                 <p className="text-lg font-bold uppercase">{match.teams.away.name}</p>
                                 <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
-                                     <CalendarClock className="h-3 w-3" />
+                                     <BallIcon />
                                      <span>{format(new Date(match.date), "dd MMM", { locale: es })}</span>
                                 </div>
                             </div>
@@ -145,7 +145,7 @@ const ScheduleReport = ({ week }: { week: string }) => {
                 </main>
 
                 <footer className="text-center text-xs text-gray-400 mt-8">
-                    www.ligalaluz.com
+                    www.ligacontrol.com
                 </footer>
             </div>
         </div>
@@ -396,4 +396,3 @@ export default function ReportsPage() {
         </div>
     );
 }
-
