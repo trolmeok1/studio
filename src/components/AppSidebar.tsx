@@ -31,6 +31,8 @@ import {
   BarChart2,
   Image as ImageIcon,
   Database,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -39,11 +41,13 @@ import { SidebarGroup, SidebarGroupLabel } from './ui/sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const router = useRouter();
+  const { setTheme, theme } = useTheme();
 
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(`${path}/`);
@@ -233,9 +237,16 @@ export function AppSidebar() {
               <span className="text-xs text-muted-foreground">{user.email}</span>
             </div>
            </div>
-           <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0">
-             <LogOut />
-           </Button>
+           <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0">
+                <LogOut />
+            </Button>
+           </div>
         </div>
       </SidebarFooter>
     </>

@@ -96,14 +96,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsersState] = useState<User[]>(mockUsers);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    // Attempt to login as admin by default on client-side mount
-    // This prevents hydration errors with user state
-    loginAs('admin');
-    setIsMounted(true);
-  }, []);
 
   const loginAs = (role: UserRole) => {
     const userToLogin = users.find(u => u.role === role);
@@ -128,11 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUsers,
     loginAs,
   };
-
-  // Render children only after the component has mounted and user state is stable
-  if (!isMounted) {
-    return null;
-  }
 
   return (
     <AuthContext.Provider value={value}>

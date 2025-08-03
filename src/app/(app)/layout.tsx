@@ -7,7 +7,6 @@ import {
   SidebarHeader,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { AuthProvider } from '@/hooks/useAuth';
 
 export default function AppLayout({ children }: PropsWithChildren) {
   return (
