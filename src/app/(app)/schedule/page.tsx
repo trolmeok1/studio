@@ -512,11 +512,9 @@ export default function SchedulePage() {
   useEffect(() => { setIsClient(true) }, []);
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
-    let allFirstLegMatches: GeneratedMatch[] = [];
-    let allSecondLegMatches: GeneratedMatch[] = [];
     const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { firstLeg: GeneratedMatch[], secondLeg: GeneratedMatch[] } => {
+    const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[][] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category });
@@ -525,8 +523,7 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        let firstLeg: GeneratedMatch[] = [];
-        let secondLeg: GeneratedMatch[] = [];
+        const rounds: GeneratedMatch[][] = Array.from({ length: numRounds }, () => []);
         
         for (let round = 0; round < numRounds; round++) {
             for (let i = 0; i < matchesPerRound; i++) {
@@ -534,19 +531,24 @@ export default function SchedulePage() {
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    firstLeg.push({ home: team1.id, away: team2.id, category, group, leg: 'Ida' });
-                    secondLeg.push({ home: team2.id, away: team1.id, category, group, leg: 'Vuelta' });
+                    // Alternate home/away for fairness in the first leg
+                    const match = round % 2 === 0 
+                        ? { home: team1.id, away: team2.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta' }
+                        : { home: team2.id, away: team1.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta' };
+                    rounds[round].push(match);
                 }
             }
-             // Rotate teams for the next round
+            // Rotate teams for the next round
             const lastTeam = currentTeams.pop();
             if (lastTeam) {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        
-        return { firstLeg, secondLeg };
+        return rounds;
     };
+
+    let categorySchedules: { [key in Category]?: GeneratedMatch[][] } = {};
+    let maxRounds = 0;
 
     categories.forEach(category => {
         const teamsForCategory = getTeamsByCategory(category);
@@ -556,31 +558,44 @@ export default function SchedulePage() {
         if(isGrouped) {
              const groupA = teamsForCategory.filter(t => t.group === 'A');
              const groupB = teamsForCategory.filter(t => t.group === 'B');
-             if(groupA.length > 1) {
-                const { firstLeg, secondLeg } = generateRoundRobinMatches(groupA, category, 'A');
-                allFirstLegMatches.push(...firstLeg);
-                allSecondLegMatches.push(...secondLeg);
+             const scheduleA = groupA.length > 1 ? generateRoundRobinScheduleForCategory(groupA, category, 'A') : [];
+             const scheduleB = groupB.length > 1 ? generateRoundRobinScheduleForCategory(groupB, category, 'B') : [];
+             
+             const combinedSchedule = [];
+             const rounds = Math.max(scheduleA.length, scheduleB.length);
+             for(let i = 0; i < rounds; i++) {
+                combinedSchedule.push([...(scheduleA[i] || []), ...(scheduleB[i] || [])]);
              }
-             if(groupB.length > 1) {
-                const { firstLeg, secondLeg } = generateRoundRobinMatches(groupB, category, 'B');
-                allFirstLegMatches.push(...firstLeg);
-                allSecondLegMatches.push(...secondLeg);
-             }
+             categorySchedules[category] = combinedSchedule;
         } else {
-             const { firstLeg, secondLeg } = generateRoundRobinMatches(teamsForCategory, category);
-             allFirstLegMatches.push(...firstLeg);
-             allSecondLegMatches.push(...secondLeg);
+             categorySchedules[category] = generateRoundRobinScheduleForCategory(teamsForCategory, category);
+        }
+        if (categorySchedules[category] && (categorySchedules[category]?.length || 0) > maxRounds) {
+            maxRounds = categorySchedules[category]?.length || 0;
         }
     });
+
+    let interleavedFirstLeg: GeneratedMatch[] = [];
+    for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
+        categories.forEach(category => {
+            if (categorySchedules[category] && categorySchedules[category]![roundIndex]) {
+                interleavedFirstLeg.push(...categorySchedules[category]![roundIndex]);
+            }
+        });
+    }
+
+    const interleavedSecondLeg = interleavedFirstLeg.map(match => ({
+        ...match,
+        home: match.away,
+        away: match.home,
+        leg: 'Vuelta' as 'Ida' | 'Vuelta'
+    }));
+
+    const combinedSchedule = [...interleavedFirstLeg, ...interleavedSecondLeg];
     
-    // Schedule all first leg matches, then all second leg matches
-    const combinedSchedule = [...allFirstLegMatches, ...allSecondLegMatches];
-    
-    // Create a queue of available time slots
     let availableSlots: { date: Date, field: number }[] = [];
     let currentDate = startOfDay(settings.startDate);
     
-    // Generate slots for a long period, e.g., 52 weeks
     for (let i = 0; i < 365; i++) {
         const dayOfWeek = getDay(currentDate);
         if (settings.gameDays.includes(dayOfWeek)) {
@@ -595,7 +610,6 @@ export default function SchedulePage() {
         currentDate = addDays(currentDate, 1);
     }
 
-    // Assign slots to matches
     const scheduledMatches = combinedSchedule.map((match, index) => {
         if (availableSlots[index]) {
             return {
@@ -605,7 +619,7 @@ export default function SchedulePage() {
                 field: availableSlots[index].field,
             };
         }
-        return match; // Should not happen if enough slots are generated
+        return match;
     });
 
     setGeneratedMatches(scheduledMatches);
@@ -745,3 +759,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
