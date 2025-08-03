@@ -414,7 +414,8 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
 
         return generatedMatches
             .reduce((acc, match) => {
-                const dateKey = `Fecha ${match.roundNumber} (${match.leg}) - ${isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : ''}`;
+                if (!match.date) return acc;
+                const dateKey = isClient ? format(match.date, 'PPPP', {locale: es}) : '';
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
@@ -448,11 +449,9 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                  {Object.entries(groupedMatches)
                     .sort(([dateA], [dateB]) => {
                         try {
-                             const parsedDateA = dateA.substring(dateA.indexOf('-') + 2);
-                             const parsedDateB = dateB.substring(dateB.indexOf('-') + 2);
-                             if (!parsedDateA || !parsedDateB) return 0;
-                             const timeA = parse(parsedDateA, 'PPPP', new Date(), { locale: es }).getTime();
-                             const timeB = parse(parsedDateB, 'PPPP', new Date(), { locale: es }).getTime();
+                             if (!dateA || !dateB) return 0;
+                             const timeA = parse(dateA, 'PPPP', new Date(), { locale: es }).getTime();
+                             const timeB = parse(dateB, 'PPPP', new Date(), { locale: es }).getTime();
                              return timeA - timeB;
                         } catch(e) {
                             return 0;
@@ -487,7 +486,7 @@ export default function SchedulePage() {
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
     
-    const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[][] => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -496,23 +495,39 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        const rounds: GeneratedMatch[][] = Array.from({ length: numRounds }, () => []);
+        const allMatches: GeneratedMatch[] = [];
         
+        // Ida
         for (let round = 0; round < numRounds; round++) {
             for (let i = 0; i < matchesPerRound; i++) {
                 const team1 = currentTeams[i];
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                     rounds[round].push({ home: team1.id, away: team2.id, category, group, roundNumber: round + 1 });
+                     allMatches.push({ home: team1.id, away: team2.id, category, group, roundNumber: round + 1, leg: 'Ida' });
                 }
             }
+            // Rotate teams
             const lastTeam = currentTeams.pop();
             if (lastTeam) {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        return rounds;
+        
+        // Vuelta (swap home/away)
+         allMatches.forEach(match => {
+            if (match.leg === 'Ida') {
+                allMatches.push({ 
+                    ...match, 
+                    home: match.away, 
+                    away: match.home, 
+                    leg: 'Vuelta',
+                    roundNumber: (match.roundNumber || 0) + numRounds
+                });
+            }
+        });
+
+        return allMatches;
     };
     
     const categories: {category: Category, group?: 'A' | 'B'}[] = [
@@ -522,35 +537,27 @@ export default function SchedulePage() {
         { category: 'Segunda', group: 'B' }
     ];
 
-    let allRoundsFirstLeg: GeneratedMatch[][] = [];
-    let allRoundsSecondLeg: GeneratedMatch[][] = [];
+    let allMatches: GeneratedMatch[] = [];
     
     categories.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
-            const rounds = generateRoundRobinScheduleForCategory(teams, cat.category, cat.group);
-            allRoundsFirstLeg.push(...rounds);
-            
-            const secondLegRounds = rounds.map((round, roundIndex) => round.map(match => ({
-                ...match,
-                home: match.away,
-                away: match.home,
-                roundNumber: (match.roundNumber || 0) + rounds.length
-            })));
-            allRoundsSecondLeg.push(...secondLegRounds);
+            const categoryMatches = generateRoundRobinMatches(teams, cat.category, cat.group);
+            allMatches.push(...categoryMatches);
         }
     });
 
-    const transpose = (matrix: any[][]): any[][] => {
-        if (!matrix || matrix.length === 0) return [];
-        return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]).filter(item => item !== undefined));
-    };
+    // Shuffle the entire list of matches to mix categories
+    for (let i = allMatches.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allMatches[i], allMatches[j]] = [allMatches[j], allMatches[i]];
+    }
+    
+    // Separate Ida and Vuelta and then combine
+    const idaMatches = allMatches.filter(m => m.leg === 'Ida');
+    const vueltaMatches = allMatches.filter(m => m.leg === 'Vuelta');
+    const combinedSchedule = [...idaMatches, ...vueltaMatches];
 
-    const firstLegMatches = transpose(allRoundsFirstLeg).flat().map(m => ({ ...m, leg: 'Ida' as const }));
-    const secondLegMatches = transpose(allRoundsSecondLeg).flat().map(m => ({ ...m, leg: 'Vuelta' as const }));
-    
-    const combinedSchedule = [...firstLegMatches, ...secondLegMatches];
-    
     let availableSlots: { date: Date, field: number }[] = [];
     let currentDate = startOfDay(settings.startDate);
     
