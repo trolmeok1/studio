@@ -57,10 +57,10 @@ export default function LoginPage() {
                 </Button>
             </form>
 
-            <div className="my-6 flex items-center">
-                <Separator className="flex-grow" />
-                <span className="mx-4 text-xs text-muted-foreground">O</span>
-                <Separator className="flex-grow" />
+            <div className="my-6 flex items-center gap-4">
+                <div className="flex-grow border-t border-muted"></div>
+                <span className="flex-shrink-0 text-xs text-muted-foreground">O</span>
+                <div className="flex-grow border-t border-muted"></div>
             </div>
             
             <p className="text-center text-sm text-muted-foreground mb-4">
@@ -79,5 +79,3 @@ export default function LoginPage() {
     </Card>
   );
 }
-
-    
