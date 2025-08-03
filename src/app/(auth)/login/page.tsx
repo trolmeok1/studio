@@ -32,9 +32,8 @@ export default function LoginPage() {
     <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
             <Trophy className="mx-auto h-12 w-12 text-primary" />
-            <CardTitle className="text-2xl font-bold mt-4 font-headline">
-                <div>Liga Deportiva Barrial</div>
-                <div>LA LUZ</div>
+            <CardTitle className="text-3xl font-bold mt-4 font-headline">
+                Control Liga
             </CardTitle>
             <CardDescription>Inicio de sesión para administradores</CardDescription>
         </CardHeader>
