@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Switch } from '@/components/ui/switch';
 import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
 import { isToday, isFuture, isPast } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
@@ -52,13 +53,31 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, match]);
     const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, match]);
     
-    const PlayerRow = ({ player, number }: { player?: Player, number: number }) => (
-        <TableRow className="h-8">
-            <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{player?.jerseyNumber}</TableCell>
-            <TableCell className="border p-1 text-left w-[200px] text-xs">{player?.name || ''}</TableCell>
-            <TableCell className="border text-center p-1 w-[40px]"></TableCell>
-        </TableRow>
-    );
+    const PlayerRow = ({ player, number }: { player?: Player, number: number }) => {
+        const getAge = (birthDateString: string) => {
+            const birthDate = new Date(birthDateString);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        const isJuvenil = player ? getAge(player.birthDate) < 19 : false;
+
+        return (
+            <TableRow className={cn("h-8", isJuvenil && "bg-green-100")}>
+                <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{player?.jerseyNumber}</TableCell>
+                <TableCell className="border p-1 text-left w-[200px] text-xs">
+                    {player?.name || ''}
+                    {isJuvenil && <span className="font-bold text-green-700 ml-2">JUVENIL</span>}
+                </TableCell>
+                <TableCell className="border text-center p-1 w-[40px]"></TableCell>
+            </TableRow>
+        );
+    };
 
     const CardCell = ({label, count}: {label: string, count: number}) => (
         <div className="flex-1">
@@ -780,6 +799,8 @@ export default function CommitteesPage() {
           body {
             background: white !important;
             color: black !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .print\\:hidden {
               display: none !important;

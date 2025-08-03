@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX } from 'lucide-react';
+import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX, Star } from 'lucide-react';
 
 export default function PlayerProfilePage({ params }: { params: { id: string } }) {
   const player = getPlayerById(params.id);
@@ -16,6 +16,20 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
   }
   
   const statusIsActive = player.status === 'activo';
+
+  const getAge = (birthDateString: string) => {
+      const birthDate = new Date(birthDateString);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+      }
+      return age;
+  }
+
+  const age = getAge(player.birthDate);
+  const ageCategory = age < 19 ? 'Juvenil' : 'Mayor';
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -63,14 +77,14 @@ export default function PlayerProfilePage({ params }: { params: { id: string } }
                     <Cake className="h-6 w-6 text-primary" />
                     <div>
                         <p className="text-sm text-muted-foreground">Fecha de Nacimiento</p>
-                        <p className="font-semibold">{player.birthDate}</p>
+                        <p className="font-semibold">{player.birthDate} ({age} años)</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <Shirt className="h-6 w-6 text-primary" />
+                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Star className="h-6 w-6 text-primary" />
                     <div>
-                        <p className="text-sm text-muted-foreground">Posición</p>
-                        <p className="font-semibold">{player.position}</p>
+                        <p className="text-sm text-muted-foreground">Categoría de Edad</p>
+                        <p className="font-semibold">{ageCategory}</p>
                     </div>
                 </div>
               </div>
