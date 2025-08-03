@@ -867,12 +867,16 @@ export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [copaTeams, setCopaTeams] = useState<Team[]>([]);
+  const [copaMatches, setCopaMatches] = useState<GeneratedMatch[]>([]);
   const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
   const [isCopaDialogOpen, setIsCopaDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [resetAlertStep, setResetAlertStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+  const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
+  const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+
 
   const isTournamentStarted = generatedMatches.length > 0;
   
@@ -985,6 +989,34 @@ export default function SchedulePage() {
     setIsSuccessDialogOpen(true);
 };
 
+  const handleCopaGenerate = ({ teams }: { teams: Team[] }) => {
+    setCopaTeams(teams);
+    let shuffledTeams = [...teams].sort(() => 0.5 - Math.random());
+
+    let matches: GeneratedMatch[] = [];
+    for (let i = 0; i < shuffledTeams.length; i += 2) {
+      if (shuffledTeams[i+1]) {
+        // Ida
+        matches.push({
+          home: shuffledTeams[i].id,
+          away: shuffledTeams[i+1].id,
+          category: 'Copa',
+          leg: 'Ida',
+          round: 1
+        });
+        // Vuelta
+        matches.push({
+          home: shuffledTeams[i+1].id,
+          away: shuffledTeams[i].id,
+          category: 'Copa',
+          leg: 'Vuelta',
+          round: 1
+        });
+      }
+    }
+    setCopaMatches(matches);
+  }
+
   const handleReschedule = (matchToUpdate: GeneratedMatch, newDate: Date, newTime: string) => {
       setGeneratedMatches(prevMatches => 
           prevMatches.map(m => {
@@ -1057,7 +1089,7 @@ export default function SchedulePage() {
         />
         
         <Dialog open={isCopaDialogOpen} onOpenChange={setIsCopaDialogOpen}>
-            <CopaSettingsDialog onGenerate={({ teams }) => setCopaTeams(teams)} />
+            <CopaSettingsDialog onGenerate={handleCopaGenerate} />
         </Dialog>
 
         <Tabs defaultValue="general" className="space-y-4">
@@ -1101,7 +1133,34 @@ export default function SchedulePage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                <CopaBracket teams={copaTeams} />
+                  <CopaBracket teams={copaTeams} />
+                  {copaMatches.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-2">Partidos de Copa Programados</h3>
+                       <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-2/5 text-right">Local</TableHead>
+                            <TableHead className="w-1/5 text-center">Vs</TableHead>
+                            <TableHead className="w-2/5">Visitante</TableHead>
+                            <TableHead>Ronda</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {copaMatches.map((match, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-right font-medium">{getTeamName(match.home)}</TableCell>
+                              <TableCell className="text-center text-muted-foreground">vs</TableCell>
+                              <TableCell className="font-medium">{getTeamName(match.away)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{match.leg}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
             </Card>
             </TabsContent>
