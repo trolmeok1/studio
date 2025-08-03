@@ -120,7 +120,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
          <div className="flex flex-col items-center text-center gap-1">
             <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt={team?.name || ''} width={40} height={40} className="rounded-full" />
             <p className="text-xs font-semibold leading-tight">{team?.name}</p>
-             {dressingRoom && <Badge variant="secondary" className="text-xs">Camerino {dressingRoom}</Badge>}
+             {dressingRoom && <Badge variant="secondary" className="text-xs mt-1">Camerino {dressingRoom}</Badge>}
         </div>
     );
 
@@ -150,7 +150,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
                 </div>
             </CardContent>
             <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-x-4 gap-y-2">
-                <div>
+                <div className="space-y-1">
                      <p className="text-xs font-bold">{match.leg} - Fecha {match.round}</p>
                      <p className="text-xs text-muted-foreground">{match.category}</p>
                 </div>
@@ -175,148 +175,71 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
 
     return (
         <Link href={`/partido`} className="block group">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer p-0">
-                <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 w-2/5 justify-end">
-                        <span className="font-bold text-sm text-right truncate">{homeTeam?.name || match.home}</span>
-                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer p-0 relative overflow-hidden text-white">
+                <div className="absolute inset-0 flex z-0">
+                    <div className="w-1/2 bg-gray-700"></div>
+                    <div className="w-1/2 bg-red-800 animate-pulse"></div>
+                </div>
+                <CardContent className="p-4 flex items-center justify-between relative z-10">
+                    <div className="flex flex-col items-center gap-2 w-2/5 text-center">
+                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
+                        <span className="font-bold text-sm text-center truncate">{homeTeam?.name || match.home}</span>
                     </div>
 
                     <div className="text-center w-1/5">
-                        <span className="text-lg font-light text-muted-foreground">VS</span>
-                        <Badge variant="outline" className="text-xs">{match.time}</Badge>
+                        <span className="text-2xl font-bold">VS</span>
+                        <p className="text-xs">{match.time}</p>
+                        <p className="text-xs">{match.date ? format(match.date, 'dd/MM/yy', { locale: es }) : ''}</p>
                     </div>
 
-                    <div className="flex items-center gap-3 w-2/5">
-                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm truncate">{awayTeam?.name || 'Away'}</span>
+                    <div className="flex flex-col items-center gap-2 w-2/5 text-center">
+                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
+                        <span className="font-bold text-sm text-center truncate">{awayTeam?.name || 'Away'}</span>
                     </div>
                 </CardContent>
-                <div className="border-t p-2 flex justify-center items-center text-xs text-muted-foreground gap-4">
-                     <span><Badge variant="outline" className="px-1.5 py-0.5">Cancha {match.field}</Badge></span>
-                    <span><Badge variant="outline" className="px-1.5 py-0.5">V: {match.homeDressingRoom} / F: {match.awayDressingRoom}</Badge></span>
-                </div>
             </Card>
         </Link>
     );
 };
 
-const useFixtureGenerator = (category: Category) => {
-    const getTeamName = useCallback((teamId: string) => {
-        const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
-        return allTeams.find(t => t.id === teamId)?.name || teamId;
-    }, []);
+const CategoryScheduleView = ({ category, generatedMatches }: { category: Category, generatedMatches: GeneratedMatch[] }) => {
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => { setIsClient(true) }, []);
 
-    const fixture = useMemo(() => {
-        const generateRounds = (teams: Team[], group?: 'A' | 'B'): GeneratedMatch[][] => {
-            let currentTeams = [...teams];
-            if (currentTeams.length % 2 !== 0) {
-                currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
-            }
-            const numRounds = currentTeams.length - 1;
-            const matchesPerRound = currentTeams.length / 2;
-            const rounds: GeneratedMatch[][] = Array.from({ length: numRounds }, () => []);
+    const groupedMatchesByRound = useMemo(() => {
+        if (!isClient) return {};
 
-            for (let round = 0; round < numRounds; round++) {
-                for (let i = 0; i < matchesPerRound; i++) {
-                    const home = currentTeams[i];
-                    const away = currentTeams[currentTeams.length - 1 - i];
-                    if (home.id !== 'dummy' && away.id !== 'dummy') {
-                        rounds[round].push({ home: home.id, away: away.id, category, group, round: round + 1 });
-                    }
-                }
-                const lastTeam = currentTeams.pop();
-                if (lastTeam) {
-                    currentTeams.splice(1, 0, lastTeam);
-                }
-            }
-            return rounds;
-        };
+        const categoryMatches = generatedMatches.filter(m => m.category === category && (category !== 'Segunda' || m.group === 'A' || m.group === 'B'));
         
-        const categoryTeams = getTeamsByCategory(category);
-        if (category === 'Segunda') {
-            const groupA = categoryTeams.filter(t => t.group === 'A');
-            const groupB = categoryTeams.filter(t => t.group === 'B');
-            return {
-                ida: [...generateRounds(groupA, 'A'), ...generateRounds(groupB, 'B')].flat(),
-                vuelta: [...generateRounds(groupA, 'A'), ...generateRounds(groupB, 'B')].flat().map(m => ({...m, home: m.away, away: m.home}))
+        return categoryMatches.reduce((acc, match) => {
+            const roundKey = `Fecha ${match.round || 0}`;
+            if (!acc[roundKey]) {
+                acc[roundKey] = [];
             }
-        }
-        
-        const rounds = generateRounds(categoryTeams);
-        return {
-            ida: rounds.flat(),
-            vuelta: rounds.flat().map(m => ({...m, home: m.away, away: m.home}))
-        };
-    }, [category]);
-
-    return { fixture, getTeamName };
-};
-
-
-const FixtureView = ({ category }: { category: Category }) => {
-    const { fixture, getTeamName } = useFixtureGenerator(category);
-    
-    const FixtureRoundTable = ({ title, matches }: { title: string, matches: GeneratedMatch[] }) => (
-        <div className="space-y-4">
-            <h4 className="text-xl font-bold text-center">{title}</h4>
-            <Table>
-                 <TableHeader className="bg-primary/10">
-                    <TableRow>
-                        <TableHead className="text-right w-2/5 font-semibold text-primary">Equipo Local</TableHead>
-                        <TableHead className="text-center w-1/5 font-semibold text-primary">vs</TableHead>
-                        <TableHead className="w-2/5 font-semibold text-primary">Equipo Visitante</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                     {matches.map((match, i) => (
-                        <TableRow key={i}>
-                            <TableCell className="text-right font-medium">{getTeamName(match.home)}</TableCell>
-                            <TableCell className="text-center text-muted-foreground">vs</TableCell>
-                            <TableCell className="font-medium">{getTeamName(match.away)}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
-    );
-    
-    const roundsIda = useMemo(() => {
-        return fixture.ida.reduce((acc, match) => {
-            const round = match.round || 0;
-            if (!acc[round]) acc[round] = [];
-            acc[round].push(match);
+            acc[roundKey].push(match);
             return acc;
-        }, {} as Record<number, GeneratedMatch[]>);
-    }, [fixture.ida]);
-    
-    const roundsVuelta = useMemo(() => {
-        return fixture.vuelta.reduce((acc, match) => {
-             const round = match.round || 0;
-            if (!acc[round]) acc[round] = [];
-            acc[round].push(match);
-            return acc;
-        }, {} as Record<number, GeneratedMatch[]>);
-    }, [fixture.vuelta]);
+        }, {} as Record<string, GeneratedMatch[]>);
+    }, [generatedMatches, category, isClient]);
+
+    if (generatedMatches.length === 0) {
+        return <p className="text-muted-foreground text-center py-8">Genere el calendario para ver los partidos de esta categoría.</p>
+    }
 
     return (
-        <div className="space-y-8 mt-4">
-             <div>
-                <h3 className="text-2xl font-bold text-center mb-4 pb-2 border-b-2">Primera Vuelta</h3>
-                <div className="space-y-6">
-                    {Object.entries(roundsIda).map(([roundNum, matches]) => (
-                        <FixtureRoundTable key={`ida-${roundNum}`} title={`Fecha ${roundNum}`} matches={matches} />
-                    ))}
-                </div>
-            </div>
-             <div>
-                <h3 className="text-2xl font-bold text-center mb-4 pb-2 border-b-2">Segunda Vuelta</h3>
-                <div className="space-y-6">
-                     {Object.entries(roundsVuelta).map(([roundNum, matches]) => (
-                        <FixtureRoundTable key={`vuelta-${roundNum}`} title={`Fecha ${parseInt(roundNum) + Object.keys(roundsIda).length}`} matches={matches} />
-                    ))}
-                </div>
-            </div>
+        <div className="space-y-6 mt-4">
+            {Object.entries(groupedMatchesByRound)
+                .sort(([roundA], [roundB]) => parseInt(roundA.split(' ')[1]) - parseInt(roundB.split(' ')[1]))
+                .map(([round, matches]) => (
+                    <div key={round}>
+                        <h3 className="text-xl font-bold mb-3">{round}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {matches
+                                .sort((a,b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0))
+                                .map((match, index) => <CategoryMatchCard key={index} match={match} />)
+                            }
+                        </div>
+                    </div>
+            ))}
         </div>
     );
 };
@@ -359,22 +282,6 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true) }, []);
 
-    const groupedMatches = useMemo(() => {
-        if (!isClient || generatedMatches.length === 0) return {};
-
-        const categoryMatches = generatedMatches.filter(m => m.category === category);
-
-        return categoryMatches.reduce((acc, match) => {
-            if (!match.date) return acc;
-            const dateKey = format(match.date, 'PPPP', { locale: es });
-            if (!acc[dateKey]) {
-                acc[dateKey] = [];
-            }
-            acc[dateKey].push(match);
-            return acc;
-        }, {} as Record<string, GeneratedMatch[]>);
-    }, [generatedMatches, isClient, category]);
-
 
     if(teams.length === 0) {
          return (
@@ -401,11 +308,10 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                 <Tabs defaultValue='schedule'>
                      <TabsList>
                         <TabsTrigger value="schedule">Calendario de Partidos</TabsTrigger>
-                        <TabsTrigger value="fixture">Fixture (Fechas)</TabsTrigger>
                         <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="fixture">
-                         <FixtureView category={category} />
+                    <TabsContent value="schedule">
+                         <CategoryScheduleView category={category} generatedMatches={generatedMatches} />
                     </TabsContent>
                     <TabsContent value="standings">
                         {standings.map(({ group, standings: groupStandings }) => (
@@ -450,31 +356,6 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                                 </Table>
                             </div>
                         ))}
-                    </TabsContent>
-                    <TabsContent value="schedule" className="space-y-6 mt-6">
-                         {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches)
-                            .sort(([dateA], [dateB]) => {
-                                 try {
-                                     const parsedDateA = parse(dateA, 'PPPP', new Date(), { locale: es });
-                                     const parsedDateB = parse(dateB, 'PPPP', new Date(), { locale: es });
-                                     return parsedDateA.getTime() - parsedDateB.getTime();
-                                 } catch (e) {
-                                     return 0;
-                                 }
-                            })
-                            .map(([date, matchesOnDate]) => (
-                            <Card key={date} className="p-4">
-                                <h3 className="text-lg font-semibold mb-3 text-muted-foreground">{date}</h3>
-                                 <div className="space-y-2">
-                                    {matchesOnDate
-                                        .sort((a,b) => (a.time || "").localeCompare(b.time || ""))
-                                        .map((match, index) => <CategoryMatchCard key={index} match={match} />)
-                                    }
-                                </div>
-                            </Card>
-                        )) : (
-                            <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Equipos".</p>
-                        )}
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -693,6 +574,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
             const dateA = a.date ? a.date.getTime() : 0;
             const dateB = b.date ? b.date.getTime() : 0;
             if (dateA !== dateB) return dateA - dateB;
+            
             const roundA = a.round || 0;
             const roundB = b.round || 0;
             return roundA - roundB;
@@ -961,7 +843,7 @@ export default function SchedulePage() {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        const vueltaMatches = idaMatches.map(m => ({...m, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta'}));
+        const vueltaMatches = idaMatches.map(m => ({...m, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta', round: m.round ? m.round + numRounds : undefined }));
         
         return { ida: idaMatches, vuelta: vueltaMatches };
     };
@@ -973,22 +855,19 @@ export default function SchedulePage() {
         { category: 'Segunda', group: 'B' }
     ];
 
-    let allIdaMatches: GeneratedMatch[] = [];
-    let allVueltaMatches: GeneratedMatch[] = [];
+    let allMatches: GeneratedMatch[] = [];
 
     categoriesConfig.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
             const { ida, vuelta } = generateRoundRobinMatches(teams, cat.category, cat.group);
-            allIdaMatches.push(...ida);
-            allVueltaMatches.push(...vuelta);
+            allMatches.push(...ida, ...vuelta);
         }
     });
     
-    allIdaMatches.sort(() => 0.5 - Math.random());
-    allVueltaMatches.sort(() => 0.5 - Math.random());
+    allMatches.sort(() => 0.5 - Math.random());
     
-    const scheduled = scheduleMatches([...allIdaMatches, ...allVueltaMatches], settings);
+    const scheduled = scheduleMatches(allMatches, settings);
     setGeneratedMatches(scheduled);
     setIsSuccessDialogOpen(true);
 };
@@ -1265,4 +1144,6 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+
 
