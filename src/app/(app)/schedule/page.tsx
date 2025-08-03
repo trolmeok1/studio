@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -325,7 +325,6 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2));
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
-    const [numFields, setNumFields] = useState(2);
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -345,7 +344,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
             startDate,
             gameDays,
             gameTimes: gameTimes.filter(t => t), // Filter out empty time slots
-            numFields
+            numFields: 1 // Hardcoded to 1 as per user request
         });
     }
 
@@ -390,10 +389,6 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                         <Button variant="outline" size="sm" onClick={handleAddTime}>Agregar Horario</Button>
                     </div>
                 </div>
-                <div>
-                    <Label>Número de Canchas</Label>
-                    <Input type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
-                </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
@@ -420,10 +415,11 @@ export default function SchedulePage() {
   useEffect(() => { setIsClient(true) }, []);
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
-    let allGeneratedMatches: GeneratedMatch[] = [];
+    let allFirstLegMatches: GeneratedMatch[] = [];
+    let allSecondLegMatches: GeneratedMatch[] = [];
     const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { firstLeg: GeneratedMatch[], secondLeg: GeneratedMatch[] } => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category });
@@ -432,20 +428,21 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        let rounds: GeneratedMatch[][] = Array.from({ length: numRounds * 2 }, () => []);
+        let firstLeg: GeneratedMatch[] = [];
+        let secondLeg: GeneratedMatch[] = [];
+        
+        const rounds: GeneratedMatch[][] = Array.from({ length: numRounds }, () => []);
 
-        for (let round = 0; round < numRounds * 2; round++) {
-            const isReturnLeg = round >= numRounds;
-            const currentRoundIndex = round % numRounds;
-
+        for (let round = 0; round < numRounds; round++) {
             for (let i = 0; i < matchesPerRound; i++) {
                 const team1 = currentTeams[i];
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    const home = isReturnLeg ? team2.id : team1.id;
-                    const away = isReturnLeg ? team1.id : team2.id;
-                    rounds[round].push({ home, away, category, group });
+                    // First leg
+                    rounds[round].push({ home: team1.id, away: team2.id, category, group });
+                    // Second leg (swapped)
+                    rounds[round].push({ home: team2.id, away: team1.id, category, group });
                 }
             }
              // Rotate teams for the next round
@@ -454,7 +451,14 @@ export default function SchedulePage() {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        return rounds.flat();
+        
+        // Distribute matches into first and second legs
+        const allMatches = rounds.flat();
+        const totalMatchesPerLeg = (numRounds * matchesPerRound);
+        firstLeg = allMatches.slice(0, totalMatchesPerLeg);
+        secondLeg = allMatches.slice(totalMatchesPerLeg);
+        
+        return { firstLeg, secondLeg };
     };
 
     categories.forEach(category => {
@@ -465,45 +469,58 @@ export default function SchedulePage() {
         if(isGrouped) {
              const groupA = teamsForCategory.filter(t => t.group === 'A');
              const groupB = teamsForCategory.filter(t => t.group === 'B');
-             if(groupA.length > 1) allGeneratedMatches.push(...generateRoundRobinMatches(groupA, category, 'A'));
-             if(groupB.length > 1) allGeneratedMatches.push(...generateRoundRobinMatches(groupB, category, 'B'));
+             if(groupA.length > 1) {
+                const { firstLeg, secondLeg } = generateRoundRobinMatches(groupA, category, 'A');
+                allFirstLegMatches.push(...firstLeg);
+                allSecondLegMatches.push(...secondLeg);
+             }
+             if(groupB.length > 1) {
+                const { firstLeg, secondLeg } = generateRoundRobinMatches(groupB, category, 'B');
+                allFirstLegMatches.push(...firstLeg);
+                allSecondLegMatches.push(...secondLeg);
+             }
         } else {
-             allGeneratedMatches.push(...generateRoundRobinMatches(teamsForCategory, category));
+             const { firstLeg, secondLeg } = generateRoundRobinMatches(teamsForCategory, category);
+             allFirstLegMatches.push(...firstLeg);
+             allSecondLegMatches.push(...secondLeg);
         }
     });
 
+    const combinedSchedule = [...allFirstLegMatches, ...allSecondLegMatches];
     // Schedule matches
     let currentDate = startOfDay(settings.startDate);
     let timeSlotIndex = 0;
     
-    allGeneratedMatches.forEach(match => {
+    combinedSchedule.forEach(match => {
         let assigned = false;
         while(!assigned) {
             const dayOfWeek = getDay(currentDate);
             if (settings.gameDays.includes(dayOfWeek)) {
-                 const timeParts = settings.gameTimes[timeSlotIndex % settings.gameTimes.length].split(':');
-                 const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+                const timeParts = settings.gameTimes[timeSlotIndex % settings.gameTimes.length].split(':');
+                const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
 
-                // Find a free slot (date, time, field)
-                const isSlotTaken = (field: number) => 
-                     generatedMatches.some(m => 
-                        m.date && isEqual(m.date, matchDateTime) && m.field === field
-                     );
+                // Check if this slot is already taken by any other match
+                const isSlotTaken = combinedSchedule.some(m => 
+                    m.date && isEqual(m.date, matchDateTime)
+                );
 
-                for (let field = 1; field <= settings.numFields; field++) {
-                    if (!isSlotTaken(field)) {
-                        match.date = matchDateTime;
-                        match.time = format(matchDateTime, 'HH:mm');
-                        match.field = field;
-                        assigned = true;
-                        break;
-                    }
+                if (!isSlotTaken) {
+                    match.date = matchDateTime;
+                    match.time = format(matchDateTime, 'HH:mm');
+                    match.field = 1; // Always field 1
+                    assigned = true;
                 }
             }
 
             if (!assigned) {
                 timeSlotIndex++;
-                if (timeSlotIndex >= settings.gameTimes.length * settings.numFields) {
+                 if (timeSlotIndex >= settings.gameTimes.length) {
+                    timeSlotIndex = 0;
+                    currentDate = addDays(currentDate, 1);
+                }
+            } else {
+                 timeSlotIndex++;
+                 if (timeSlotIndex >= settings.gameTimes.length) {
                     timeSlotIndex = 0;
                     currentDate = addDays(currentDate, 1);
                 }
@@ -511,8 +528,7 @@ export default function SchedulePage() {
         }
     });
 
-
-    setGeneratedMatches(allGeneratedMatches);
+    setGeneratedMatches(combinedSchedule);
     setIsSuccessDialogOpen(true);
 };
 
