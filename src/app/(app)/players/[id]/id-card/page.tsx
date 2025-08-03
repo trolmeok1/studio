@@ -27,7 +27,7 @@ export default function DigitalIdCardPage({ params }: { params: { id: string } }
       <div className="w-full max-w-sm mx-auto">
         <Card className="bg-gradient-to-br from-primary via-indigo-900 to-black text-primary-foreground rounded-2xl shadow-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold font-headline">TeamLink ID</h2>
+            <h2 className="text-2xl font-bold font-headline">Liga Control ID</h2>
             <Trophy className="h-8 w-8 text-accent" />
           </div>
           <div className="flex items-center gap-4 pt-4">

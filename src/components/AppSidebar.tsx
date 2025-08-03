@@ -60,7 +60,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <Trophy className="text-primary size-8" />
-          <h1 className="text-xl font-bold font-headline">TeamLink Hub</h1>
+          <h1 className="text-xl font-bold font-headline">Liga Control</h1>
           <div className="ml-auto">
             <SidebarTrigger />
           </div>
@@ -230,4 +230,3 @@ export function AppSidebar() {
     </>
   );
 }
-

@@ -19,9 +19,9 @@ interface AuthContextType {
 }
 
 const mockUsers: User[] = [
-  { name: 'Usuario Admin', email: 'admin@teamlink.hub', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
-  { name: 'Secretario/a', email: 'secretary@teamlink.hub', role: 'secretary', avatarUrl: 'https://placehold.co/100x100.png' },
-  { name: 'Invitado', email: 'guest@teamlink.hub', role: 'guest' },
+  { name: 'Usuario Admin', email: 'admin@ligacontrol.com', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
+  { name: 'Secretario/a', email: 'secretary@ligacontrol.com', role: 'secretary', avatarUrl: 'https://placehold.co/100x100.png' },
+  { name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest' },
 ];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

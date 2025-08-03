@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 
 export const metadata: Metadata = {
-  title: 'TeamLink Hub',
+  title: 'Liga Control',
   description: 'Gestiona tus equipos, jugadores y torneos con facilidad.',
 };
 
