@@ -29,6 +29,7 @@ import {
   ClipboardList,
   UserCheck,
   BarChart2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -202,6 +203,16 @@ export function AppSidebar() {
                           <Link href="/logs">
                               <FileClock />
                               <span>Logs</span>
+                          </Link>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                 {user.role === 'admin' && (
+                  <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/settings')} tooltip="Ajustes">
+                          <Link href="/settings/appearance">
+                              <Settings />
+                              <span>Ajustes</span>
                           </Link>
                       </SidebarMenuButton>
                   </SidebarMenuItem>

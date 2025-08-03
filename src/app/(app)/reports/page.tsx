@@ -300,14 +300,12 @@ export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
     const [category, setCategory] = useState<Category>('Máxima');
     const [week, setWeek] = useState('Jornada 1');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: new Date(),
-        to: new Date(),
-    });
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
+        setDateRange({ from: new Date(), to: new Date() });
     }, []);
 
     const handleGenerate = (type: ReportType) => {
@@ -350,7 +348,7 @@ export default function ReportsPage() {
                       }
                        .print\\:border-none {
                         border: none !important;
-                      }
+                       }
                        .flex-1.space-y-4 {
                          padding: 0 !important;
                        }
