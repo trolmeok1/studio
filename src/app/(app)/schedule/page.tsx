@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper } from 'lucide-react';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -137,7 +137,7 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
                      {/* Team B Panel */}
                     <div className="bg-gray-700/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-48">
                          <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm leading-tight">{awayTeam?.name || match.away}</span>
+                        <span className="font-bold text-sm leading-tight">{awayTeam?.name || 'Away'}</span>
                         {match.awayDressingRoom && <Badge variant="secondary" className="mt-1">Camerino {match.awayDressingRoom}</Badge>}
                     </div>
 
@@ -200,11 +200,13 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
     );
 };
 
-const FixtureView = ({ category }: { category: Category }) => {
-    const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
-    const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+const useFixtureGenerator = (category: Category) => {
+    const getTeamName = useCallback((teamId: string) => {
+        const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
+        return allTeams.find(t => t.id === teamId)?.name || teamId;
+    }, []);
 
-    const fixtureMatches = useMemo(() => {
+    const fixture = useMemo(() => {
         const generateRounds = (teams: Team[], group?: 'A' | 'B'): GeneratedMatch[][] => {
             let currentTeams = [...teams];
             if (currentTeams.length % 2 !== 0) {
@@ -246,6 +248,13 @@ const FixtureView = ({ category }: { category: Category }) => {
             vuelta: rounds.flat().map(m => ({...m, home: m.away, away: m.home}))
         };
     }, [category]);
+
+    return { fixture, getTeamName };
+};
+
+
+const FixtureView = ({ category }: { category: Category }) => {
+    const { fixture, getTeamName } = useFixtureGenerator(category);
     
     const FixtureRoundTable = ({ title, matches }: { title: string, matches: GeneratedMatch[] }) => (
         <div className="space-y-4">
@@ -272,22 +281,22 @@ const FixtureView = ({ category }: { category: Category }) => {
     );
     
     const roundsIda = useMemo(() => {
-        return fixtureMatches.ida.reduce((acc, match) => {
+        return fixture.ida.reduce((acc, match) => {
             const round = match.round || 0;
             if (!acc[round]) acc[round] = [];
             acc[round].push(match);
             return acc;
         }, {} as Record<number, GeneratedMatch[]>);
-    }, [fixtureMatches.ida]);
+    }, [fixture.ida]);
     
     const roundsVuelta = useMemo(() => {
-        return fixtureMatches.vuelta.reduce((acc, match) => {
+        return fixture.vuelta.reduce((acc, match) => {
              const round = match.round || 0;
             if (!acc[round]) acc[round] = [];
             acc[round].push(match);
             return acc;
         }, {} as Record<number, GeneratedMatch[]>);
-    }, [fixtureMatches.vuelta]);
+    }, [fixture.vuelta]);
 
     return (
         <div className="space-y-8 mt-4">
@@ -960,7 +969,6 @@ export default function SchedulePage() {
         }
     });
     
-    // Shuffle within each half of the season, but keep ida and vuelta separate
     allIdaMatches.sort(() => 0.5 - Math.random());
     allVueltaMatches.sort(() => 0.5 - Math.random());
     
@@ -1032,7 +1040,6 @@ export default function SchedulePage() {
   };
   
   const handleFinalizeTournament = () => {
-    // This would typically involve archiving data, but for now it resets.
     handleResetConfirm();
   };
 
