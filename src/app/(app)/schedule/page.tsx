@@ -983,11 +983,9 @@ export default function SchedulePage() {
                  const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
                  refereeIndex++;
                  
-                 const homeDressingRoom = (dressingRoomCounter % 2 === 0) ? (dressingRoomCounter % 4) + 1 : (dressingRoomCounter % 4) + 2;
-                 const awayDressingRoom = (dressingRoomCounter % 2 === 0) ? (dressingRoomCounter % 4) + 2 : (dressingRoomCounter % 4) + 1;
-
+                 const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
+                 const awayDressingRoom = ((homeDressingRoom - 1 + 2) % settings.numDressingRooms) + 1;
                  dressingRoomCounter++;
-
 
                  scheduledMatches.push({
                     ...match,
@@ -995,8 +993,8 @@ export default function SchedulePage() {
                     time: format(matchDateTime, 'HH:mm'),
                     field: field,
                     refereeId: refereeId,
-                    homeDressingRoom: homeDressingRoom > settings.numDressingRooms ? homeDressingRoom - settings.numDressingRooms : homeDressingRoom,
-                    awayDressingRoom: awayDressingRoom > settings.numDressingRooms ? awayDressingRoom - settings.numDressingRooms : awayDressingRoom,
+                    homeDressingRoom: homeDressingRoom,
+                    awayDressingRoom: awayDressingRoom,
                 });
             });
         }
