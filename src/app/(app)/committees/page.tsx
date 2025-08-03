@@ -35,6 +35,22 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     const teamB = match?.teams.away;
     const playersA = teamA ? getPlayersByTeamId(teamA.id) : [];
     const playersB = teamB ? getPlayersByTeamId(teamB.id) : [];
+
+    const calculatePendingValue = (teamId?: string) => {
+        if (!teamId || !match) return 0;
+        const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
+        return pastMatches.reduce((total, pastMatch) => {
+            const isHome = pastMatch.teams.home.id === teamId;
+            const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+            if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                return total + (teamDetails.vocalPaymentDetails.total || 0);
+            }
+            return total;
+        }, 0);
+    };
+
+    const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, match]);
+    const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, match]);
     
     const PlayerRow = ({ player, number }: { player?: Player, number: number }) => (
         <TableRow className="h-8">
@@ -160,7 +176,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                             <CardCell label="T. Rojas" count={3} />
                         </div>
                          <div className="mt-2 text-xs">
-                            <p>VALORES PENDIENTES: ________________________________</p>
+                            <p className="font-bold">VALORES PENDIENTES: <span className="font-normal">${pendingValueA.toFixed(2)}</span></p>
                         </div>
                          <IncomeBreakdown />
                     </div>
@@ -198,7 +214,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                             <CardCell label="T. Rojas" count={3} />
                         </div>
                         <div className="mt-2 text-xs">
-                            <p>VALORES PENDIENTES: ________________________________</p>
+                            <p className="font-bold">VALORES PENDIENTES: <span className="font-normal">${pendingValueB.toFixed(2)}</span></p>
                         </div>
                         <IncomeBreakdown />
                     </div>
@@ -400,9 +416,8 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         if (!details) return null;
 
         const teamId = match.teams[teamKey].id;
-        const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
-        
         const pendingValue = useMemo(() => {
+            const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
             return pastMatches.reduce((total, pastMatch) => {
                 const isHome = pastMatch.teams.home.id === teamId;
                 const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
@@ -411,7 +426,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 }
                 return total;
             }, 0);
-        }, [pastMatches, teamId]);
+        }, [match, teamId]);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
 
