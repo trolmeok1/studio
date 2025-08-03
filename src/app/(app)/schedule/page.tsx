@@ -858,7 +858,6 @@ export default function SchedulePage() {
   const [isCopaSettingsDialogOpen, setIsCopaSettingsDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [resetAlertStep, setResetAlertStep] = useState(0);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
   const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
@@ -1031,13 +1030,6 @@ export default function SchedulePage() {
          setIsDrawLeagueDialogOpen(true);
       }
   }
-
-  const handleResetConfirm = () => {
-    setGeneratedMatches([]);
-    setCopaMatches([]);
-    setResetAlertStep(0);
-    toast({ title: '¡Calendarios Reiniciados!', description: 'Todos los partidos programados han sido borrados.'});
-  };
   
   const handleFinalizeTournament = () => {
     setGeneratedMatches([]);
@@ -1050,15 +1042,13 @@ export default function SchedulePage() {
 
   const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
 
-    const ResetDialog = ({ step, onStepChange, onConfirm, actionType = 'restart' }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void, actionType?: 'restart' | 'finalize' }) => {
+    const ResetDialog = ({ step, onStepChange, onConfirm }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void }) => {
         if (step === 0) return null;
         
         const content = [
             {
-                title: actionType === 'restart' ? "¿Estás seguro de reiniciar los calendarios?" : "¿Estás seguro de finalizar el torneo?",
-                description: actionType === 'restart' 
-                    ? "Esta acción eliminará permanentemente todos los partidos programados (Liga y Copa). No se puede deshacer. Los partidos ya jugados no se verán afectados."
-                    : "Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada.",
+                title: "¿Estás seguro de finalizar el torneo?",
+                description: "Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada y no se puede deshacer.",
                 confirmText: "Sí, entiendo los riesgos"
             },
             {
@@ -1068,8 +1058,8 @@ export default function SchedulePage() {
             },
             {
                 title: "ÚLTIMA ADVERTENCIA",
-                description: "Al hacer clic en \"PROCEDER\", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
-                confirmText: "PROCEDER DEFINITIVAMENTE"
+                description: "Al hacer clic en \"FINALIZAR TORNEO\", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
+                confirmText: "FINALIZAR TORNEO"
             }
         ];
         
@@ -1114,16 +1104,10 @@ export default function SchedulePage() {
                          {isTournamentStarted ? "Reagendar Partido" : "Sorteo de Liga"}
                      </Button>
                      {isTournamentStarted && (
-                        <>
-                            <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setResetAlertStep(1)}>
-                                <RefreshCw className="mr-2" />
-                                Reiniciar Calendarios
-                            </Button>
-                            <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
-                                <Trophy className="mr-2" />
-                                Finalizar Torneo
-                            </Button>
-                        </>
+                        <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
+                            <Trophy className="mr-2" />
+                            Finalizar Torneo
+                        </Button>
                     )}
                 </div>
             </Card>
@@ -1260,8 +1244,7 @@ export default function SchedulePage() {
             </AlertDialogContent>
         </AlertDialog>
         
-        <ResetDialog step={resetAlertStep} onStepChange={setResetAlertStep} onConfirm={handleResetConfirm} actionType="restart" />
-        <ResetDialog step={finalizeAlertStep} onStepChange={setFinalizeAlertStep} onConfirm={handleFinalizeTournament} actionType="finalize" />
+        <ResetDialog step={finalizeAlertStep} onStepChange={setFinalizeAlertStep} onConfirm={handleFinalizeTournament} />
 
     </div>
   );
