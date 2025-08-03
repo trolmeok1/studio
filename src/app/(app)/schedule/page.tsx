@@ -3,7 +3,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { standings as mockStandings, getTeamsByCategory, Team, Category, getReferees, Referee } from '@/lib/mock-data';
+import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -25,6 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 
 const BracketNode = ({ team, isWinner }: { team: Team | null; isWinner?: boolean }) => {
@@ -838,6 +839,7 @@ const CopaSettingsDialog = ({ onGenerate }: { onGenerate: (settings: { teams: Te
 
 
 export default function SchedulePage() {
+  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [copaTeams, setCopaTeams] = useState<Team[]>([]);
@@ -891,7 +893,8 @@ export default function SchedulePage() {
                  
                  const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
                  const awayDressingRoom = ((homeDressingRoom + 1) % settings.numDressingRooms) + 1;
-                 dressingRoomCounter++;
+                 dressingRoomCounter += 2;
+
 
                  scheduledMatches.push({
                     ...match,
@@ -957,6 +960,7 @@ export default function SchedulePage() {
         }
     });
     
+    // Shuffle within each half of the season, but keep ida and vuelta separate
     allIdaMatches.sort(() => 0.5 - Math.random());
     allVueltaMatches.sort(() => 0.5 - Math.random());
     
@@ -1024,6 +1028,7 @@ export default function SchedulePage() {
     setCopaMatches([]);
     setCopaTeams([]);
     setResetAlertStep(0);
+    toast({ title: '¡Torneo Reiniciado!', description: 'Todos los calendarios han sido borrados.'});
   };
   
   const handleFinalizeTournament = () => {
@@ -1034,24 +1039,26 @@ export default function SchedulePage() {
 
   const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
 
-    const ResetDialog = ({ step, onStepChange, onConfirm }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void }) => {
+    const ResetDialog = ({ step, onStepChange, onConfirm, actionType = 'restart' }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void, actionType?: 'restart' | 'finalize' }) => {
         if (step === 0) return null;
         
         const content = [
             {
-                title: "¿Estás seguro de reiniciar los calendarios?",
-                description: "Esta acción eliminará permanentemente todos los partidos programados (Liga y Copa). No se puede deshacer. Los partidos ya jugados no se verán afectados.",
+                title: actionType === 'restart' ? "¿Estás seguro de reiniciar los calendarios?" : "¿Estás seguro de finalizar el torneo?",
+                description: actionType === 'restart' 
+                    ? "Esta acción eliminará permanentemente todos los partidos programados (Liga y Copa). No se puede deshacer. Los partidos ya jugados no se verán afectados."
+                    : "Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada.",
                 confirmText: "Sí, entiendo los riesgos"
             },
             {
                 title: "Confirmación Adicional",
-                description: "Estás a un paso de borrar los calendarios. Esta es tu segunda advertencia.",
-                confirmText: "Sí, estoy seguro, proceder"
+                description: "Estás a un paso de realizar una acción irreversible. Esta es tu segunda advertencia.",
+                confirmText: "Sí, estoy completamente seguro"
             },
             {
                 title: "ÚLTIMA ADVERTENCIA",
-                description: "Al hacer clic en \"BORRAR DEFINITIVAMENTE\", los calendarios se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
-                confirmText: "BORRAR DEFINITIVAMENTE"
+                description: "Al hacer clic en \"PROCEDER\", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
+                confirmText: "PROCEDER DEFINITIVAMENTE"
             }
         ];
         

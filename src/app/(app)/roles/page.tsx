@@ -31,7 +31,6 @@ const permissionModules: { key: keyof Permissions; label: string }[] = [
     { key: 'committees', label: 'Vocalías' },
     { key: 'treasury', label: 'Tesorería' },
     { key: 'requests', label: 'Solicitudes' },
-    { key: 'referees', label: 'Árbitros' },
     { key: 'reports', label: 'Reportes' },
     { key: 'teams', label: 'Equipos' },
     { key: 'roles', label: 'Roles y Permisos' },

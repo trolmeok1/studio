@@ -14,7 +14,6 @@ export interface Permissions {
     committees: { view: boolean; edit: boolean };
     treasury: { view: boolean; edit: boolean };
     requests: { view: boolean; edit: boolean };
-    referees: { view: boolean; edit: boolean };
     reports: { view: boolean; edit: boolean };
     teams: { view: boolean; edit: boolean };
     roles: { view: boolean; edit: boolean };
@@ -30,7 +29,6 @@ const allPermissionsTrue: Permissions = {
     committees: { view: true, edit: true },
     treasury: { view: true, edit: true },
     requests: { view: true, edit: true },
-    referees: { view: true, edit: true },
     reports: { view: true, edit: true },
     teams: { view: true, edit: true },
     roles: { view: true, edit: true },
@@ -46,7 +44,6 @@ const secretaryPermissions: Permissions = {
     committees: { view: true, edit: true },
     treasury: { view: true, edit: true },
     requests: { view: true, edit: true },
-    referees: { view: true, edit: true },
     reports: { view: true, edit: false },
     teams: { view: true, edit: true },
     roles: { view: false, edit: false },
@@ -62,7 +59,6 @@ const guestPermissions: Permissions = {
     committees: { view: false, edit: false },
     treasury: { view: false, edit: false },
     requests: { view: false, edit: false },
-    referees: { view: false, edit: false },
     reports: { view: false, edit: false },
     teams: { view: true, edit: false },
     roles: { view: false, edit: false },

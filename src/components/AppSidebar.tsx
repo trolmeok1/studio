@@ -152,16 +152,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-                {permissions.referees.view && (
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/referees')} tooltip="Árbitros">
-                      <Link href="/referees">
-                          <UserCheck />
-                          <span>Árbitros</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-               )}
                  {permissions.reports.view && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">

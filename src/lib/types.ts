@@ -1,10 +1,4 @@
 
-export type Referee = {
-    id: string;
-    name: string;
-    phone?: string;
-    category: 'A' | 'B' | 'C';
-};
 
 export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
@@ -105,7 +99,6 @@ export interface GeneratedMatch {
     field?: number;
     rescheduled?: boolean;
     originalDate?: Date;
-    refereeId?: string;
     homeDressingRoom?: number;
     awayDressingRoom?: number;
     round?: number;
@@ -179,7 +172,6 @@ export interface Achievement {
 export interface DashboardStats {
     categories: number;
     stages: number;
-    referees: number;
     fines: number;
     matchesPlayed: number;
     goalsScored: number;

@@ -39,14 +39,16 @@ export default function DataManagementPage() {
 
         toast({
             title: "Datos Reiniciados",
-            description: `Se han borrado los datos de "${dataTypeToReset}". La página se recargará.`,
+            description: `Se han borrado los datos de "${dataTypeToReset}".`,
+            variant: "default",
         });
 
         setDialogStep(0);
         setDataTypeToReset(null);
         
-        // Simulate a reload to reflect changes
-        setTimeout(() => window.location.reload(), 2000);
+        // You might want to actually clear the data in a real app, e.g.
+        // if (dataTypeToReset === 'teams' || dataTypeToReset === 'all') { teams.length = 0; }
+        // etc.
     };
 
     const handleDownloadBackup = () => {
