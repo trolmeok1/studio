@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -203,13 +203,116 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
 
                     <div className="flex items-center gap-3 w-2/5">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm truncate">{awayTeam?.name || match.away}</span>
+                        <span className="font-bold text-sm truncate">{awayTeam?.name || 'Away'}</span>
                     </div>
                 </CardContent>
             </Card>
         </Link>
     );
 };
+
+const FixtureView = ({ category, allGeneratedMatches }: { category: Category, allGeneratedMatches: GeneratedMatch[] }) => {
+     const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
+    const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+
+    const fixtureMatches = useMemo(() => {
+        const generateRounds = (teams: Team[], group?: 'A' | 'B'): GeneratedMatch[][] => {
+            let currentTeams = [...teams];
+            if (currentTeams.length % 2 !== 0) {
+                currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
+            }
+            const numRounds = currentTeams.length - 1;
+            const matchesPerRound = currentTeams.length / 2;
+            const rounds: GeneratedMatch[][] = Array.from({ length: numRounds }, () => []);
+
+            for (let round = 0; round < numRounds; round++) {
+                for (let i = 0; i < matchesPerRound; i++) {
+                    const home = currentTeams[i];
+                    const away = currentTeams[currentTeams.length - 1 - i];
+                    if (home.id !== 'dummy' && away.id !== 'dummy') {
+                        rounds[round].push({ home: home.id, away: away.id, category, group, round: round + 1 });
+                    }
+                }
+                const lastTeam = currentTeams.pop();
+                if (lastTeam) {
+                    currentTeams.splice(1, 0, lastTeam);
+                }
+            }
+            return rounds;
+        };
+        
+        const categoryTeams = getTeamsByCategory(category);
+        if (category === 'Segunda') {
+            const groupA = categoryTeams.filter(t => t.group === 'A');
+            const groupB = categoryTeams.filter(t => t.group === 'B');
+            return {
+                ida: [...generateRounds(groupA, 'A'), ...generateRounds(groupB, 'B')].flat(),
+                vuelta: [...generateRounds(groupA, 'A'), ...generateRounds(groupB, 'B')].flat().map(m => ({...m, home: m.away, away: m.home}))
+            }
+        }
+        
+        const rounds = generateRounds(categoryTeams);
+        return {
+            ida: rounds.flat(),
+            vuelta: rounds.flat().map(m => ({...m, home: m.away, away: m.home}))
+        };
+    }, [category]);
+    
+    const FixtureRound = ({ title, matches }: { title: string, matches: GeneratedMatch[]}) => (
+        <div className="space-y-4">
+            <h4 className="text-xl font-bold text-center">{title}</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {matches.map((match, i) => (
+                    <Card key={i} className="p-2 text-center text-sm">
+                        <p>{getTeamName(match.home)}</p>
+                        <p className="font-bold">vs</p>
+                        <p>{getTeamName(match.away)}</p>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    );
+    
+    const roundsIda = useMemo(() => {
+        return fixtureMatches.ida.reduce((acc, match) => {
+            const round = match.round || 0;
+            if (!acc[round]) acc[round] = [];
+            acc[round].push(match);
+            return acc;
+        }, {} as Record<number, GeneratedMatch[]>);
+    }, [fixtureMatches.ida]);
+    
+    const roundsVuelta = useMemo(() => {
+        return fixtureMatches.vuelta.reduce((acc, match) => {
+             const round = match.round || 0;
+            if (!acc[round]) acc[round] = [];
+            acc[round].push(match);
+            return acc;
+        }, {} as Record<number, GeneratedMatch[]>);
+    }, [fixtureMatches.vuelta]);
+
+    return (
+        <div className="space-y-8 mt-4">
+             <div>
+                <h3 className="text-2xl font-bold text-center mb-4 pb-2 border-b-2">Primera Vuelta</h3>
+                <div className="space-y-6">
+                    {Object.entries(roundsIda).map(([roundNum, matches]) => (
+                        <FixtureRound key={`ida-${roundNum}`} title={`Etapa ${roundNum}`} matches={matches} />
+                    ))}
+                </div>
+            </div>
+             <div>
+                <h3 className="text-2xl font-bold text-center mb-4 pb-2 border-b-2">Segunda Vuelta</h3>
+                <div className="space-y-6">
+                     {Object.entries(roundsVuelta).map(([roundNum, matches]) => (
+                        <FixtureRound key={`vuelta-${roundNum}`} title={`Etapa ${parseInt(roundNum) + Object.keys(roundsIda).length}`} matches={matches} />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const LeagueView = ({ category, generatedMatches }: { category: Category, generatedMatches: GeneratedMatch[] }) => {
     const [teams, setTeams] = useState<Team[]>([]);
@@ -290,8 +393,12 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                 <Tabs defaultValue='schedule'>
                      <TabsList>
                         <TabsTrigger value="schedule">Calendario de Partidos</TabsTrigger>
+                        <TabsTrigger value="fixture">Fixture (Etapas)</TabsTrigger>
                         <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
                     </TabsList>
+                    <TabsContent value="fixture">
+                         <FixtureView category={category} allGeneratedMatches={generatedMatches} />
+                    </TabsContent>
                     <TabsContent value="standings">
                         {standings.map(({ group, standings: groupStandings }) => (
                             <div key={group || 'general'} className="mt-4">
@@ -692,7 +799,7 @@ export default function SchedulePage() {
   useEffect(() => { setIsClient(true) }, []);
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, priorityCategory?: Category | '', priorityCount?: number }) => {
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -701,29 +808,26 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        let allMatches: GeneratedMatch[] = [];
+        let idaMatches: GeneratedMatch[] = [];
+        let vueltaMatches: GeneratedMatch[] = [];
 
-        for (let leg of ['Ida', 'Vuelta'] as ('Ida' | 'Vuelta')[]) {
-             let teamsForRound = [...currentTeams];
-             for (let round = 0; round < numRounds; round++) {
-                for (let i = 0; i < matchesPerRound; i++) {
-                    const team1 = teamsForRound[i];
-                    const team2 = teamsForRound[numTeams - 1 - i];
+        for (let round = 0; round < numRounds; round++) {
+            for (let i = 0; i < matchesPerRound; i++) {
+                const team1 = currentTeams[i];
+                const team2 = currentTeams[numTeams - 1 - i];
 
-                    if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                        const home = leg === 'Ida' ? team1 : team2;
-                        const away = leg === 'Ida' ? team2 : team1;
-                        allMatches.push({ home: home.id, away: away.id, category, group, leg });
-                    }
+                if (team1.id !== 'dummy' && team2.id !== 'dummy') {
+                    idaMatches.push({ home: team1.id, away: team2.id, category, group, leg: 'Ida', round: round + 1 });
+                    vueltaMatches.push({ home: team2.id, away: team1.id, category, group, leg: 'Vuelta', round: round + 1 });
                 }
-                const lastTeam = teamsForRound.pop();
-                if (lastTeam) {
-                    teamsForRound.splice(1, 0, lastTeam);
-                }
+            }
+            const lastTeam = currentTeams.pop();
+            if (lastTeam) {
+                currentTeams.splice(1, 0, lastTeam);
             }
         }
         
-        return allMatches;
+        return { ida: idaMatches, vuelta: vueltaMatches };
     };
     
     const categoriesConfig: {category: Category, group?: 'A' | 'B'}[] = [
@@ -733,36 +837,37 @@ export default function SchedulePage() {
         { category: 'Segunda', group: 'B' }
     ];
 
-    let allMatchesPool: GeneratedMatch[] = [];
+    let allIdaMatches: GeneratedMatch[] = [];
+    let allVueltaMatches: GeneratedMatch[] = [];
+
     categoriesConfig.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
-            allMatchesPool.push(...generateRoundRobinMatches(teams, cat.category, cat.group));
+            const { ida, vuelta } = generateRoundRobinMatches(teams, cat.category, cat.group);
+            allIdaMatches.push(...ida);
+            allVueltaMatches.push(...vuelta);
         }
     });
     
     // Separate priority matches
     let priorityMatches: GeneratedMatch[] = [];
     if (settings.priorityCategory && settings.priorityCount && settings.priorityCount > 0) {
-        let potentialPriorityMatches = allMatchesPool.filter(m => m.category === settings.priorityCategory && m.leg === 'Ida');
-        potentialPriorityMatches.sort(() => 0.5 - Math.random()); // Shuffle to get random matches from the category
+        let potentialPriorityMatches = allIdaMatches.filter(m => m.category === settings.priorityCategory);
+        potentialPriorityMatches.sort(() => 0.5 - Math.random());
         priorityMatches = potentialPriorityMatches.slice(0, settings.priorityCount);
         
-        // Remove priority matches from the main pool to avoid duplication
-        allMatchesPool = allMatchesPool.filter(match => 
+        allIdaMatches = allIdaMatches.filter(match => 
             !priorityMatches.some(p => p.home === match.home && p.away === match.away && p.leg === match.leg)
         );
     }
     
     // Shuffle the remaining matches
-    for (let i = allMatchesPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allMatchesPool[i], allMatchesPool[j]] = [allMatchesPool[j], allMatchesPool[i]];
-    }
-    
-    // Assign dates and times, with priority matches first
+    allIdaMatches.sort(() => 0.5 - Math.random());
+    allVueltaMatches.sort(() => 0.5 - Math.random());
+
+    // Assign dates and times
     let scheduledMatches: GeneratedMatch[] = [];
-    let matchQueue = [...priorityMatches, ...allMatchesPool];
+    let matchQueue = [...priorityMatches, ...allIdaMatches, ...allVueltaMatches];
     let currentDate = startOfDay(settings.startDate);
     
     while(matchQueue.length > 0) {
@@ -975,3 +1080,4 @@ export default function SchedulePage() {
 
     
     
+
