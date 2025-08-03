@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,13 @@ type NewPlayer = typeof initialNewPlayerState;
 type RequestType = 'qualification' | 'requalification';
 
 const RequestHistory = () => {
-    const [requests, setRequests] = useState<RequalificationRequest[]>(allRequests);
+    const [requests, setRequests] = useState<RequalificationRequest[]>([]);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setRequests(allRequests);
+        setIsClient(true);
+    }, []);
 
     const getStatusVariant = (status: RequalificationRequest['status']) => {
         switch (status) {
@@ -65,7 +71,7 @@ const RequestHistory = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {requests.map(req => (
+                        {isClient && requests.map(req => (
                             <TableRow key={req.id}>
                                 <TableCell>{format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
                                 <TableCell>{req.teamName}</TableCell>

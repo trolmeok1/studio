@@ -464,7 +464,7 @@ export let requalificationRequests: RequalificationRequest[] = [
         requestType: 'requalification',
         playerInName: 'Ansu Fati',
         playerOutName: 'Neymar Jr',
-        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+        date: '2024-07-28T10:00:00.000Z',
         status: 'pending',
     },
     {
@@ -473,7 +473,7 @@ export let requalificationRequests: RequalificationRequest[] = [
         teamName: 'Solar Flares',
         requestType: 'qualification',
         playerInName: 'Pedri González',
-        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+        date: '2024-07-27T11:30:00.000Z',
         status: 'pending',
     },
     {
@@ -482,7 +482,7 @@ export let requalificationRequests: RequalificationRequest[] = [
         teamName: 'Vortex Voyagers',
         requestType: 'qualification',
         playerInName: 'Gavi',
-        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+        date: '2024-07-25T14:00:00.000Z',
         status: 'approved',
     },
      {
@@ -492,7 +492,7 @@ export let requalificationRequests: RequalificationRequest[] = [
         requestType: 'requalification',
         playerInName: 'Ferran Torres',
         playerOutName: 'Un Jugador Viejo',
-        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
+        date: '2024-07-24T16:00:00.000Z',
         status: 'rejected',
     },
 ];
