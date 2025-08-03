@@ -128,7 +128,11 @@ const CopaBracket = () => {
 };
 
 const MatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, showCategory?: boolean }) => {
-    const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
+    const allTeams: Team[] = useMemo(() => [
+        ...getTeamsByCategory('Máxima'),
+        ...getTeamsByCategory('Primera'),
+        ...getTeamsByCategory('Segunda')
+    ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
     
@@ -208,7 +212,6 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
             .filter(m => m.category === category)
             .reduce((acc, match) => {
                 if (!match.date) return acc;
-                // Group by actual date, not by round number
                 const dateKey = format(match.date, 'PPPP', {locale: es});
                 
                 if (!acc[dateKey]) {
@@ -293,7 +296,16 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                     </TabsContent>
                     <TabsContent value="schedule" className="space-y-6 mt-6">
                         {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches)
-                            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                            .sort(([dateA], [dateB]) => {
+                                 try {
+                                     // The date is already a formatted string, so we need to parse it back to compare
+                                     const parsedDateA = parse(dateA, 'PPPP', new Date(), { locale: es });
+                                     const parsedDateB = parse(dateB, 'PPPP', new Date(), { locale: es });
+                                     return parsedDateA.getTime() - parsedDateB.getTime();
+                                 } catch (e) {
+                                     return 0; // Fallback for any parsing errors
+                                 }
+                            })
                             .map(([date, matchesOnDate]) => (
                             <div key={date}>
                                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
@@ -440,14 +452,14 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
             <CardContent className="space-y-6 mt-6">
                  {Object.entries(groupedMatches)
                     .sort(([dateA], [dateB]) => {
-                        try {
-                             if (!dateA || !dateB) return 0;
-                             // Use a known format for parsing that matches the key format
-                             return new Date(dateA).getTime() - new Date(dateB).getTime()
-                        } catch(e) {
-                            console.error("Date parsing error", e);
-                            return 0;
-                        }
+                         try {
+                             // The date is already a formatted string, so we need to parse it back to compare
+                             const parsedDateA = parse(dateA, 'PPPP', new Date(), { locale: es });
+                             const parsedDateB = parse(dateB, 'PPPP', new Date(), { locale: es });
+                             return parsedDateA.getTime() - parsedDateB.getTime();
+                         } catch (e) {
+                             return 0; // Fallback for any parsing errors
+                         }
                     })
                     .map(([date, matchesOnDate]) => (
                     <div key={date}>
@@ -489,29 +501,28 @@ export default function SchedulePage() {
         const matchesPerRound = numTeams / 2;
         let allMatches: GeneratedMatch[] = [];
         
-        const scheduleMatches = (leg: 'Ida' | 'Vuelta') => {
-            let roundTeams = [...currentTeams];
+        const scheduleRound = (teamsForRound: Team[], leg: 'Ida' | 'Vuelta') => {
              for (let round = 0; round < numRounds; round++) {
                 for (let i = 0; i < matchesPerRound; i++) {
-                    const team1 = roundTeams[i];
-                    const team2 = roundTeams[numTeams - 1 - i];
+                    const team1 = teamsForRound[i];
+                    const team2 = teamsForRound[numTeams - 1 - i];
 
                     if (team1.id !== 'dummy' && team2.id !== 'dummy') {
                         const home = leg === 'Ida' ? team1.id : team2.id;
                         const away = leg === 'Ida' ? team2.id : team1.id;
-                        allMatches.push({ home, away, category, group, roundNumber: round + 1, leg });
+                        allMatches.push({ home, away, category, group, leg });
                     }
                 }
                 // Rotate teams
-                const lastTeam = roundTeams.pop();
+                const lastTeam = teamsForRound.pop();
                 if (lastTeam) {
-                    roundTeams.splice(1, 0, lastTeam);
+                    teamsForRound.splice(1, 0, lastTeam);
                 }
             }
         }
         
-        scheduleMatches('Ida');
-        scheduleMatches('Vuelta');
+        scheduleRound([...currentTeams], 'Ida');
+        scheduleRound([...currentTeams], 'Vuelta');
 
         return allMatches;
     };
@@ -533,7 +544,7 @@ export default function SchedulePage() {
         }
     });
 
-    // Shuffle all matches randomly
+    // Shuffle all matches randomly to interleave categories
     for (let i = allMatches.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allMatches[i], allMatches[j]] = [allMatches[j], allMatches[i]];
@@ -547,27 +558,25 @@ export default function SchedulePage() {
     while(matchQueue.length > 0) {
         const dayOfWeek = getDay(currentDate);
         if(settings.gameDays.includes(dayOfWeek)) {
-            // Create slots for the current valid day
-            const daySlots: { date: Date, field: number }[] = [];
-            settings.gameTimes.sort().forEach(time => {
-                for(let field = 1; field <= settings.numFields; field++) {
-                    const timeParts = time.split(':');
-                    const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                    daySlots.push({ date: matchDateTime, field: field });
-                }
-            });
+            const slotsPerDay = settings.gameTimes.length * settings.numFields;
+            const matchesForDay = matchQueue.splice(0, slotsPerDay);
 
-            // Assign matches to the day's slots
-            const matchesForDay = matchQueue.splice(0, daySlots.length);
             matchesForDay.forEach((match, index) => {
-                if (daySlots[index]) {
-                    scheduledMatches.push({
-                        ...match,
-                        date: daySlots[index].date,
-                        time: format(daySlots[index].date, 'HH:mm'),
-                        field: daySlots[index].field,
-                    });
-                }
+                 const timeIndex = index % settings.gameTimes.length;
+                 const fieldIndex = Math.floor(index / settings.gameTimes.length);
+                 
+                 const time = settings.gameTimes.sort()[timeIndex];
+                 const field = fieldIndex + 1;
+
+                 const timeParts = time.split(':');
+                 const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+
+                 scheduledMatches.push({
+                    ...match,
+                    date: matchDateTime,
+                    time: format(matchDateTime, 'HH:mm'),
+                    field: field,
+                });
             });
         }
         currentDate = addDays(currentDate, 1);
@@ -603,12 +612,12 @@ export default function SchedulePage() {
                     <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
                         <DialogTrigger asChild>
                             <Button 
-                                variant={isTournamentStarted ? "destructive" : "outline"}
+                                variant={isTournamentStarted ? "outline" : "default"}
                                 onClick={handleDrawButtonClick}
                                 
                             >
                                 <Dices className="mr-2" />
-                                {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
+                                {isTournamentStarted ? "Generar Nuevo Calendario" : "Sorteo de Equipos"}
                             </Button>
                          </DialogTrigger>
                          <DrawSettingsDialog onGenerate={(settings) => {
@@ -617,9 +626,9 @@ export default function SchedulePage() {
                         }} />
                     </Dialog>
                      {isTournamentStarted && (
-                        <Button variant="secondary" onClick={() => setResetAlertStep(1)}>
+                        <Button variant="destructive" onClick={() => setResetAlertStep(1)}>
                             <RefreshCw className="mr-2" />
-                            Reiniciar
+                            Reiniciar Calendario Actual
                         </Button>
                     )}
                 </div>
@@ -678,15 +687,32 @@ export default function SchedulePage() {
                  {resetAlertStep === 1 ? (
                     <>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás seguro de reiniciar el calendario?</AlertDialogTitle>
+                            <AlertDialogTitle>¿Estás seguro de reiniciar?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Esta acción eliminará permanentemente todos los partidos generados y no se puede deshacer. Deberás generar un nuevo calendario.
+                                Esta acción eliminará permanentemente todos los partidos programados del calendario. No se puede deshacer. Los partidos ya jugados no se verán afectados.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel onClick={() => setResetAlertStep(0)}>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction className={buttonVariants({variant: "destructive"})} onClick={() => setResetAlertStep(2)}>
-                                Sí, reiniciar calendario
+                            <AlertDialogAction onClick={() => setResetAlertStep(2)}>
+                                Sí, continuar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </>
+                 ) : resetAlertStep === 2 ? (
+                      <>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmación Final</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Estás a punto de borrar el calendario. Esta es tu última oportunidad para cancelar.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                             <AlertDialogCancel onClick={() => setResetAlertStep(0)}>
+                                Cancelar
+                            </AlertDialogCancel>
+                            <AlertDialogAction className={buttonVariants({variant: "destructive"})} onClick={handleResetConfirm}>
+                                Entendido, reiniciar el calendario
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </>
@@ -695,11 +721,11 @@ export default function SchedulePage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Calendario Reiniciado</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Se han borrado todos los partidos. Ahora puedes generar un nuevo calendario desde el botón "Sorteo de Equipos".
+                                Se han borrado todos los partidos programados. Ahora puedes generar un nuevo calendario desde el botón "Sorteo de Equipos".
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                             <AlertDialogAction onClick={handleResetConfirm}>
+                             <AlertDialogAction onClick={() => setResetAlertStep(0)}>
                                 Entendido
                             </AlertDialogAction>
                         </AlertDialogFooter>
@@ -710,7 +736,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
-
-    
