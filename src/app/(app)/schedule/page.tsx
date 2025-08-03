@@ -326,6 +326,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2));
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
+    const [numFields, setNumFields] = useState(1);
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -345,7 +346,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
             startDate,
             gameDays,
             gameTimes: gameTimes.filter(t => t), // Filter out empty time slots
-            numFields: 1
+            numFields,
         });
     }
 
@@ -377,6 +378,10 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                             <Button key={day} variant={gameDays.includes(index) ? 'default' : 'outline'} size="sm" onClick={() => handleDayToggle(index)}>{day}</Button>
                         ))}
                     </div>
+                </div>
+                 <div>
+                    <Label htmlFor="numFields">Número de Canchas</Label>
+                    <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
                 </div>
                 <div>
                     <Label>Horarios de los Partidos</Label>
@@ -476,7 +481,8 @@ export default function SchedulePage() {
              allSecondLegMatches.push(...secondLeg);
         }
     });
-
+    
+    // Schedule all first leg matches, then all second leg matches
     const combinedSchedule = [...allFirstLegMatches, ...allSecondLegMatches];
     
     // Create a queue of available time slots
@@ -487,13 +493,13 @@ export default function SchedulePage() {
     for (let i = 0; i < 365; i++) {
         const dayOfWeek = getDay(currentDate);
         if (settings.gameDays.includes(dayOfWeek)) {
-            for (const time of settings.gameTimes) {
-                for (let field = 1; field <= settings.numFields; field++) {
+            settings.gameTimes.sort().forEach(time => {
+                 for (let field = 1; field <= settings.numFields; field++) {
                     const timeParts = time.split(':');
                     const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
                     availableSlots.push({ date: matchDateTime, field: field });
                 }
-            }
+            })
         }
         currentDate = addDays(currentDate, 1);
     }
@@ -644,5 +650,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
