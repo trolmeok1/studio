@@ -65,8 +65,8 @@ export default function RequalificationPage() {
     if (step === 2 && selectedTeam && (requestType === 'qualification' || playerOut)) {
         const documentTitle = requestType === 'qualification' ? 'CALIFICACIÓN' : 'RECALIFICACIÓN';
         const requestText = requestType === 'qualification'
-            ? `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la calificación para la segunda vuelta del campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`
-            : `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la recalificación para la segunda vuelta del campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`;
+            ? `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la calificación para el campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`
+            : `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la recalificación para el campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`;
         const changeText = requestType === 'requalification' && playerOut
             ? `Solicito el cambio del Señor ${playerOut.name.toUpperCase()} con C.I. ${playerOut.idNumber} calificado con el Número ${playerOut.jerseyNumber} puesto que ${reason || 'el motivo especificado'}.`
             : `Puesto que ${reason || 'el motivo especificado'}.`;
