@@ -1,5 +1,5 @@
 
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent } from './types';
 
 export let teams: Team[] = [
   // Máxima Category - 12 teams
@@ -189,7 +189,7 @@ const defaultVocalPayment: VocalPaymentDetails = {
     paymentStatus: 'paid'
 }
 
-export const upcomingMatches: Match[] = [
+export let upcomingMatches: Match[] = [
     {
         id: 'm1',
         date: yesterday.toISOString(),
@@ -199,7 +199,8 @@ export const upcomingMatches: Match[] = [
             away: { ...teams[1], attended: true, vocalPaymentDetails: {...defaultVocalPayment, yellowCardFine: 2, total: 15, paymentStatus: 'pending'}  }
         },
         status: 'finished',
-        score: { home: 2, away: 1 }
+        score: { home: 2, away: 1 },
+        events: []
     },
     {
         id: 'm2',
@@ -209,7 +210,9 @@ export const upcomingMatches: Match[] = [
             home: { ...teams[4], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
             away: { ...teams[5], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
         },
-        status: 'future'
+        status: 'future',
+        score: { home: 0, away: 0 },
+        events: []
     },
      {
         id: 'm3',
@@ -219,7 +222,9 @@ export const upcomingMatches: Match[] = [
             home: { ...teams.find(t => t.id === '7')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
             away: { ...teams.find(t => t.id === '8')!, attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0, paymentStatus: 'pending'} }
         },
-        status: 'in-progress'
+        status: 'in-progress',
+        score: { home: 0, away: 0 },
+        events: []
     },
     {
         id: 'm4',
@@ -230,7 +235,8 @@ export const upcomingMatches: Match[] = [
             away: { ...teams.find(t => t.id === '10')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
         },
         status: 'finished',
-        score: { home: 0, away: 0 }
+        score: { home: 0, away: 0 },
+        events: []
     }
 ];
 
@@ -326,3 +332,12 @@ export const systemLogs: LogEntry[] = [
         description: "eliminó al jugador 'Neymar Jr' del equipo 'Cosmic Comets'."
     },
 ];
+
+export const getMatchById = (id: string): Match | undefined => upcomingMatches.find(m => m.id === id);
+
+export const updateMatchData = (updatedMatch: Match) => {
+    const index = upcomingMatches.findIndex(m => m.id === updatedMatch.id);
+    if (index !== -1) {
+        upcomingMatches[index] = updatedMatch;
+    }
+};

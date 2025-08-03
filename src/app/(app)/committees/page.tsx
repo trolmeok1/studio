@@ -18,14 +18,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches, getPlayersByTeamId } from '@/lib/mock-data';
+import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
+import { isToday, isFuture, isPast } from 'date-fns';
 
 
 const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
@@ -231,36 +232,23 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     )
 }
 
-const DigitalMatchSheet = () => {
+const DigitalMatchSheet = ({ match, onUpdateMatch }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void }) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const canEdit = user.role === 'admin' || user.role === 'secretary';
 
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
-    const [events, setEvents] = useState<MatchEvent[]>([]);
-    const [matchState, setMatchState] = useState<Match>(initialMatchData);
+    
+    // Internal state to manage events locally before saving
+    const [events, setEvents] = useState<MatchEvent[]>(match?.events || []);
 
-    const categories = useMemo(() => [...new Set(teams.map((t) => t.category))], []);
-    const filteredTeams = useMemo(() => {
-        if (!selectedCategory) return [];
-        return teams.filter((team) => team.category === selectedCategory);
-    }, [selectedCategory]);
+    useEffect(() => {
+        setEvents(match?.events || []);
+    }, [match]);
 
-    const handleCategoryChange = (value: string) => {
-        setSelectedCategory(value as Category);
-        setSelectedTeamId(null);
-        setPlayerNumber('');
-        setSearchResults([]);
-    };
-
-    const handleTeamChange = (value: string) => {
-        setSelectedTeamId(value);
-        setPlayerNumber('');
-        setSearchResults([]);
-    };
+    const teamForEventSearch = match?.teams.home.id === selectedTeamId ? match.teams.home : match?.teams.away;
 
     const handleSearch = () => {
         if (!selectedTeamId || !playerNumber) {
@@ -279,6 +267,7 @@ const DigitalMatchSheet = () => {
     };
 
     const addEvent = (player: Player, eventType: MatchEventType) => {
+        if (!match) return;
         const newEvent: MatchEvent = {
             id: `evt-${Date.now()}`,
             playerId: player.id,
@@ -286,7 +275,10 @@ const DigitalMatchSheet = () => {
             teamName: player.team,
             event: eventType,
         };
-        setEvents(prevEvents => [newEvent, ...prevEvents]);
+        const updatedEvents = [newEvent, ...events];
+        setEvents(updatedEvents);
+
+        onUpdateMatch({ ...match, events: updatedEvents });
 
         const statsUpdate = {
             goals: eventType === 'goal' ? 1 : 0,
@@ -322,6 +314,8 @@ const DigitalMatchSheet = () => {
     };
     
     const removeEvent = (eventId: string) => {
+        if(!match) return;
+
         const eventToRemove = events.find(e => e.id === eventId);
         if (!eventToRemove) return;
 
@@ -331,9 +325,11 @@ const DigitalMatchSheet = () => {
             redCards: eventToRemove.event === 'red_card' ? -1 : 0,
         };
         updatePlayerStats(eventToRemove.playerId, statsUpdate);
-
-        setEvents(events.filter((e) => e.id !== eventId));
         
+        const updatedEvents = events.filter((e) => e.id !== eventId);
+        setEvents(updatedEvents);
+        onUpdateMatch({ ...match, events: updatedEvents });
+
         toast({
             title: "Evento Eliminado",
             description: `Se ha revertido el evento para ${eventToRemove.playerName}.`,
@@ -349,43 +345,58 @@ const DigitalMatchSheet = () => {
         }
     }
 
-    const handleVocalPaymentChange = (teamKey: 'teamA' | 'teamB', field: keyof VocalPaymentDetailsType, value: string | number) => {
-        setMatchState(prev => {
-            const currentPayment = prev[teamKey].vocalPaymentDetails;
-            const updatedPayment = { ...currentPayment, [field]: value };
-            
-            const total = 
-                (typeof updatedPayment.referee === 'number' ? updatedPayment.referee : 0) + 
-                (typeof updatedPayment.fee === 'number' ? updatedPayment.fee : 0) + 
-                (typeof updatedPayment.yellowCardFine === 'number' ? updatedPayment.yellowCardFine : 0) + 
-                (typeof updatedPayment.redCardFine === 'number' ? updatedPayment.redCardFine : 0) + 
-                (typeof updatedPayment.otherFines === 'number' ? updatedPayment.otherFines : 0);
-
-            return {
-                ...prev,
+    const handleMatchDataChange = (teamKey: 'home' | 'away', field: keyof MatchTeam, value: any) => {
+        if(!match) return;
+        const updatedMatch = {
+            ...match,
+            teams: {
+                ...match.teams,
                 [teamKey]: {
-                    ...prev[teamKey],
-                    vocalPaymentDetails: { ...updatedPayment, total }
+                    ...match.teams[teamKey],
+                    [field]: value
                 }
             }
-        });
+        };
+        onUpdateMatch(updatedMatch);
+    }
+    
+    const handleScoreChange = (teamKey: 'home' | 'away', newScore: number) => {
+        if(!match) return;
+        const updatedMatch = {
+            ...match,
+            score: {
+                ...match.score,
+                [teamKey]: newScore
+            }
+        };
+        onUpdateMatch(updatedMatch);
     }
 
-    const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'teamA' | 'teamB' }) => {
-        const details = matchState[teamKey].vocalPaymentDetails;
-        const disabled = !canEdit || !matchState[teamKey].attended;
+    const handleVocalPaymentChange = (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: string | number) => {
+        if (!match) return;
+        
+        const currentPayment = match.teams[teamKey].vocalPaymentDetails || initialMatchData.teamA.vocalPaymentDetails;
+        const updatedPayment = { ...currentPayment, [field]: value };
+        
+        const total = 
+            (typeof updatedPayment.referee === 'number' ? updatedPayment.referee : 0) + 
+            (typeof updatedPayment.fee === 'number' ? updatedPayment.fee : 0) + 
+            (typeof updatedPayment.yellowCardFine === 'number' ? updatedPayment.yellowCardFine : 0) + 
+            (typeof updatedPayment.redCardFine === 'number' ? updatedPayment.redCardFine : 0) + 
+            (typeof updatedPayment.otherFines === 'number' ? updatedPayment.otherFines : 0);
+            
+        handleMatchDataChange(teamKey, 'vocalPaymentDetails', { ...updatedPayment, total });
+    }
+
+    const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'home' | 'away' }) => {
+        if (!match) return null;
+        const details = match.teams[teamKey].vocalPaymentDetails;
+        if (!details) return null;
+        
+        const disabled = !canEdit || !match.teams[teamKey].attended;
 
         const handlePaymentStatusChange = (checked: boolean) => {
-             setMatchState(prev => ({
-                ...prev,
-                [teamKey]: {
-                    ...prev[teamKey],
-                    vocalPaymentDetails: {
-                        ...prev[teamKey].vocalPaymentDetails,
-                        paymentStatus: checked ? 'paid' : 'pending'
-                    }
-                }
-            }));
+             handleVocalPaymentChange(teamKey, 'paymentStatus', checked ? 'paid' : 'pending');
         }
 
         return (
@@ -429,6 +440,14 @@ const DigitalMatchSheet = () => {
         )
     };
     
+    if (!match) {
+        return (
+            <Card className="p-6 md:p-8 flex items-center justify-center h-full">
+                <p className="text-muted-foreground text-lg">Por favor, selecciona un partido para registrar la vocalía.</p>
+            </Card>
+        )
+    }
+
     return (
         <Card className="p-6 md:p-8">
             <CardContent className="p-0 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -446,35 +465,24 @@ const DigitalMatchSheet = () => {
                     
                     <div>
                         <Label>Buscar Jugador</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-1">
-                            <Select onValueChange={handleCategoryChange} disabled={!canEdit}>
+                         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-1">
+                             <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''} disabled={!canEdit}>
                                 <SelectTrigger className="md:col-span-2">
-                                    <SelectValue placeholder="1. Elige Categoría..." />
+                                    <SelectValue placeholder="1. Elige Equipo..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {categories.map((cat) => (
-                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select onValueChange={handleTeamChange} value={selectedTeamId || ''} disabled={!selectedCategory || !canEdit}>
-                                <SelectTrigger className="md:col-span-2">
-                                    <SelectValue placeholder="2. Elige Equipo..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {filteredTeams.map((team) => (
-                                        <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                                    ))}
+                                    <SelectItem value={match.teams.home.id}>{match.teams.home.name}</SelectItem>
+                                    <SelectItem value={match.teams.away.id}>{match.teams.away.name}</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Input 
                                 id="player-number" 
-                                placeholder="3. No. Camiseta" 
+                                placeholder="2. No. Camiseta" 
                                 value={playerNumber}
                                 onChange={(e) => setPlayerNumber(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                 disabled={!selectedTeamId || !canEdit}
-                                className="md:col-span-3"
+                                className="md:col-span-1"
                                 type="number"
                             />
                             <Button onClick={handleSearch} disabled={!selectedTeamId || !playerNumber || !canEdit}><Search className="mr-2" /> Buscar</Button>
@@ -509,27 +517,27 @@ const DigitalMatchSheet = () => {
                      <h3 className="text-xl font-bold">Resumen del Partido</h3>
                      <div className="grid grid-cols-2 gap-4 items-start">
                         <div className="text-center space-y-2">
-                            <Image src={matchState.teamA.logoUrl} alt={matchState.teamA.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
-                            <h4 className="font-bold">{matchState.teamA.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={matchState.teamA.score} onChange={(e) => setMatchState({...matchState, teamA: {...matchState.teamA, score: parseInt(e.target.value) || 0}})} disabled={!canEdit} />
+                            <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
+                            <h4 className="font-bold">{match.teams.home.name}</h4>
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.home ?? 0} onChange={(e) => handleScoreChange('home', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamA-attended" checked={matchState.teamA.attended} onCheckedChange={(checked) => setMatchState({...matchState, teamA: {...matchState.teamA, attended: checked}})} disabled={!canEdit}/>
+                                 <Switch id="teamA-attended" checked={match.teams.home.attended} onCheckedChange={(checked) => handleMatchDataChange('home', 'attended', checked)} disabled={!canEdit}/>
                                  <Label htmlFor="teamA-attended">Se Presentó</Label>
                                </div>
-                               <VocalPaymentDetailsInputs teamKey="teamA" />
+                               <VocalPaymentDetailsInputs teamKey="home" />
                            </div>
                         </div>
                          <div className="text-center space-y-2">
-                             <Image src={matchState.teamB.logoUrl} alt={matchState.teamB.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
-                            <h4 className="font-bold">{matchState.teamB.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={matchState.teamB.score} onChange={(e) => setMatchState({...matchState, teamB: {...matchState.teamB, score: parseInt(e.target.value) || 0}})} disabled={!canEdit} />
+                             <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
+                            <h4 className="font-bold">{match.teams.away.name}</h4>
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.away ?? 0} onChange={(e) => handleScoreChange('away', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamB-attended" checked={matchState.teamB.attended} onCheckedChange={(checked) => setMatchState({...matchState, teamB: {...matchState.teamB, attended: checked}})} disabled={!canEdit}/>
+                                 <Switch id="teamB-attended" checked={match.teams.away.attended} onCheckedChange={(checked) => handleMatchDataChange('away', 'attended', checked)} disabled={!canEdit}/>
                                  <Label htmlFor="teamB-attended">Se Presentó</Label>
                                </div>
-                               <VocalPaymentDetailsInputs teamKey="teamB" />
+                               <VocalPaymentDetailsInputs teamKey="away" />
                            </div>
                         </div>
                      </div>
@@ -570,7 +578,9 @@ const DigitalMatchSheet = () => {
                             )}
                         </CardContent>
                      </Card>
-                      <Button className="w-full" size="lg" disabled={!canEdit}>Guardar Resultado del Partido</Button>
+                      <Button className="w-full" size="lg" disabled={!canEdit} onClick={() => toast({ title: "Guardado", description: "Resultado del partido guardado exitosamente."})}>
+                        Guardar Resultado del Partido
+                      </Button>
                 </div>
 
             </CardContent>
@@ -582,7 +592,7 @@ const DigitalMatchSheet = () => {
 export default function CommitteesPage() {
   const [activeTab, setActiveTab] = useState('digital');
   const [isClient, setIsClient] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const { user } = useAuth();
   const handlePrint = () => {
@@ -593,10 +603,74 @@ export default function CommitteesPage() {
     setIsClient(true);
   }, []);
 
-  const handleMatchSelect = (matchId: string) => {
-    const match = upcomingMatches.find(m => m.id === matchId);
-    setSelectedMatch(match || null);
+  const handleUpdateMatch = (updatedMatch: Match) => {
+    updateMatchData(updatedMatch);
+    // Force a re-render by setting the selected match again
+    setSelectedMatchId(updatedMatch.id);
   }
+
+  const selectedMatch = useMemo(() => {
+    if (!selectedMatchId) return null;
+    return getMatchById(selectedMatchId);
+  }, [selectedMatchId]);
+
+  const groupedMatches = useMemo(() => {
+    if (!isClient) return { today: [], future: [], past: [] };
+
+    const todayMatches = allMatches.filter(m => isToday(new Date(m.date)));
+    const futureMatches = allMatches.filter(m => isFuture(new Date(m.date)) && !isToday(new Date(m.date)));
+    const pastMatches = allMatches.filter(m => isPast(new Date(m.date)) && !isToday(new Date(m.date)));
+
+    return {
+        today: todayMatches,
+        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        past: pastMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    };
+  }, [isClient]);
+
+  const MatchSelect = () => (
+     <Select onValueChange={setSelectedMatchId} value={selectedMatchId || ''}>
+        <SelectTrigger>
+            <SelectValue placeholder="Elige un partido del calendario..."/>
+        </SelectTrigger>
+        <SelectContent>
+            {isClient && (
+                <>
+                    {groupedMatches.today.length > 0 && (
+                        <SelectGroup>
+                            <SelectLabel>Partidos de Hoy</SelectLabel>
+                            {groupedMatches.today.map(match => (
+                                <SelectItem key={match.id} value={match.id}>
+                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})})
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    )}
+                     {groupedMatches.future.length > 0 && (
+                        <SelectGroup>
+                            <SelectLabel>Partidos Futuros</SelectLabel>
+                            {groupedMatches.future.map(match => (
+                                <SelectItem key={match.id} value={match.id}>
+                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    )}
+                     {groupedMatches.past.length > 0 && (
+                        <SelectGroup>
+                            <SelectLabel>Partidos Pasados</SelectLabel>
+                            {groupedMatches.past.map(match => (
+                                <SelectItem key={match.id} value={match.id}>
+                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    )}
+                </>
+            )}
+        </SelectContent>
+    </Select>
+  )
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-background">
@@ -614,7 +688,7 @@ export default function CommitteesPage() {
         </div>
       </div>
 
-       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="digital" className="space-y-4">
+       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setSelectedMatchId(null); }} defaultValue="digital" className="space-y-4">
           <TabsContent value="physical" className="mt-0 space-y-4">
             <Card className="print:hidden">
                 <CardHeader>
@@ -622,18 +696,7 @@ export default function CommitteesPage() {
                     <CardContent className="p-0 pt-4 flex gap-4 items-end">
                         <div className="flex-grow">
                              <Label>Seleccionar Partido</Label>
-                             <Select onValueChange={handleMatchSelect}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Elige un partido del calendario..."/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {isClient && upcomingMatches.map(match => (
-                                        <SelectItem key={match.id} value={match.id}>
-                                            {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                             <MatchSelect />
                         </div>
                         <Button onClick={handlePrint} disabled={!selectedMatch}>
                             <Printer className="mr-2" />
@@ -649,8 +712,16 @@ export default function CommitteesPage() {
                  <PhysicalMatchSheet match={selectedMatch}/>
             </div>
           </TabsContent>
-          <TabsContent value="digital" className="mt-0">
-             <DigitalMatchSheet />
+          <TabsContent value="digital" className="mt-0 space-y-4">
+            <Card className="print:hidden">
+                 <CardHeader>
+                    <CardTitle>Seleccionar Partido para Vocalía Digital</CardTitle>
+                     <CardContent className="p-0 pt-4">
+                          <MatchSelect />
+                     </CardContent>
+                 </CardHeader>
+            </Card>
+             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} />
           </TabsContent>
         </Tabs>
 
