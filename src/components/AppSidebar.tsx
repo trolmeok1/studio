@@ -52,8 +52,7 @@ export function AppSidebar() {
     router.push('/login');
   };
 
-  const isAdmin = user.role === 'admin';
-  const isSecretary = user.role === 'secretary';
+  const { permissions } = user;
 
   return (
     <>
@@ -68,7 +67,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="flex-grow">
         <SidebarMenu>
-          <SidebarMenuItem>
+          {permissions.dashboard.view && <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               isActive={isActive('/dashboard')}
@@ -79,39 +78,39 @@ export function AppSidebar() {
                 <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
+          </SidebarMenuItem>}
+           {permissions.players.view && <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive('/players')} tooltip="Jugadores">
                   <Link href="/players">
                       <Users />
                       <span>Jugadores</span>
                   </Link>
               </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
+          </SidebarMenuItem>}
+           {permissions.schedule.view && <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Programación">
                 <Link href="/schedule">
                     <CalendarDays />
                     <span>Programación</span>
                 </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
+          </SidebarMenuItem>}
+           {permissions.partido.view && <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive('/partido')} tooltip="Partido">
                 <Link href="/partido">
                     <Swords />
                     <span>Partido</span>
                 </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem>}
         </SidebarMenu>
         
-        {(isAdmin || isSecretary) && <SidebarSeparator />}
+        <SidebarSeparator />
 
         <SidebarGroup>
-           {(isAdmin || isSecretary) && <SidebarGroupLabel>Admin</SidebarGroupLabel>}
+           <SidebarGroupLabel>Admin</SidebarGroupLabel>
            <SidebarMenu>
-              {isAdmin && (
+              {permissions.aiCards.view && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/ai-cards')} tooltip="Carnets AI">
                       <Link href="/ai-cards">
@@ -121,7 +120,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-               {(isAdmin || isSecretary) && (
+               {permissions.committees.view && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/committees')} tooltip="Vocalías">
                       <Link href="/committees">
@@ -131,7 +130,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-                {(isAdmin || isSecretary) && (
+                {permissions.treasury.view && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/treasury')} tooltip="Tesorería">
                       <Link href="/treasury">
@@ -141,7 +140,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-                {isAdmin && (
+                {permissions.requests.view && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/requests')} tooltip="Solicitudes">
                       <Link href="/requests/requalification">
@@ -151,7 +150,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-                {isAdmin && (
+                {permissions.referees.view && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/referees')} tooltip="Árbitros">
                       <Link href="/referees">
@@ -161,7 +160,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-                 {isAdmin && (
+                 {permissions.reports.view && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
                       <Link href="/reports">
@@ -174,20 +173,20 @@ export function AppSidebar() {
            </SidebarMenu>
         </SidebarGroup>
          
-        {isAdmin && <SidebarSeparator />}
+        <SidebarSeparator />
 
         <SidebarGroup>
-           {isAdmin && <SidebarGroupLabel>Configuración</SidebarGroupLabel>}
+           <SidebarGroupLabel>Configuración</SidebarGroupLabel>
             <SidebarMenu>
-               <SidebarMenuItem>
+               {permissions.teams.view && <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/teams')} tooltip="Equipos">
                       <Link href="/teams">
                           <Shield />
                           <span>Equipos</span>
                       </Link>
                   </SidebarMenuButton>
-              </SidebarMenuItem>
-                {isAdmin && (
+              </SidebarMenuItem>}
+                {permissions.roles.view && (
                   <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive('/roles')} tooltip="Roles">
                           <Link href="/roles">
@@ -197,7 +196,7 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
-                 {isAdmin && (
+                 {permissions.logs.view && (
                   <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive('/logs')} tooltip="Logs">
                           <Link href="/logs">
