@@ -24,6 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean }) => {
@@ -209,8 +210,9 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     const groupedMatches = useMemo(() => {
         if (teams.length === 0 || generatedMatches.length === 0 || !isClient) return {};
 
-        return generatedMatches
-            .filter(m => m.category === category)
+        const categoryMatches = generatedMatches.filter(m => m.category === category);
+
+        return categoryMatches
             .reduce((acc, match) => {
                 if (!match.date) return acc;
                 const dateKey = format(match.date, 'PPPP', {locale: es});
@@ -357,68 +359,70 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     }
 
     return (
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
             <DialogHeader>
                 <DialogTitle>Configuración del Sorteo</DialogTitle>
                 <DialogDescription>Define los parámetros para generar el calendario de partidos.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div>
-                    <Label>Fecha de Inicio del Torneo</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {startDate ? format(startDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                <div>
-                    <Label>Días de Juego</Label>
-                    <div className="flex gap-2 mt-2">
-                        {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, index) => (
-                            <Button key={day} variant={gameDays.includes(index) ? 'default' : 'outline'} size="sm" onClick={() => handleDayToggle(index)}>{day}</Button>
-                        ))}
+            <ScrollArea className="h-[60vh] pr-6">
+                <div className="space-y-4 py-4">
+                    <div>
+                        <Label>Fecha de Inicio del Torneo</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {startDate ? format(startDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div>
+                        <Label>Días de Juego</Label>
+                        <div className="flex gap-2 mt-2">
+                            {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, index) => (
+                                <Button key={day} variant={gameDays.includes(index) ? 'default' : 'outline'} size="sm" onClick={() => handleDayToggle(index)}>{day}</Button>
+                            ))}
+                        </div>
+                    </div>
+                     <div>
+                        <Label htmlFor="numFields">Número de Canchas</Label>
+                        <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
+                    </div>
+                    <div>
+                        <Label>Horarios de los Partidos</Label>
+                        <div className="space-y-2 mt-2">
+                            {gameTimes.map((time, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                    <Input type="time" value={time} onChange={e => handleTimeChange(index, e.target.value)} />
+                                    <Button variant="destructive" size="sm" onClick={() => handleRemoveTime(index)}>X</Button>
+                                </div>
+                            ))}
+                            <Button variant="outline" size="sm" onClick={handleAddTime}>Agregar Horario</Button>
+                        </div>
+                    </div>
+                    <div className="border-t pt-4">
+                         <Label>Prioridad de Partidos (Opcional)</Label>
+                         <p className="text-xs text-muted-foreground mb-2">Asegura que un número de partidos de una categoría se jueguen la primera semana.</p>
+                         <div className="grid grid-cols-2 gap-2">
+                             <Select onValueChange={(v) => setPriorityCategory(v as Category)} value={priorityCategory}>
+                                 <SelectTrigger>
+                                     <SelectValue placeholder="Categoría Prioritaria"/>
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                     <SelectItem value="Máxima">Máxima</SelectItem>
+                                     <SelectItem value="Primera">Primera</SelectItem>
+                                     <SelectItem value="Segunda">Segunda</SelectItem>
+                                 </SelectContent>
+                             </Select>
+                             <Input type="number" placeholder="No. de partidos" value={priorityCount || ''} onChange={e => setPriorityCount(parseInt(e.target.value) || 0)} min="0"/>
+                         </div>
                     </div>
                 </div>
-                 <div>
-                    <Label htmlFor="numFields">Número de Canchas</Label>
-                    <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
-                </div>
-                <div>
-                    <Label>Horarios de los Partidos</Label>
-                    <div className="space-y-2 mt-2">
-                        {gameTimes.map((time, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                                <Input type="time" value={time} onChange={e => handleTimeChange(index, e.target.value)} />
-                                <Button variant="destructive" size="sm" onClick={() => handleRemoveTime(index)}>X</Button>
-                            </div>
-                        ))}
-                        <Button variant="outline" size="sm" onClick={handleAddTime}>Agregar Horario</Button>
-                    </div>
-                </div>
-                <div className="border-t pt-4">
-                     <Label>Prioridad de Partidos (Opcional)</Label>
-                     <p className="text-xs text-muted-foreground mb-2">Asegura que un número de partidos de una categoría se jueguen la primera semana.</p>
-                     <div className="grid grid-cols-2 gap-2">
-                         <Select onValueChange={(v) => setPriorityCategory(v as Category)} value={priorityCategory}>
-                             <SelectTrigger>
-                                 <SelectValue placeholder="Categoría Prioritaria"/>
-                             </SelectTrigger>
-                             <SelectContent>
-                                 <SelectItem value="Máxima">Máxima</SelectItem>
-                                 <SelectItem value="Primera">Primera</SelectItem>
-                                 <SelectItem value="Segunda">Segunda</SelectItem>
-                             </SelectContent>
-                         </Select>
-                         <Input type="number" placeholder="No. de partidos" value={priorityCount || ''} onChange={e => setPriorityCount(parseInt(e.target.value) || 0)} min="0"/>
-                     </div>
-                </div>
-            </div>
+            </ScrollArea>
             <DialogFooter>
                 <DialogClose asChild>
                     <Button variant="outline">Cancelar</Button>
@@ -927,3 +931,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
