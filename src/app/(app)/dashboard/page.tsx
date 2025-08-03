@@ -28,7 +28,8 @@ import {
     PieChart,
     Pie,
     Cell,
-    ResponsiveContainer
+    ResponsiveContainer,
+    Tooltip,
 } from 'recharts';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
