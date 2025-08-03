@@ -73,11 +73,11 @@ export function AppSidebar() {
             <SidebarMenuButton
               asChild
               isActive={isActive('/dashboard')}
-              tooltip="Dashboard"
+              tooltip="Inicio"
             >
               <Link href="/dashboard">
                 <LayoutDashboard />
-                <span>Dashboard</span>
+                <span>Inicio</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>}

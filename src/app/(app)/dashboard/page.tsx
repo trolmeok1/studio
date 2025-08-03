@@ -25,15 +25,10 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+    PieChart,
+    Pie,
+    Cell,
+    ResponsiveContainer
 } from 'recharts';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +42,7 @@ import {
   topScorers,
   sanctions,
   getRequalificationRequests,
+  upcomingMatches,
 } from '@/lib/mock-data';
 import {
   Users,
@@ -76,18 +72,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
-const barData = [
-  { name: 'W1', value: 10 },
-  { name: 'W2', value: 15 },
-  { name: 'W3', value: 12 },
-  { name: 'W4', value: 20 },
-  { name: 'W5', value: 18 },
-];
 
 const pieData = [
-  { name: 'A', value: 2768, color: '#f59e0b' },
-  { name: 'B', value: 335, color: '#ef4444' },
+  { name: 'Amarillas', value: dashboardStats.yellowCards, color: 'hsl(var(--primary))' },
+  { name: 'Rojas', value: dashboardStats.redCards, color: 'hsl(var(--destructive))' },
 ];
 
 const sliderImages = [
@@ -215,24 +208,27 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const isAdmin = user.role === 'admin';
   const pendingRequests = useMemo(() => getRequalificationRequests().filter(r => r.status === 'pending'), []);
+  
+  const recentResults = useMemo(() => upcomingMatches.filter(m => m.status === 'finished').sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,3), []);
+  const nextMatches = useMemo(() => upcomingMatches.filter(m => m.status === 'future').sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0,3), []);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight font-headline">
-          Dashboard
+          Inicio
         </h2>
-        <p className="text-muted-foreground">
-          Visualiza el resumen de la información del campeonato
-        </p>
       </div>
 
        <Card className="relative group">
             {isAdmin && (
                 <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                    <Button size="sm">
-                        <PlusCircle />
-                        Agregar Imagen
+                    <Button size="sm" asChild>
+                       <label htmlFor="carousel-upload" className="cursor-pointer">
+                           <PlusCircle />
+                           Agregar Imagen
+                           <Input id="carousel-upload" type="file" className="hidden" />
+                       </label>
                     </Button>
                      <Button size="sm" variant="secondary">
                         <Pencil />
@@ -295,162 +291,121 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
 
-        <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-blue-900/50 backdrop-blur-sm p-4 rounded-xl shadow-lg border-blue-500/30">
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="shadow-none bg-white/10 border-white/20 text-white">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">CATEGORÍAS</CardTitle>
-                    <List className="h-4 w-4 text-white/70" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {dashboardStats.categories}
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-primary/10">
+                <CardHeader>
+                    <CardTitle>Resumen del Torneo</CardTitle>
+                </CardHeader>
+                 <CardContent className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                    <div className="flex items-center gap-3">
+                        <Users className="h-8 w-8 text-primary"/>
+                        <div>
+                            <p className="text-2xl font-bold">{dashboardStats.players.approved}</p>
+                            <p className="text-sm text-muted-foreground">Jugadores</p>
+                        </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-none bg-white/10 border-white/20 text-white">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">ETAPAS</CardTitle>
-                    <Flag className="h-4 w-4 text-white/70" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.stages}</div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-none bg-white/10 border-white/20 text-white">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">ÁRBITROS</CardTitle>
-                    <UserSquare className="h-4 w-4 text-white/70" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.referees}</div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-none bg-white/10 border-white/20 text-white">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">MULTAS</CardTitle>
-                    <Gavel className="h-4 w-4 text-white/70" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">${dashboardStats.fines}</div>
-                  </CardContent>
-                </Card>
-            </div>
-          </Card>
-
-          <Card className="col-span-1 md:col-span-2 bg-blue-500/80 backdrop-blur-sm text-white border-blue-400/50">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-lg">Partidos Jugados</p>
-                <p className="text-4xl font-bold">{dashboardStats.matchesPlayed}</p>
-              </div>
-              <div className="w-24 h-16">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData}>
-                    <Bar dataKey="value" fill="#ffffff" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-green-500/80 backdrop-blur-sm text-white border-green-400/50">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-lg">Goles Marcados</p>
-                <p className="text-4xl font-bold">{dashboardStats.goalsScored}</p>
-              </div>
-              <Goal className="h-12 w-12 opacity-50" />
-            </CardContent>
-          </Card>
-           <Card className="bg-yellow-500/80 backdrop-blur-sm text-white border-yellow-400/50">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-lg">T.A. Exhibidas</p>
-                <p className="text-4xl font-bold">{dashboardStats.yellowCards}</p>
-              </div>
-               <RectangleHorizontal className="h-12 w-12 opacity-50 transform -rotate-45" />
-            </CardContent>
-          </Card>
-            <Card className="bg-red-500/80 backdrop-blur-sm text-white border-red-400/50">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-lg">T.R. Exhibidas</p>
-                <p className="text-4xl font-bold">{dashboardStats.redCards}</p>
-              </div>
-               <RectangleHorizontal className="h-12 w-12 opacity-50 transform -rotate-45"/>
-            </CardContent>
-          </Card>
-          <Card className="bg-blue-400/80 backdrop-blur-sm text-white border-blue-300/50">
-            <CardContent className="flex items-center justify-between p-4">
-               <div>
-                <p className="text-sm">EQUIPOS</p>
-                <p className="text-2xl font-bold">Registrados</p>
-              </div>
-              <p className="text-4xl font-bold">{dashboardStats.teams.registered}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-400/80 backdrop-blur-sm text-white border-green-300/50">
-             <CardContent className="flex items-center justify-between p-4">
-               <div>
-                <p className="text-sm">EQUIPOS</p>
-                <p className="text-2xl font-bold">Aprobados</p>
-              </div>
-              <p className="text-4xl font-bold">{dashboardStats.teams.approved}</p>
-            </CardContent>
-          </Card>
-           <Card className="bg-yellow-400/80 backdrop-blur-sm text-white border-yellow-300/50">
-             <CardContent className="flex items-center justify-between p-4">
-               <div>
-                <p className="text-sm">EQUIPOS</p>
-                <p className="text-2xl font-bold">Desaprobados</p>
-              </div>
-              <p className="text-4xl font-bold">{dashboardStats.teams.rejected}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-red-400/80 backdrop-blur-sm text-white border-red-300/50">
-             <CardContent className="flex items-center justify-between p-4">
-               <div>
-                <p className="text-sm">EQUIPOS</p>
-                <p className="text-2xl font-bold">Sancionados</p>
-              </div>
-              <p className="text-4xl font-bold">{dashboardStats.teams.sanctioned}</p>
-            </CardContent>
-          </Card>
+                    <div className="flex items-center gap-3">
+                        <Shield className="h-8 w-8 text-primary"/>
+                        <div>
+                            <p className="text-2xl font-bold">{dashboardStats.teams.approved}</p>
+                            <p className="text-sm text-muted-foreground">Equipos</p>
+                        </div>
+                    </div>
+                     <div className="flex items-center gap-3">
+                        <Swords className="h-8 w-8 text-primary"/>
+                        <div>
+                            <p className="text-2xl font-bold">{dashboardStats.matchesPlayed}</p>
+                            <p className="text-sm text-muted-foreground">Partidos</p>
+                        </div>
+                    </div>
+                     <div className="flex items-center gap-3">
+                        <Goal className="h-8 w-8 text-primary"/>
+                        <div>
+                            <p className="text-2xl font-bold">{dashboardStats.goalsScored}</p>
+                            <p className="text-sm text-muted-foreground">Goles</p>
+                        </div>
+                    </div>
+                 </CardContent>
+            </Card>
+             <Card className="col-span-1 md:col-span-2">
+                <CardHeader>
+                    <CardTitle>Próximos Partidos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    {nextMatches.map(match => (
+                         <div key={match.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-muted/50">
+                            <div className="flex items-center gap-2">
+                                <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={20} height={20} className="rounded-full"/>
+                                <span className="font-semibold">{match.teams.home.name}</span>
+                            </div>
+                            <Badge variant="outline">vs</Badge>
+                             <div className="flex items-center gap-2">
+                                <span className="font-semibold">{match.teams.away.name}</span>
+                                <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={20} height={20} className="rounded-full"/>
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+             <Card className="col-span-1 md:col-span-2">
+                <CardHeader>
+                    <CardTitle>Resultados Recientes</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                     {recentResults.map(match => (
+                         <div key={match.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-muted/50">
+                            <div className="flex items-center gap-2">
+                                <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={20} height={20} className="rounded-full"/>
+                                <span className={cn("font-semibold", match.score && match.score.home > match.score.away && "text-primary")}>{match.teams.home.name}</span>
+                            </div>
+                            <Badge variant="secondary" className="text-base">{match.score?.home} - {match.score?.away}</Badge>
+                             <div className="flex items-center gap-2">
+                                <span className={cn("font-semibold", match.score && match.score.away > match.score.home && "text-primary")}>{match.teams.away.name}</span>
+                                <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={20} height={20} className="rounded-full"/>
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
         </div>
 
-        <div className="lg:col-span-3 space-y-4">
-          <Card className="bg-green-500/80 backdrop-blur-sm text-white border-green-400/50">
-            <CardContent className="p-4 flex justify-between items-center">
-              <Check className="h-8 w-8" />
-              <div>
-                <p className="text-right">JUGADORES</p>
-                <p className="text-3xl font-bold text-right">{dashboardStats.players.approved}</p>
-                <p className="text-sm text-right">Aprobados</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-blue-500/80 backdrop-blur-sm text-white border-blue-400/50">
-            <CardContent className="p-4 flex justify-between items-center">
-              <Plus className="h-8 w-8" />
-               <div>
-                <p className="text-right">JUGADORES</p>
-                <p className="text-3xl font-bold text-right">{dashboardStats.players.new}</p>
-                <p className="text-sm text-right">Nuevos</p>
-              </div>
-            </CardContent>
-          </Card>
-           <Card className="bg-yellow-500/80 backdrop-blur-sm text-white border-yellow-400/50">
-            <CardContent className="p-4 flex justify-between items-center">
-              <Ban className="h-8 w-8" />
-               <div>
-                <p className="text-right">JUGADORES</p>
-                <p className="text-3xl font-bold text-right">{dashboardStats.players.rejected}</p>
-                <p className="text-sm text-right">Rechazados</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="lg:col-span-4 space-y-4">
+             <Card>
+                <CardHeader>
+                    <CardTitle>Disciplina</CardTitle>
+                     <CardDescription>Tarjetas en el torneo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="w-full h-48">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
+                                {pieData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+             </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Logros del Club</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     {achievements.slice(0, 2).map((achievement, index) => (
+                        <div key={index} className="flex items-center gap-4 mb-4">
+                            <Image src={achievement.teamLogoUrl} alt={achievement.teamName} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                            <div>
+                                <p className="font-semibold">{achievement.teamName}</p>
+                                <p className="text-sm text-amber-400 flex items-center gap-1"><Trophy className="w-4 h-4"/> {achievement.achievement} {achievement.year}</p>
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
         </div>
       </div>
       
@@ -462,6 +417,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-    
