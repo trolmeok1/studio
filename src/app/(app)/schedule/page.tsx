@@ -739,7 +739,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
     );
 };
 
-const RescheduledMatchesView = ({ matches, onUpdate }: { matches: GeneratedMatch[], onUpdate: () => void }) => {
+const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
     const allTeams = useMemo(() => [
         ...getTeamsByCategory('Máxima'),
         ...getTeamsByCategory('Primera'),
@@ -747,11 +747,6 @@ const RescheduledMatchesView = ({ matches, onUpdate }: { matches: GeneratedMatch
     ], []);
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
     const rescheduledMatches = matches.filter(m => m.rescheduled);
-
-    // This is a bit of a hack to force a re-render when the parent's state changes.
-    useEffect(() => {
-        onUpdate();
-    }, [matches, onUpdate]);
 
     return (
         <Card>
@@ -868,7 +863,6 @@ export default function SchedulePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
   const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
   const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
-  const [, forceUpdate] = useState({});
 
 
   const isTournamentStarted = generatedMatches.length > 0 || copaMatches.length > 0;
@@ -1245,7 +1239,7 @@ export default function SchedulePage() {
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
             <TabsContent value="rescheduled">
-                <RescheduledMatchesView matches={[...generatedMatches, ...copaMatches]} onUpdate={() => forceUpdate({})} />
+                <RescheduledMatchesView matches={[...generatedMatches, ...copaMatches]} />
             </TabsContent>
         </Tabs>
         
