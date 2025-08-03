@@ -333,7 +333,7 @@ export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number
 export const systemLogs: LogEntry[] = [
     {
         id: 'log1',
-        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+        timestamp: '2024-07-31T12:30:00.000Z',
         user: 'Usuario Admin',
         userAvatar: 'https://placehold.co/100x100.png',
         action: 'create',
@@ -342,7 +342,7 @@ export const systemLogs: LogEntry[] = [
     },
     {
         id: 'log2',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+        timestamp: '2024-07-31T10:00:00.000Z',
         user: 'Secretario/a',
         userAvatar: 'https://placehold.co/100x100.png',
         action: 'payment',
@@ -351,7 +351,7 @@ export const systemLogs: LogEntry[] = [
     },
      {
         id: 'log3',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+        timestamp: '2024-07-30T14:00:00.000Z',
         user: 'Usuario Admin',
         userAvatar: 'https://placehold.co/100x100.png',
         action: 'update',
@@ -360,7 +360,7 @@ export const systemLogs: LogEntry[] = [
     },
      {
         id: 'log4',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(),
+        timestamp: '2024-07-30T11:00:00.000Z',
         user: 'Usuario Admin',
         userAvatar: 'https://placehold.co/100x100.png',
         action: 'generate',
@@ -369,7 +369,7 @@ export const systemLogs: LogEntry[] = [
     },
     {
         id: 'log5',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+        timestamp: '2024-07-29T18:00:00.000Z',
         user: 'Usuario Admin',
         userAvatar: 'https://placehold.co/100x100.png',
         action: 'delete',
@@ -392,68 +392,6 @@ export const setMatchAsFinished = (matchId: string) => {
     if (index !== -1) {
         upcomingMatches[index].status = 'finished';
     }
-};
-
-export const generateFinancialReport = (matches: Match[], expenses: Expense[]): string => {
-    let report = "REPORTE FINANCIERO - LIGA LA LUZ\n";
-    report += "===================================\n\n";
-
-    let totalIncome = 0;
-    const incomeByTeam: Record<string, number> = {};
-
-    report += "INGRESOS POR VOCALÍA:\n";
-    report += "---------------------\n";
-
-    matches.forEach(match => {
-        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid') {
-            const income = match.teams.home.vocalPaymentDetails.total;
-            totalIncome += income;
-            incomeByTeam[match.teams.home.name] = (incomeByTeam[match.teams.home.name] || 0) + income;
-            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.home.name}: $${income.toFixed(2)}\n`;
-        }
-        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid') {
-            const income = match.teams.away.vocalPaymentDetails.total;
-            totalIncome += income;
-            incomeByTeam[match.teams.away.name] = (incomeByTeam[match.teams.away.name] || 0) + income;
-            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.away.name}: $${income.toFixed(2)}\n`;
-        }
-    });
-    
-    report += `\n**SUBTOTAL INGRESOS POR VOCALÍAS: $${totalIncome.toFixed(2)}**\n`;
-
-    report += "\n\nGASTOS REGISTRADOS:\n";
-    report += "-------------------\n";
-    let totalExpenses = 0;
-    expenses.forEach(expense => {
-        totalExpenses += expense.amount;
-        report += `[${new Date(expense.date).toLocaleDateString()}] ${expense.description}: -$${expense.amount.toFixed(2)}\n`;
-    });
-    report += `\n**TOTAL GASTOS: $${totalExpenses.toFixed(2)}**\n`;
-
-
-    report += "\n\nPAGOS PENDIENTES:\n";
-    report += "-----------------\n";
-    let totalPending = 0;
-    matches.forEach(match => {
-        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
-            const pendingAmount = match.teams.home.vocalPaymentDetails.total;
-            totalPending += pendingAmount;
-            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.home.name}: $${pendingAmount.toFixed(2)}\n`;
-        }
-        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending') {
-            const pendingAmount = match.teams.away.vocalPaymentDetails.total;
-            totalPending += pendingAmount;
-            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.away.name}: $${pendingAmount.toFixed(2)}\n`;
-        }
-    });
-     report += `\n**TOTAL PENDIENTE: $${totalPending.toFixed(2)}**\n`;
-
-     report += "\n\n===================================\n";
-     report += ` BALANCE FINAL (Ingresos - Gastos): $${(totalIncome - totalExpenses).toFixed(2)}\n`;
-     report += "===================================\n";
-
-
-    return report;
 };
 
 export let requalificationRequests: RequalificationRequest[] = [

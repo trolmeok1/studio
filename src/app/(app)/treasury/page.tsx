@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DollarSign, Landmark, Ban, AlertTriangle, Printer, PlusCircle, Trash2 } from 'lucide-react';
-import { upcomingMatches, teams, type Category, generateFinancialReport, expenses as mockExpenses, type Expense, addExpense, removeExpense } from '@/lib/mock-data';
+import { upcomingMatches, teams, type Category, expenses as mockExpenses, type Expense, addExpense, removeExpense } from '@/lib/mock-data';
 import { useEffect, useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { DateRange } from "react-day-picker";
+import Link from 'next/link';
 
 
 const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => void }) => {
@@ -154,19 +155,6 @@ export default function TreasuryPage() {
         return absentees;
     });
 
-    const handleGenerateReport = () => {
-        const report = generateFinancialReport(filteredMatches, filteredExpenses);
-        const blob = new Blob([report], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reporte_financiero_${format(new Date(), 'yyyy-MM-dd')}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
     const VocalPaymentDetailRow = ({ label, value }: { label: string, value: number }) => (
         <div className="flex justify-between text-xs py-0.5">
             <span className="text-muted-foreground">{label}:</span>
@@ -277,9 +265,11 @@ export default function TreasuryPage() {
                             />
                         </PopoverContent>
                     </Popover>
-                    <Button onClick={handleGenerateReport} variant="outline">
-                        <Printer className="mr-2" />
+                    <Button asChild variant="outline">
+                       <Link href="/reports">
+                         <Printer className="mr-2" />
                         Generar Reporte
+                       </Link>
                     </Button>
                 </div>
             </div>

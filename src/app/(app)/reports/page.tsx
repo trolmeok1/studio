@@ -7,14 +7,17 @@ import { Button } from '@/components/ui/button';
 import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, generateFinancialReport, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense } from '@/lib/mock-data';
+import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-
+import type { DateRange } from 'react-day-picker';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+import { Calendar as CalendarIcon } from "lucide-react";
 
 // --- Report Components ---
 
@@ -186,21 +189,95 @@ const SanctionsReport = () => {
     );
 };
 
-const FinancialReport = () => {
-     const reportText = useMemo(() => generateFinancialReport(upcomingMatches, mockExpenses), []);
-    return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
-             <header className="flex flex-col items-center text-center mb-6">
-                <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" />
-                <h1 className="text-2xl font-bold mt-2">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
-                <p className="text-lg font-semibold">REPORTE FINANCIERO</p>
-            </header>
-            <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-md">
-                {reportText}
-            </pre>
+const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) => {
+    const filteredMatches = useMemo(() => {
+        if (!dateRange?.from) return [];
+        return upcomingMatches.filter(m => {
+            const matchDate = new Date(m.date);
+            return matchDate >= dateRange.from! && matchDate <= (dateRange.to || dateRange.from!);
+        });
+    }, [dateRange]);
+
+    const filteredExpenses = useMemo(() => {
+        if (!dateRange?.from) return [];
+        return mockExpenses.filter(e => {
+            const expenseDate = new Date(e.date);
+            return expenseDate >= dateRange.from! && expenseDate <= (dateRange.to || dateRange.from!);
+        });
+    }, [dateRange]);
+
+    const income = useMemo(() => {
+        return filteredMatches.reduce((acc, match) => {
+            const homeIncome = match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.home.vocalPaymentDetails.total : 0;
+            const awayIncome = match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.away.vocalPaymentDetails.total : 0;
+            return acc + homeIncome + awayIncome;
+        }, 0);
+    }, [filteredMatches]);
+    
+    const expenses = useMemo(() => {
+        return filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
+    }, [filteredExpenses]);
+
+    const finalBalance = income - expenses;
+
+    const ReconciliationRow = ({ label, value, isTotal = false, isNegative = false }: { label: string, value: number, isTotal?: boolean, isNegative?: boolean }) => (
+        <div className={cn("flex justify-between py-1 px-2", isTotal && "font-bold border-t border-black mt-1 pt-1")}>
+            <span>{label}</span>
+            <span className={cn(isNegative && "text-red-600")}>${value.toFixed(2)}</span>
         </div>
-    )
-}
+    );
+
+    return (
+        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none font-sans">
+             <header className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-2">
+                    <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} data-ai-hint="league logo" />
+                    <div>
+                        <h1 className="text-lg font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
+                        <p className="text-xs">En confianza.</p>
+                    </div>
+                </div>
+                 <div className="text-right">
+                    <h2 className="text-xl font-bold">ESTADO DE CUENTA</h2>
+                    <p className="text-xs">Página 1 de 1</p>
+                 </div>
+            </header>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="border p-2 text-xs">
+                    <p className="font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</p>
+                    <p>RUC: 1790000000001</p>
+                    <p>QUITO, ECUADOR</p>
+                </div>
+                 <div className="border p-2 text-xs">
+                    <div className="flex justify-between">
+                        <span>FECHA INICIO REPORTE:</span>
+                        <span className="font-semibold">{dateRange?.from ? format(dateRange.from, 'dd-MM-yyyy') : 'N/A'}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span>FECHA FIN REPORTE:</span>
+                        <span className="font-semibold">{dateRange?.to ? format(dateRange.to, 'dd-MM-yyyy') : 'N/A'}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="border p-2">
+                 <h3 className="font-bold text-center bg-gray-200 py-1 mb-2">CONCILIACIÓN</h3>
+                 <div className="space-y-1 text-sm">
+                    <ReconciliationRow label="SALDO ANTERIOR" value={0} />
+                    <ReconciliationRow label="(+) DEPÓSITOS / CRÉDITOS (Vocalías)" value={income} />
+                    <ReconciliationRow label="(-) CHEQUES / DÉBITOS (Gastos)" value={expenses} isNegative />
+                    <ReconciliationRow label="INTERÉS PERIODO" value={0} />
+                    <ReconciliationRow label="SALDO ACTUAL" value={finalBalance} isTotal />
+                 </div>
+            </div>
+
+            <footer className="text-center text-xs text-gray-500 mt-8">
+                Generado por Liga Control.
+            </footer>
+        </div>
+    );
+};
 
 
 type ReportType = 'standings' | 'schedule' | 'sanctions' | 'finance' | null;
@@ -209,7 +286,10 @@ export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
     const [category, setCategory] = useState<Category>('Máxima');
     const [week, setWeek] = useState('Jornada 1');
-    const [period, setPeriod] = useState('weekly');
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+        from: new Date(),
+        to: new Date(),
+    });
 
     const handleGenerate = (type: ReportType) => {
         setReportType(type);
@@ -236,7 +316,7 @@ export default function ReportsPage() {
                     {reportType === 'standings' && <StandingsReport category={category} />}
                     {reportType === 'schedule' && <ScheduleReport week={week} />}
                     {reportType === 'sanctions' && <SanctionsReport />}
-                    {reportType === 'finance' && <FinancialReport />}
+                    {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
                 </div>
                  <style jsx global>{`
                     @media print {
@@ -258,7 +338,7 @@ export default function ReportsPage() {
                     }
                     @page {
                         size: A4 portrait;
-                        margin: 0;
+                        margin: 1cm;
                     }
                 `}</style>
             </div>
@@ -374,17 +454,42 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-2">
-                            <Label htmlFor="finance-period">Seleccionar Periodo</Label>
-                            <Select value={period} onValueChange={setPeriod}>
-                                <SelectTrigger id="finance-period">
-                                    <SelectValue placeholder="Elige un periodo..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="weekly">Semanal</SelectItem>
-                                    <SelectItem value="monthly">Mensual</SelectItem>
-                                    <SelectItem value="full">Todo el campeonato</SelectItem>
-                                </SelectContent>
-                            </Select>
+                             <Label>Seleccionar Rango de Fechas</Label>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground"
+                                    )}
+                                    >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                        <>
+                                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                                            {format(dateRange.to, "LLL dd, y")}
+                                        </>
+                                        ) : (
+                                        format(dateRange.from, "LLL dd, y")
+                                        )
+                                    ) : (
+                                        <span>Selecciona un rango</span>
+                                    )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarPicker
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                          <Button className="w-full mt-4" onClick={() => handleGenerate('finance')}>
                             <Printer className="mr-2" />
