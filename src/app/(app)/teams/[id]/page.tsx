@@ -341,28 +341,13 @@ export default function TeamDetailsPage() {
     }
   }, [teamId]);
   
-  const statsData = useMemo(() => {
-    if (!matches) return [];
-    
-    return matches
-        .filter(m => m.status === 'finished')
-        .map((m, index) => {
-            const isHome = m.teams.home.id === teamId;
-            const score = m.score;
-            let result = 'E'; // Empate
-            if (score) {
-                 if (isHome && score.home > score.away) result = 'G'; // Ganado
-                 else if (!isHome && score.away > score.home) result = 'G';
-                 else if (score.home !== score.away) result = 'P'; // Perdido
-            }
-            return {
-                name: `P${index + 1}`,
-                G: result === 'G' ? 1 : 0,
-                E: result === 'E' ? 1 : 0,
-                P: result === 'P' ? 1 : 0,
-            };
-        });
-  }, [matches, teamId]);
+  const futureMatches = useMemo(() => {
+    return matches.filter(m => m.status === 'future' || m.status === 'in-progress');
+  }, [matches]);
+
+  const finishedMatches = useMemo(() => {
+    return matches.filter(m => m.status === 'finished');
+  }, [matches]);
 
   
   const handleUpdateTeam = (updatedTeam: Team) => {
@@ -658,10 +643,10 @@ export default function TeamDetailsPage() {
         </TabsContent>
          <TabsContent value="calendar">
             <Card>
-                <CardHeader><CardTitle>Calendario del Equipo</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Próximos Partidos</CardTitle></CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {matches.length > 0 ? matches.map(match => (
+                        {futureMatches.length > 0 ? futureMatches.map(match => (
                             <Card key={match.id} className="p-4 flex items-center justify-between">
                                 <span className="text-sm font-medium">{format(new Date(match.date), "eeee, dd 'de' MMMM", { locale: es })}</span>
                                 <div className="flex items-center gap-4">
@@ -669,11 +654,7 @@ export default function TeamDetailsPage() {
                                     <span className="text-muted-foreground">vs</span>
                                     <span className={cn("font-bold", match.teams.away.id === teamId && "text-primary")}>{match.teams.away.name}</span>
                                 </div>
-                                {match.status === 'finished' ? (
-                                    <Badge variant="secondary" className="bg-green-600/80 text-white">{match.score?.home} - {match.score?.away}</Badge>
-                                ) : (
-                                    <Badge variant="outline">{format(new Date(match.date), 'p', { locale: es })}</Badge>
-                                )}
+                                <Badge variant="outline">{format(new Date(match.date), 'p', { locale: es })}</Badge>
                             </Card>
                         )) : (
                             <p className="text-muted-foreground text-center">No hay partidos programados para este equipo.</p>
@@ -698,8 +679,8 @@ export default function TeamDetailsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {matches.filter(m => m.status === 'finished').length > 0 ? (
-                                matches.filter(m => m.status === 'finished').map(match => {
+                            {finishedMatches.length > 0 ? (
+                                finishedMatches.map(match => {
                                     const isHome = match.teams.home.id === teamId;
                                     const score = match.score;
                                     let result: 'G' | 'P' | 'E' = 'E';
