@@ -341,3 +341,12 @@ export const updateMatchData = (updatedMatch: Match) => {
         upcomingMatches[index] = updatedMatch;
     }
 };
+
+export const setMatchAsFinished = (matchId: string) => {
+    const index = upcomingMatches.findIndex(m => m.id === matchId);
+    if (index !== -1) {
+        upcomingMatches[index].status = 'finished';
+    }
+};
+
+    

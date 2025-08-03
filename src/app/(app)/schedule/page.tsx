@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History, ClipboardList } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -27,28 +27,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 
-const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean }) => {
-    const [isClientWinner, setIsClientWinner] = useState(false);
-
-    useEffect(() => {
-        if (team) { // Only determine winner if there is a team
-            setIsClientWinner(Math.random() > 0.5);
-        }
-    }, [team]);
-
+const BracketNode = ({ team, isWinner }: { team: Team | null; isWinner?: boolean }) => {
     return (
         <div
-        className={cn(`flex items-center w-full h-8 px-2 border text-xs rounded-md`,
-            isWinner ?? isClientWinner ? 'bg-primary/20 border-primary font-bold' : 'bg-muted/50',
-            !team ? 'border-dashed' : 'border-solid'
-        )}
+            className={cn(`flex items-center gap-2 w-full h-8 px-2 border text-xs rounded-md`,
+                isWinner ? 'bg-primary/20 border-primary font-bold' : 'bg-muted/50',
+                !team ? 'border-dashed' : 'border-solid'
+            )}
         >
-            <span className="truncate">{team || '...'}</span>
+            {team?.logoUrl && <Image src={team.logoUrl} alt={team.name} width={16} height={16} className="rounded-full" />}
+            <span className="truncate">{team?.name || '...'}</span>
         </div>
     );
 };
 
-const Matchup = ({ teamA, teamB }: { teamA: string | null; teamB: string | null; }) => {
+const Matchup = ({ teamA, teamB }: { teamA: Team | null; teamB: Team | null; }) => {
     const [isWinnerA, setIsWinnerA] = useState(true);
 
     useEffect(() => {
@@ -65,13 +58,13 @@ const Matchup = ({ teamA, teamB }: { teamA: string | null; teamB: string | null;
     );
 };
 
-const Round = ({ title, matchups, children }: { title: string; matchups?: { teamA: {name: string}; teamB: {name: string}; }[], children?: React.ReactNode }) => {
+const Round = ({ title, matchups, children }: { title: string; matchups?: { teamA: Team | null; teamB: Team | null; }[], children?: React.ReactNode }) => {
     return (
         <div className="flex flex-col justify-around items-center w-48 gap-4">
             <h3 className="text-lg font-bold font-headline tracking-wider uppercase text-center">{title}</h3>
             <div className="flex flex-col w-full h-full justify-around gap-4">
                  {matchups && matchups.map((match, i) => (
-                    <Matchup key={i} teamA={match.teamA.name} teamB={match.teamB.name} />
+                    <Matchup key={i} teamA={match.teamA} teamB={match.teamB} />
                 ))}
                 {children}
             </div>
@@ -79,39 +72,22 @@ const Round = ({ title, matchups, children }: { title: string; matchups?: { team
     )
 }
 
-const CopaBracket = () => {
-    const [bracketTeams, setBracketTeams] = useState<Team[]>([]);
-
-    useEffect(() => {
-        const allTeams: Team[] = [
-            ...getTeamsByCategory('Máxima'),
-            ...getTeamsByCategory('Primera'),
-            ...getTeamsByCategory('Segunda')
-        ];
-        
-        allTeams.sort(() => 0.5 - Math.random());
-
-        const selectedTeams = allTeams.slice(0, 16);
-
-        while (selectedTeams.length < 16) {
-            selectedTeams.push({
-                id: `fake-${selectedTeams.length + 1}`,
-                name: `Equipo ${selectedTeams.length + 1}`,
-                logoUrl: 'https://placehold.co/100x100.png',
-                category: 'Máxima'
-            });
-        }
-        setBracketTeams(selectedTeams);
-    }, []);
-
-    if (bracketTeams.length === 0) {
-        return <div>Generando bracket...</div>
+const CopaBracket = ({ teams }: { teams: Team[] }) => {
+    if (teams.length === 0) {
+       return (
+         <div className="text-center py-10 text-muted-foreground">
+            <p>Aún no has configurado la copa.</p>
+            <p>Usa el botón "Iniciar Copa" para seleccionar los equipos participantes.</p>
+        </div>
+       )
     }
 
-    const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: bracketTeams[i*2], teamB: bracketTeams[i*2+1] }));
+    const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: teams[i*2] || null, teamB: teams[i*2+1] || null }));
     const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: octavos[i*2].teamA, teamB: octavos[i*2+1].teamA })); // Dummy winners
     const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: cuartos[i*2].teamA, teamB: cuartos[i*2+1].teamA })); // Dummy winners
     const final = { teamA: semifinal[0].teamA, teamB: semifinal[1].teamA }; // Dummy winners
+    
+    const winner = final.teamA;
 
     return (
         <div className="flex justify-center items-stretch gap-4 md:gap-8 p-4 bg-background/50 rounded-md overflow-x-auto">
@@ -119,11 +95,16 @@ const CopaBracket = () => {
             <Round title="Cuartos" matchups={cuartos} />
             <Round title="Semifinal" matchups={semifinal} />
             <Round title="Final">
-                 <Matchup teamA={final.teamA.name} teamB={final.teamB.name} />
-                 <div className="mt-4 text-center">
-                    <p className="text-sm text-muted-foreground">Campeón</p>
-                    <p className="text-xl font-bold text-amber-400">🏆 {final.teamA.name} 🏆</p>
-                </div>
+                 <Matchup teamA={final.teamA} teamB={final.teamB} />
+                 {winner && (
+                    <div className="mt-4 text-center">
+                        <p className="text-sm text-muted-foreground">Campeón</p>
+                         <div className="flex flex-col items-center gap-2 mt-2">
+                             <Image src={winner.logoUrl} alt={winner.name} width={40} height={40} className="rounded-full" />
+                            <p className="text-xl font-bold text-amber-400">🏆 {winner.name} 🏆</p>
+                        </div>
+                    </div>
+                )}
             </Round>
         </div>
     );
@@ -787,11 +768,73 @@ const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
     )
 }
 
+const CopaSettingsDialog = ({ onGenerate }: { onGenerate: (settings: { teams: Team[] }) => void }) => {
+    const allTeams = useMemo(() => [
+        ...getTeamsByCategory('Máxima'),
+        ...getTeamsByCategory('Primera'),
+        ...getTeamsByCategory('Segunda'),
+    ], []);
+    const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+
+    const handleTeamToggle = (teamId: string) => {
+        setSelectedTeamIds(prev => 
+            prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
+        );
+    };
+
+    const handleSubmit = () => {
+        const selectedTeams = allTeams.filter(team => selectedTeamIds.includes(team.id));
+        onGenerate({ teams: selectedTeams });
+    };
+
+    return (
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>Configuración de la Copa</DialogTitle>
+                <DialogDescription>Selecciona los equipos que participarán en el torneo de copa.</DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[60vh] pr-6 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allTeams.map(team => (
+                        <Card 
+                            key={team.id} 
+                            onClick={() => handleTeamToggle(team.id)}
+                            className={cn(
+                                "p-3 cursor-pointer transition-all flex items-center gap-3",
+                                selectedTeamIds.includes(team.id) && "ring-2 ring-primary bg-primary/10"
+                            )}
+                        >
+                            <Checkbox checked={selectedTeamIds.includes(team.id)} onCheckedChange={() => handleTeamToggle(team.id)} />
+                            <Image src={team.logoUrl} alt={team.name} width={32} height={32} className="rounded-full" />
+                            <div className="flex-1">
+                                <p className="font-semibold text-sm">{team.name}</p>
+                                <p className="text-xs text-muted-foreground">{team.category}</p>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </ScrollArea>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                 <DialogClose asChild>
+                    <Button onClick={handleSubmit} disabled={selectedTeamIds.length === 0}>
+                        Generar Bracket ({selectedTeamIds.length} equipos)
+                    </Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    );
+};
+
 
 export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
+  const [copaTeams, setCopaTeams] = useState<Team[]>([]);
   const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
+  const [isCopaDialogOpen, setIsCopaDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [resetAlertStep, setResetAlertStep] = useState(0);
@@ -976,6 +1019,10 @@ export default function SchedulePage() {
             onOpenChange={setIsRescheduleDialogOpen}
             onReschedule={handleReschedule}
         />
+        
+        <Dialog open={isCopaDialogOpen} onOpenChange={setIsCopaDialogOpen}>
+            <CopaSettingsDialog onGenerate={({ teams }) => setCopaTeams(teams)} />
+        </Dialog>
 
         <Tabs defaultValue="general" className="space-y-4">
             <TabsList>
@@ -991,12 +1038,18 @@ export default function SchedulePage() {
             </TabsContent>
             <TabsContent value="copa">
             <Card>
-                <CardHeader>
-                <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
-                <CardDescription>Torneo de eliminación directa con 16 equipos de todas las categorías.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                     <div>
+                        <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
+                        <CardDescription>Torneo de eliminación directa con los equipos seleccionados.</CardDescription>
+                    </div>
+                     <Button onClick={() => setIsCopaDialogOpen(true)}>
+                        <Trophy className="mr-2"/>
+                        Iniciar Copa
+                    </Button>
                 </CardHeader>
                 <CardContent>
-                <CopaBracket />
+                <CopaBracket teams={copaTeams} />
                 </CardContent>
             </Card>
             </TabsContent>
@@ -1084,6 +1137,3 @@ export default function SchedulePage() {
 }
 
     
-    
-
-

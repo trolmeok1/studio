@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById } from '@/lib/mock-data';
+import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -232,7 +232,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     )
 }
 
-const DigitalMatchSheet = ({ match, onUpdateMatch }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void }) => {
+const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void, onFinishMatch: (matchId: string) => void }) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const canEdit = user.role === 'admin' || user.role === 'secretary';
@@ -386,6 +386,12 @@ const DigitalMatchSheet = ({ match, onUpdateMatch }: { match: Match | null, onUp
             (typeof updatedPayment.otherFines === 'number' ? updatedPayment.otherFines : 0);
             
         handleMatchDataChange(teamKey, 'vocalPaymentDetails', { ...updatedPayment, total });
+    }
+    
+    const handleSaveResult = () => {
+        if (!match) return;
+        onFinishMatch(match.id);
+        toast({ title: "Partido Finalizado", description: "El resultado ha sido guardado y el partido marcado como finalizado."});
     }
 
     const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'home' | 'away' }) => {
@@ -578,8 +584,8 @@ const DigitalMatchSheet = ({ match, onUpdateMatch }: { match: Match | null, onUp
                             )}
                         </CardContent>
                      </Card>
-                      <Button className="w-full" size="lg" disabled={!canEdit} onClick={() => toast({ title: "Guardado", description: "Resultado del partido guardado exitosamente."})}>
-                        Guardar Resultado del Partido
+                      <Button className="w-full" size="lg" disabled={!canEdit || match.status === 'finished'} onClick={handleSaveResult}>
+                        {match.status === 'finished' ? 'Partido Finalizado' : 'Guardar y Finalizar Partido'}
                       </Button>
                 </div>
 
@@ -607,6 +613,12 @@ export default function CommitteesPage() {
     updateMatchData(updatedMatch);
     // Force a re-render by setting the selected match again
     setSelectedMatchId(updatedMatch.id);
+  }
+  
+  const handleFinishMatch = (matchId: string) => {
+    setMatchAsFinished(matchId);
+    // Force a re-render by setting the selected match again
+    setSelectedMatchId(matchId);
   }
 
   const selectedMatch = useMemo(() => {
@@ -721,7 +733,7 @@ export default function CommitteesPage() {
                      </CardContent>
                  </CardHeader>
             </Card>
-             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} />
+             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} />
           </TabsContent>
         </Tabs>
 
@@ -764,3 +776,5 @@ export default function CommitteesPage() {
     </div>
   );
 }
+
+    
