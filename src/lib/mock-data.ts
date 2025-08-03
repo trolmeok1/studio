@@ -1,5 +1,29 @@
 
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Referee } from './types';
+
+export let referees: Referee[] = [
+    { id: 'ref-1', name: 'Néstor Pitana', category: 'A' },
+    { id: 'ref-2', name: 'Björn Kuipers', category: 'A' },
+    { id: 'ref-3', name: 'Cüneyt Çakır', category: 'B' },
+    { id: 'ref-4', name: 'Daniele Orsato', category: 'B' },
+    { id: 'ref-5', name: 'Antonio Mateu Lahoz', category: 'C' },
+    { id: 'ref-6', name: 'Szymon Marciniak', category: 'A' },
+];
+
+export const getReferees = (): Referee[] => referees;
+export const addReferee = (referee: Omit<Referee, 'id'>) => {
+    const newReferee: Referee = { id: `ref-${Date.now()}`, ...referee };
+    referees.push(newReferee);
+    return newReferee;
+}
+export const updateReferee = (updatedReferee: Referee) => {
+    const index = referees.findIndex(r => r.id === updatedReferee.id);
+    if (index !== -1) {
+        referees[index] = updatedReferee;
+    }
+    return updatedReferee;
+}
+
 
 export let teams: Team[] = [
   // Máxima Category - 12 teams

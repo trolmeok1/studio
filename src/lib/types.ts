@@ -1,11 +1,9 @@
-
-
-
-
-
-
-
-
+export type Referee = {
+    id: string;
+    name: string;
+    phone?: string;
+    category: 'A' | 'B' | 'C';
+};
 
 export type Category = 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
@@ -106,6 +104,10 @@ export interface GeneratedMatch {
     field?: number;
     rescheduled?: boolean;
     originalDate?: Date;
+    refereeId?: string;
+    homeDressingRoom?: number;
+    awayDressingRoom?: number;
+    round?: number;
 }
 
 export interface MatchDataTeam extends Team {

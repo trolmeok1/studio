@@ -27,6 +27,7 @@ import {
   Landmark,
   FileClock,
   ClipboardList,
+  UserCheck,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -145,6 +146,16 @@ export function AppSidebar() {
                       <Link href="/requests/requalification">
                           <ClipboardList />
                           <span>Solicitudes</span>
+                      </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+               )}
+               {isAdmin && (
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/referees')} tooltip="Árbitros">
+                      <Link href="/referees">
+                          <UserCheck />
+                          <span>Árbitros</span>
                       </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

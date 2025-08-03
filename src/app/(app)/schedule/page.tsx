@@ -3,9 +3,9 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
+import { standings as mockStandings, getTeamsByCategory, Team, Category, getReferees, Referee } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -118,6 +118,7 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
     ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
+    const assignedReferee = getReferees().find(r => r.id === match.refereeId);
     
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
@@ -127,14 +128,16 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
             <Card className="overflow-hidden transition-all group-hover:shadow-lg">
                 <div className="relative grid grid-cols-2">
                     {/* Team A Panel */}
-                    <div className="bg-blue-900/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-40">
+                    <div className="bg-blue-900/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-48">
                          <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
                          <span className="font-bold text-sm leading-tight">{homeTeam?.name || match.home}</span>
+                         {match.homeDressingRoom && <Badge variant="secondary" className="mt-1">Camerino {match.homeDressingRoom}</Badge>}
                     </div>
                      {/* Team B Panel */}
-                    <div className="bg-gray-700/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-40">
+                    <div className="bg-gray-700/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-48">
                          <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
                         <span className="font-bold text-sm leading-tight">{awayTeam?.name || 'Away'}</span>
+                        {match.awayDressingRoom && <Badge variant="secondary" className="mt-1">Camerino {match.awayDressingRoom}</Badge>}
                     </div>
 
                     {/* Center Info */}
@@ -146,7 +149,8 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
                              {showCategory && <Badge variant="secondary" className="text-xs">{match.category}{match.group && ` - ${match.group}`}</Badge>}
                              <Badge variant="secondary" className="text-xs">{match.leg}</Badge>
                         </div>
-                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-full flex flex-col items-center gap-1">
+                            {assignedReferee && <Badge className="bg-black/50 text-white backdrop-blur-sm"><UserCheck className="mr-1.5" />{assignedReferee.name}</Badge>}
                             <Badge className="bg-black/50 text-white backdrop-blur-sm">
                                 {isClient && match.time ? `${match.time}` : 'Por definir'}
                                 {match.field && ` / Cancha ${match.field}`}
@@ -167,10 +171,11 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
     ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
+    const assignedReferee = getReferees().find(r => r.id === match.refereeId);
 
     return (
         <Link href={`/partido`} className="block group">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer p-0">
                 <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 w-2/5 justify-end">
                         <span className="font-bold text-sm text-right truncate">{homeTeam?.name || match.home}</span>
@@ -187,6 +192,11 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
                         <span className="font-bold text-sm truncate">{awayTeam?.name || 'Away'}</span>
                     </div>
                 </CardContent>
+                <div className="border-t p-2 flex justify-center items-center text-xs text-muted-foreground gap-4">
+                     <span><Badge variant="outline" className="px-1.5 py-0.5">Cancha {match.field}</Badge></span>
+                    {assignedReferee && <span><Badge variant="outline" className="px-1.5 py-0.5">{assignedReferee.name}</Badge></span>}
+                    <span><Badge variant="outline" className="px-1.5 py-0.5">V: {match.homeDressingRoom} / F: {match.awayDressingRoom}</Badge></span>
+                </div>
             </Card>
         </Link>
     );
@@ -462,8 +472,13 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
     const [numFields, setNumFields] = useState(1);
-    const [priorityCategory, setPriorityCategory] = useState<Category | ''>('');
-    const [priorityCount, setPriorityCount] = useState(0);
+    const [numDressingRooms, setNumDressingRooms] = useState(4);
+    const [selectedRefereeIds, setSelectedRefereeIds] = useState<string[]>([]);
+    const [allReferees, setAllReferees] = useState<Referee[]>([]);
+
+    useEffect(() => {
+        setAllReferees(getReferees());
+    }, []);
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -478,14 +493,18 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const handleAddTime = () => setGameTimes([...gameTimes, '']);
     const handleRemoveTime = (index: number) => setGameTimes(gameTimes.filter((_, i) => i !== index));
 
+    const handleRefereeToggle = (refId: string) => {
+        setSelectedRefereeIds(prev => prev.includes(refId) ? prev.filter(id => id !== refId) : [...prev, refId]);
+    }
+
     const handleSubmit = () => {
         onGenerate({
             startDate,
             gameDays,
             gameTimes: gameTimes.filter(t => t).sort(), // Filter out empty time slots and sort them
             numFields,
-            priorityCategory,
-            priorityCount,
+            numDressingRooms,
+            selectedRefereeIds,
         });
     }
 
@@ -519,9 +538,15 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                             ))}
                         </div>
                     </div>
-                     <div>
-                        <Label htmlFor="numFields">Número de Canchas</Label>
-                        <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="numFields">Número de Canchas</Label>
+                            <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
+                        </div>
+                         <div>
+                            <Label htmlFor="numDressingRooms">Número de Camerinos</Label>
+                            <Input id="numDressingRooms" type="number" value={numDressingRooms} onChange={e => setNumDressingRooms(parseInt(e.target.value) || 4)} min="4" />
+                        </div>
                     </div>
                     <div>
                         <Label>Horarios de los Partidos</Label>
@@ -536,20 +561,15 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                         </div>
                     </div>
                     <div className="border-t pt-4">
-                         <Label>Prioridad de Partidos (Opcional)</Label>
-                         <p className="text-xs text-muted-foreground mb-2">Asegura que un número de partidos de una categoría se jueguen la primera semana.</p>
-                         <div className="grid grid-cols-2 gap-2">
-                             <Select onValueChange={(v) => setPriorityCategory(v as Category)} value={priorityCategory}>
-                                 <SelectTrigger>
-                                     <SelectValue placeholder="Categoría Prioritaria"/>
-                                 </SelectTrigger>
-                                 <SelectContent>
-                                     <SelectItem value="Máxima">Máxima</SelectItem>
-                                     <SelectItem value="Primera">Primera</SelectItem>
-                                     <SelectItem value="Segunda">Segunda</SelectItem>
-                                 </SelectContent>
-                             </Select>
-                             <Input type="number" placeholder="No. de partidos" value={priorityCount || ''} onChange={e => setPriorityCount(parseInt(e.target.value) || 0)} min="0"/>
+                         <Label>Árbitros Disponibles para el Torneo</Label>
+                         <p className="text-xs text-muted-foreground mb-2">Selecciona los árbitros que dirigirán los partidos.</p>
+                         <div className="space-y-2">
+                            {allReferees.map(referee => (
+                                <div key={referee.id} className="flex items-center gap-2 rounded-md p-2 border bg-muted/50">
+                                    <Checkbox id={`ref-${referee.id}`} checked={selectedRefereeIds.includes(referee.id)} onCheckedChange={() => handleRefereeToggle(referee.id)} />
+                                    <Label htmlFor={`ref-${referee.id}`} className="font-normal">{referee.name}</Label>
+                                </div>
+                            ))}
                          </div>
                     </div>
                 </div>
@@ -559,7 +579,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                     <Button variant="outline">Cancelar</Button>
                 </DialogClose>
                 <DialogClose asChild>
-                    <Button onClick={handleSubmit}>Generar Calendario</Button>
+                    <Button onClick={handleSubmit} disabled={selectedRefereeIds.length === 0}>Generar Calendario</Button>
                 </DialogClose>
             </DialogFooter>
         </DialogContent>
@@ -843,7 +863,7 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, priorityCategory?: Category | '', priorityCount?: number }) => {
+  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[] }) => {
     
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
@@ -894,29 +914,17 @@ export default function SchedulePage() {
             allVueltaMatches.push(...vuelta);
         }
     });
+    
+    allIdaMatches.sort(() => 0.5 - Math.random());
+    allVueltaMatches.sort(() => 0.5 - Math.random());
 
-    let matchQueue: GeneratedMatch[] = [];
+    const matchQueue = [...allIdaMatches, ...allVueltaMatches];
 
-    // Prioritize matches if needed
-    if (settings.priorityCategory && settings.priorityCount && settings.priorityCount > 0) {
-        let potentialPriorityMatches = allIdaMatches.filter(m => m.category === settings.priorityCategory);
-        potentialPriorityMatches.sort(() => 0.5 - Math.random());
-        const priorityMatches = potentialPriorityMatches.slice(0, settings.priorityCount);
-        matchQueue.push(...priorityMatches);
-        
-        allIdaMatches = allIdaMatches.filter(match => 
-            !priorityMatches.some(p => p.home === match.home && p.away === match.away && p.leg === match.leg)
-        );
-    }
-
-    // Combine and shuffle
-    const allMatches = [...allIdaMatches, ...allVueltaMatches];
-    allMatches.sort(() => 0.5 - Math.random()); // Shuffle all matches
-    matchQueue = [...matchQueue, ...allMatches]; // Add shuffled matches after priority ones
-
-    // Assign dates and times
+    // Assign dates, times, referees, and dressing rooms
     let scheduledMatches: GeneratedMatch[] = [];
     let currentDate = startOfDay(settings.startDate);
+    let refereeIndex = 0;
+    let dressingRoomIndex = 0;
     
     while(matchQueue.length > 0) {
         const dayOfWeek = getDay(currentDate);
@@ -934,11 +942,22 @@ export default function SchedulePage() {
                  const timeParts = time.split(':');
                  const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
 
+                 const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
+                 refereeIndex++;
+                 
+                 const homeDressingRoom = (dressingRoomIndex % settings.numDressingRooms) + 1;
+                 dressingRoomIndex++;
+                 const awayDressingRoom = (dressingRoomIndex % settings.numDressingRooms) + 1;
+                 dressingRoomIndex++;
+
                  scheduledMatches.push({
                     ...match,
                     date: matchDateTime,
                     time: format(matchDateTime, 'HH:mm'),
                     field: field,
+                    refereeId: refereeId,
+                    homeDressingRoom: homeDressingRoom,
+                    awayDressingRoom: awayDressingRoom,
                 });
             });
         }
@@ -1135,5 +1154,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
