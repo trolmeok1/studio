@@ -739,7 +739,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
     );
 };
 
-const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
+const RescheduledMatchesView = ({ matches, onUpdate }: { matches: GeneratedMatch[], onUpdate: () => void }) => {
     const allTeams = useMemo(() => [
         ...getTeamsByCategory('Máxima'),
         ...getTeamsByCategory('Primera'),
@@ -747,6 +747,11 @@ const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
     ], []);
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
     const rescheduledMatches = matches.filter(m => m.rescheduled);
+
+    // This is a bit of a hack to force a re-render when the parent's state changes.
+    useEffect(() => {
+        onUpdate();
+    }, [matches, onUpdate]);
 
     return (
         <Card>
@@ -859,9 +864,11 @@ export default function SchedulePage() {
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [resetAlertStep, setResetAlertStep] = useState(0);
+  const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
   const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
   const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+  const [, forceUpdate] = useState({});
 
 
   const isTournamentStarted = generatedMatches.length > 0 || copaMatches.length > 0;
@@ -1034,13 +1041,16 @@ export default function SchedulePage() {
   const handleResetConfirm = () => {
     setGeneratedMatches([]);
     setCopaMatches([]);
-    setCopaTeams([]);
     setResetAlertStep(0);
-    toast({ title: '¡Torneo Reiniciado!', description: 'Todos los calendarios han sido borrados.'});
+    toast({ title: '¡Calendarios Reiniciados!', description: 'Todos los partidos programados han sido borrados.'});
   };
   
   const handleFinalizeTournament = () => {
-    handleResetConfirm();
+    setGeneratedMatches([]);
+    setCopaMatches([]);
+    setCopaTeams([]);
+    setFinalizeAlertStep(0);
+    toast({ title: '¡Torneo Finalizado!', description: 'Todos los datos de la temporada han sido reiniciados.'});
   };
 
 
@@ -1115,7 +1125,7 @@ export default function SchedulePage() {
                                 <RefreshCw className="mr-2" />
                                 Reiniciar Calendarios
                             </Button>
-                            <Button variant="destructive" onClick={() => setResetAlertStep(1)}>
+                            <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
                                 <Trophy className="mr-2" />
                                 Finalizar Torneo
                             </Button>
@@ -1235,7 +1245,7 @@ export default function SchedulePage() {
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
             <TabsContent value="rescheduled">
-                <RescheduledMatchesView matches={[...generatedMatches, ...copaMatches]} />
+                <RescheduledMatchesView matches={[...generatedMatches, ...copaMatches]} onUpdate={() => forceUpdate({})} />
             </TabsContent>
         </Tabs>
         
@@ -1256,7 +1266,8 @@ export default function SchedulePage() {
             </AlertDialogContent>
         </AlertDialog>
         
-        <ResetDialog step={resetAlertStep} onStepChange={setResetAlertStep} onConfirm={handleResetConfirm} />
+        <ResetDialog step={resetAlertStep} onStepChange={setResetAlertStep} onConfirm={handleResetConfirm} actionType="restart" />
+        <ResetDialog step={finalizeAlertStep} onStepChange={setFinalizeAlertStep} onConfirm={handleFinalizeTournament} actionType="finalize" />
 
     </div>
   );
