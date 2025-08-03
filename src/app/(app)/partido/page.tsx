@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { Goal } from 'lucide-react';
 
 const MatchCard = ({ match }: { match: Match }) => {
     const [isClient, setIsClient] = useState(false);
@@ -30,11 +31,15 @@ const MatchCard = ({ match }: { match: Match }) => {
                 return null;
         }
     };
+    
+    const goalScorersHome = match.events.filter(e => e.event === 'goal' && e.teamName === match.teams.home.name);
+    const goalScorersAway = match.events.filter(e => e.event === 'goal' && e.teamName === match.teams.away.name);
+
 
     return (
-        <Link href={`/teams/${match.teams.home.id}`}>
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
+        <Card className="hover:bg-muted/50 transition-colors">
+            <Link href={`/teams/${match.teams.home.id}`}>
+                <CardContent className="p-4 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3 w-2/5 justify-end">
                         <span className="font-bold text-right truncate">{match.teams.home.name}</span>
                         <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
@@ -58,8 +63,34 @@ const MatchCard = ({ match }: { match: Match }) => {
                         <span className="font-bold truncate">{match.teams.away.name}</span>
                     </div>
                 </CardContent>
-            </Card>
-        </Link>
+            </Link>
+             {match.status === 'finished' && (goalScorersHome.length > 0 || goalScorersAway.length > 0) && (
+                <div className="p-4 border-t grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <h4 className="font-semibold mb-2">Goles de {match.teams.home.name}</h4>
+                        <ul className="space-y-1">
+                            {goalScorersHome.map(event => (
+                                <li key={event.id} className="flex items-center gap-2">
+                                    <Goal className="h-4 w-4 text-primary" />
+                                    <span>{event.playerName}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold mb-2">Goles de {match.teams.away.name}</h4>
+                        <ul className="space-y-1">
+                            {goalScorersAway.map(event => (
+                                <li key={event.id} className="flex items-center gap-2">
+                                    <Goal className="h-4 w-4 text-primary" />
+                                    <span>{event.playerName}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+        </Card>
     );
 };
 
@@ -130,5 +161,3 @@ export default function PartidoPage() {
     </div>
   );
 }
-
-    

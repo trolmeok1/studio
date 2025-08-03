@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getTeamById, getPlayersByTeamId, type Player, type Team, type PlayerPosition, upcomingMatches, type Person } from '@/lib/mock-data';
+import { useState, useEffect, useMemo } from 'react';
+import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type PlayerPosition, type Person, type Match } from '@/lib/mock-data';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer, Pencil, List, LayoutGrid } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer, Pencil, List, LayoutGrid, Hand, Trophy, Check, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -25,6 +25,8 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const initialNewPlayerState = {
     id: '',
@@ -321,6 +323,8 @@ export default function TeamDetailsPage() {
 
   const [team, setTeam] = useState<Team | undefined>(undefined);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [teamSanctions, setTeamSanctions] = useState<typeof sanctions>([]);
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [rosterView, setRosterView] = useState<'cards' | 'list'>('cards');
@@ -331,8 +335,34 @@ export default function TeamDetailsPage() {
     if (fetchedTeam) {
       setTeam(fetchedTeam);
       setPlayers(getPlayersByTeamId(teamId));
+      setMatches(getMatchesByTeamId(teamId));
+      setTeamSanctions(sanctions.filter(s => s.teamId === teamId));
     }
   }, [teamId]);
+  
+  const statsData = useMemo(() => {
+    if (!matches) return [];
+    
+    return matches
+        .filter(m => m.status === 'finished')
+        .map((m, index) => {
+            const isHome = m.teams.home.id === teamId;
+            const score = m.score;
+            let result = 'E'; // Empate
+            if (score) {
+                 if (isHome && score.home > score.away) result = 'G'; // Ganado
+                 else if (!isHome && score.away > score.home) result = 'G';
+                 else if (score.home !== score.away) result = 'P'; // Perdido
+            }
+            return {
+                name: `P${index + 1}`,
+                G: result === 'G' ? 1 : 0,
+                E: result === 'E' ? 1 : 0,
+                P: result === 'P' ? 1 : 0,
+            };
+        });
+  }, [matches, teamId]);
+
   
   const handleUpdateTeam = (updatedTeam: Team) => {
     setTeam(updatedTeam);
@@ -353,7 +383,7 @@ export default function TeamDetailsPage() {
     });
   };
 
-  if (!team) {
+  if (!team || !isClient) {
     return <div>Cargando...</div>;
   }
   
@@ -373,10 +403,19 @@ export default function TeamDetailsPage() {
     </div>
   );
 
-  const pendingPayments = upcomingMatches.filter(match => 
-    (match.teams.home.id === teamId && match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') ||
-    (match.teams.away.id === teamId && match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending')
-  );
+  const vocalPayments = matches
+    .filter(m => m.status === 'finished')
+    .map(match => {
+        const isHome = match.teams.home.id === teamId;
+        const details = isHome ? match.teams.home.vocalPaymentDetails : match.teams.away.vocalPaymentDetails;
+        return {
+            date: match.date,
+            opponent: isHome ? match.teams.away.name : match.teams.home.name,
+            amount: details?.total || 0,
+            status: details?.paymentStatus || 'pending'
+        };
+  });
+  
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -585,59 +624,114 @@ export default function TeamDetailsPage() {
             <Card>
                 <CardHeader><CardTitle>Estado Financiero</CardTitle></CardHeader>
                 <CardContent>
-                    {pendingPayments.length > 0 ? (
-                        <div className="space-y-4">
-                            {pendingPayments.map(match => {
-                                const details = match.teams.home.id === teamId ? match.teams.home.vocalPaymentDetails : match.teams.away.vocalPaymentDetails;
-                                const opponent = match.teams.home.id === teamId ? match.teams.away : match.teams.home;
-                                return (
-                                <Card key={match.id} className="bg-destructive/10 border-destructive">
-                                    <CardHeader className="flex-row items-center justify-between pb-2">
-                                        <div className="flex items-center gap-2">
-                                            <AlertTriangle className="text-destructive"/>
-                                            <CardTitle className="text-lg">Pago de Vocalía Pendiente</CardTitle>
-                                        </div>
-                                         <Badge variant="destructive">DEUDA</Badge>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p>Partido contra <strong>{opponent.name}</strong></p>
-                                        <p>Fecha: {isClient ? new Date(match.date).toLocaleDateString() : ''}</p>
-                                        <p className="text-2xl font-bold mt-2 text-destructive">${details?.total.toFixed(2)}</p>
-                                        <Button className="mt-2" asChild>
-                                            <Link href="/committees">Ir a Pagar</Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            )})}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground">El equipo está al día con sus pagos.</p>
-                    )}
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Oponente</TableHead>
+                                <TableHead>Monto Vocalía</TableHead>
+                                <TableHead>Estado</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {vocalPayments.length > 0 ? vocalPayments.map((payment, index) => (
+                                <TableRow key={index}>
+                                    <TableCell>{format(new Date(payment.date), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell>{payment.opponent}</TableCell>
+                                    <TableCell>${payment.amount.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={payment.status === 'paid' ? 'bg-green-600' : ''}>
+                                            {payment.status === 'paid' ? 'Pagado' : 'Pendiente'}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">No hay registros financieros.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
         </TabsContent>
          <TabsContent value="calendar">
             <Card>
-                <CardHeader><CardTitle>Calendario</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Próximamente...</p></CardContent>
+                <CardHeader><CardTitle>Calendario del Equipo</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {matches.length > 0 ? matches.map(match => (
+                            <Card key={match.id} className="p-4 flex items-center justify-between">
+                                <span className="text-sm font-medium">{format(new Date(match.date), "eeee, dd 'de' MMMM", { locale: es })}</span>
+                                <div className="flex items-center gap-4">
+                                    <span className={cn("font-bold", match.teams.home.id === teamId && "text-primary")}>{match.teams.home.name}</span>
+                                    <span className="text-muted-foreground">vs</span>
+                                    <span className={cn("font-bold", match.teams.away.id === teamId && "text-primary")}>{match.teams.away.name}</span>
+                                </div>
+                                {match.status === 'finished' ? (
+                                    <Badge variant="secondary" className="bg-green-600/80 text-white">{match.score?.home} - {match.score?.away}</Badge>
+                                ) : (
+                                    <Badge variant="outline">{format(new Date(match.date), 'p', { locale: es })}</Badge>
+                                )}
+                            </Card>
+                        )) : (
+                            <p className="text-muted-foreground text-center">No hay partidos programados para este equipo.</p>
+                        )}
+                    </div>
+                </CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="stats">
             <Card>
-                <CardHeader><CardTitle>Estadísticas</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Próximamente...</p></CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="results">
-            <Card>
-                <CardHeader><CardTitle>Resultados</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Próximamente...</p></CardContent>
+                <CardHeader><CardTitle>Rendimiento del Equipo</CardTitle></CardHeader>
+                <CardContent>
+                     <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={statsData}>
+                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                                <Tooltip
+                                    contentStyle={{
+                                        background: "hsl(var(--background))",
+                                        border: "1px solid hsl(var(--border))",
+                                        borderRadius: "var(--radius)",
+                                    }}
+                                />
+                                <Bar dataKey="G" fill="#16a34a" name="Ganados" stackId="a" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="E" fill="#f59e0b" name="Empatados" stackId="a" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="P" fill="#ef4444" name="Perdidos" stackId="a" radius={[0, 0, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="sanctions">
             <Card>
-                <CardHeader><CardTitle>Sanciones</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Próximamente...</p></CardContent>
+                <CardHeader><CardTitle>Sanciones del Equipo</CardTitle></CardHeader>
+                <CardContent>
+                    {teamSanctions.length > 0 ? (
+                        <div className="space-y-4">
+                        {teamSanctions.map(sanction => (
+                            <Card key={sanction.id} className="flex items-center p-4 gap-4 bg-muted/50">
+                                <Avatar className="h-12 w-12">
+                                    <AvatarImage src={sanction.playerPhotoUrl} alt={sanction.playerName} data-ai-hint="player portrait" />
+                                    <AvatarFallback>{sanction.playerName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-grow">
+                                    <p className="font-bold">{sanction.playerName}</p>
+                                    <p className="text-sm">{sanction.reason}</p>
+                                </div>
+                                <Badge variant="destructive">
+                                    {sanction.gamesSuspended} Partido(s)
+                                </Badge>
+                            </Card>
+                        ))}
+                        </div>
+                    ) : (
+                         <p className="text-muted-foreground text-center">Este equipo no tiene jugadores sancionados.</p>
+                    )}
+                </CardContent>
             </Card>
         </TabsContent>
       </Tabs>

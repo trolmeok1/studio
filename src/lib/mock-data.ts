@@ -200,7 +200,11 @@ export let upcomingMatches: Match[] = [
         },
         status: 'finished',
         score: { home: 2, away: 1 },
-        events: []
+        events: [
+            { id: 'evt-m1-1', playerId: 'p-001', playerName: 'Lionel Messi', teamName: 'Cosmic Comets', event: 'goal' },
+            { id: 'evt-m1-2', playerId: 'p-002', playerName: 'Cristiano Ronaldo', teamName: 'Cosmic Comets', event: 'goal' },
+            { id: 'evt-m1-3', playerId: 'p-004', playerName: 'Kylian Mbappé', teamName: 'Solar Flares', event: 'goal' },
+        ]
     },
     {
         id: 'm2',
@@ -272,6 +276,8 @@ export const getTeamsByCategory = (category: Category, group?: 'A' | 'B'): Team[
     if (!group) return categoryMatch;
     return categoryMatch && t.group === group;
 });
+export const getMatchesByTeamId = (teamId: string): Match[] => upcomingMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
+
 
 // Function to update player stats
 export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number, yellowCards: number, redCards: number }) => {
@@ -349,4 +355,55 @@ export const setMatchAsFinished = (matchId: string) => {
     }
 };
 
+export const generateFinancialReport = (matches: Match[]): string => {
+    let report = "REPORTE FINANCIERO - LIGA LA LUZ\n";
+    report += "===================================\n\n";
     
+    let totalIncome = 0;
+    const incomeByTeam: Record<string, number> = {};
+
+    report += "INGRESOS POR VOCALÍA:\n";
+    report += "---------------------\n";
+
+    matches.forEach(match => {
+        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid') {
+            const income = match.teams.home.vocalPaymentDetails.total;
+            totalIncome += income;
+            incomeByTeam[match.teams.home.name] = (incomeByTeam[match.teams.home.name] || 0) + income;
+            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.home.name}: $${income.toFixed(2)}\n`;
+        }
+        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid') {
+            const income = match.teams.away.vocalPaymentDetails.total;
+            totalIncome += income;
+            incomeByTeam[match.teams.away.name] = (incomeByTeam[match.teams.away.name] || 0) + income;
+            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.away.name}: $${income.toFixed(2)}\n`;
+        }
+    });
+
+    report += "\nRESUMEN POR EQUIPO:\n";
+    report += "-------------------\n";
+    for (const teamName in incomeByTeam) {
+        report += `${teamName}: $${incomeByTeam[teamName].toFixed(2)}\n`;
+    }
+
+    report += `\n**INGRESO TOTAL POR VOCALÍAS: $${totalIncome.toFixed(2)}**\n`;
+
+    report += "\n\nPAGOS PENDIENTES:\n";
+    report += "-----------------\n";
+    let totalPending = 0;
+    matches.forEach(match => {
+        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
+            const pendingAmount = match.teams.home.vocalPaymentDetails.total;
+            totalPending += pendingAmount;
+            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.home.name}: $${pendingAmount.toFixed(2)}\n`;
+        }
+        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending') {
+            const pendingAmount = match.teams.away.vocalPaymentDetails.total;
+            totalPending += pendingAmount;
+            report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.away.name}: $${pendingAmount.toFixed(2)}\n`;
+        }
+    });
+     report += `\n**TOTAL PENDIENTE: $${totalPending.toFixed(2)}**\n`;
+
+    return report;
+};

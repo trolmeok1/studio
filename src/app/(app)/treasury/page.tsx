@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Landmark, Ban, AlertTriangle } from 'lucide-react';
-import { upcomingMatches, teams, type Category } from '@/lib/mock-data';
+import { DollarSign, Landmark, Ban, AlertTriangle, Printer } from 'lucide-react';
+import { upcomingMatches, teams, type Category, generateFinancialReport } from '@/lib/mock-data';
 import { useEffect, useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -52,6 +52,19 @@ export default function TreasuryPage() {
         }
         return absentees;
     });
+
+    const handleGenerateReport = () => {
+        const report = generateFinancialReport(upcomingMatches);
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'reporte_financiero.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     const VocalPaymentDetailRow = ({ label, value }: { label: string, value: number }) => (
         <div className="flex justify-between text-xs py-0.5">
@@ -127,16 +140,22 @@ export default function TreasuryPage() {
         </Table>
     );
     
-    const matchesByMax = useMemo(() => upcomingMatches.filter(m => m.category === 'Máxima'), [upcomingMatches]);
-    const matchesByFirst = useMemo(() => upcomingMatches.filter(m => m.category === 'Primera'), [upcomingMatches]);
-    const matchesBySecond = useMemo(() => upcomingMatches.filter(m => m.category === 'Segunda'), [upcomingMatches]);
+    const matchesByMax = useMemo(() => upcomingMatches.filter(m => m.category === 'Máxima'), []);
+    const matchesByFirst = useMemo(() => upcomingMatches.filter(m => m.category === 'Primera'), []);
+    const matchesBySecond = useMemo(() => upcomingMatches.filter(m => m.category === 'Segunda'), []);
 
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">
-                Tesorería
-            </h2>
+            <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold tracking-tight font-headline">
+                    Tesorería
+                </h2>
+                <Button onClick={handleGenerateReport} variant="outline">
+                    <Printer className="mr-2" />
+                    Generar Reporte
+                </Button>
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
