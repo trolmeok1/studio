@@ -16,9 +16,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Upload, Search, Trash2, DollarSign } from 'lucide-react';
+import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished } from '@/lib/mock-data';
+import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -398,6 +398,20 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         if (!match) return null;
         const details = match.teams[teamKey].vocalPaymentDetails;
         if (!details) return null;
+
+        const teamId = match.teams[teamKey].id;
+        const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
+        
+        const pendingValue = useMemo(() => {
+            return pastMatches.reduce((total, pastMatch) => {
+                const isHome = pastMatch.teams.home.id === teamId;
+                const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+                if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                    return total + (teamDetails.vocalPaymentDetails.total || 0);
+                }
+                return total;
+            }, 0);
+        }, [pastMatches, teamId]);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
 
@@ -407,6 +421,15 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
         return (
             <div className="space-y-2 mt-2 p-3 border rounded-lg">
+                {pendingValue > 0 && (
+                     <div className="p-2 rounded-md bg-destructive/10 border border-destructive text-destructive">
+                         <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            <h5 className="font-semibold">Valores Pendientes</h5>
+                         </div>
+                        <p className="text-sm">Este equipo tiene una deuda de <span className="font-bold">${pendingValue.toFixed(2)}</span> de partidos anteriores.</p>
+                     </div>
+                )}
                 <div className="flex items-center justify-between">
                     <h5 className="font-semibold text-center">Desglose de Vocalía</h5>
                     <div className="flex items-center space-x-2">
@@ -776,5 +799,7 @@ export default function CommitteesPage() {
     </div>
   );
 }
+
+    
 
     
