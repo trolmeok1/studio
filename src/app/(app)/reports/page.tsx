@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -74,34 +75,6 @@ const StandingsReport = ({ category }: { category: Category }) => {
 
 const ScheduleReport = ({ week }: { week: string }) => {
     const matches = upcomingMatches.slice(0, 4); 
-    const PlayerIcon = () => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8">
-        <path d="M16 2.8a1.5 1.5 0 0 1 2.4 1.2" />
-        <path d="M16 2.8a1.5 1.5 0 0 0-2.4 1.2" />
-        <path d="M12 11.8a1.5 1.5 0 0 1-2.4-1.2" />
-        <path d="m14 4-2 3" />
-        <path d="M10 4 8 7" />
-        <path d="M12 21v-8l2-3" />
-        <path d="M12 13 8 7.5" />
-        <path d="m3.5 10.5 3 2.5" />
-        <circle cx="12" cy="4" r="2" />
-        <circle cx="4" cy="18" r="2" />
-      </svg>
-    );
-
-    const BallIcon = () => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 12-2 18" />
-        <path d="M12 12 2 6" />
-        <path d="M12 12 22 6" />
-        <path d="M12 12 22 18" />
-        <path d="m12 12-5.5 10" />
-        <path d="m12 12 5.5 10" />
-        <path d="m12 12-5.5-10" />
-        <path d="m12 12 5.5-10" />
-      </svg>
-    );
 
     return (
         <div id="printable-report" className="bg-gray-800 text-white font-headline relative print:border-none aspect-[1/1.414] max-w-2xl mx-auto">
@@ -110,7 +83,7 @@ const ScheduleReport = ({ week }: { week: string }) => {
             </div>
             <div className="relative z-10 p-8 flex flex-col h-full">
                 <header className="text-center mb-8">
-                    <Trophy className="mx-auto h-12 w-12 text-yellow-400" />
+                    <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" className="mx-auto" />
                     <h1 className="text-3xl font-bold tracking-tight uppercase mt-2">Campeonato Barrial</h1>
                     <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">PROGRAMACIÓN</h2>
                 </header>
@@ -119,12 +92,13 @@ const ScheduleReport = ({ week }: { week: string }) => {
                     {matches.map(match => (
                          <div key={match.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/20">
                             {/* Team A */}
-                            <div className="flex flex-col items-end text-right">
-                                <p className="text-lg font-bold uppercase">{match.teams.home.name}</p>
+                            <div className="flex flex-col items-center text-center">
+                                <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
+                                <p className="text-lg font-bold uppercase mt-2">{match.teams.home.name}</p>
                                 <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
-                                    <span>Cancha {match.id.slice(-1)}</span>
-                                     <PlayerIcon />
+                                    <span>{format(new Date(match.date), "dd MMM", { locale: es })}</span>
                                 </div>
+                                {match.teams.home.vocalPaymentDetails?.otherFinesDescription && <p className="text-xs text-gray-300">Camerino {match.teams.home.vocalPaymentDetails?.otherFinesDescription}</p>}
                             </div>
                             
                             {/* VS */}
@@ -132,16 +106,17 @@ const ScheduleReport = ({ week }: { week: string }) => {
                                 <div className="bg-yellow-400 text-black rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
                                     VS
                                 </div>
-                                 <p className="text-xs text-yellow-400 mt-1">{format(new Date(match.date), 'HH:mm')}</p>
+                                 <p className="text-sm text-yellow-400 mt-1">{format(new Date(match.date), 'HH:mm')}</p>
                             </div>
 
                             {/* Team B */}
-                            <div className="flex flex-col items-start text-left">
-                                <p className="text-lg font-bold uppercase">{match.teams.away.name}</p>
+                            <div className="flex flex-col items-center text-center">
+                                <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
+                                <p className="text-lg font-bold uppercase mt-2">{match.teams.away.name}</p>
                                 <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
-                                     <BallIcon />
                                      <span>{format(new Date(match.date), "dd MMM", { locale: es })}</span>
                                 </div>
+                                {match.teams.away.vocalPaymentDetails?.otherFinesDescription && <p className="text-xs text-gray-300">Camerino {match.teams.away.vocalPaymentDetails?.otherFinesDescription}</p>}
                             </div>
                         </div>
                     ))}

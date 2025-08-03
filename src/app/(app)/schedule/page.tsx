@@ -475,6 +475,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const [numDressingRooms, setNumDressingRooms] = useState(4);
     const [selectedRefereeIds, setSelectedRefereeIds] = useState<string[]>([]);
     const [allReferees, setAllReferees] = useState<Referee[]>([]);
+    const [prioritizedCategory, setPrioritizedCategory] = useState<Category | 'none'>('none');
 
     useEffect(() => {
         setAllReferees(getReferees());
@@ -505,6 +506,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
             numFields,
             numDressingRooms,
             selectedRefereeIds,
+            prioritizedCategory,
         });
     }
 
@@ -529,6 +531,20 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                                 <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
                             </PopoverContent>
                         </Popover>
+                    </div>
+                     <div>
+                        <Label htmlFor="prioritizedCategory">Priorizar Categoría (Primera Semana)</Label>
+                        <Select onValueChange={(value) => setPrioritizedCategory(value as Category | 'none')} value={prioritizedCategory}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Ninguna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Ninguna</SelectItem>
+                                <SelectItem value="Máxima">Máxima</SelectItem>
+                                <SelectItem value="Primera">Primera</SelectItem>
+                                <SelectItem value="Segunda">Segunda</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div>
                         <Label>Días de Juego</Label>
@@ -871,7 +887,7 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[] }) => {
+  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[], prioritizedCategory: Category | 'none' }) => {
     
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
@@ -923,17 +939,31 @@ export default function SchedulePage() {
         }
     });
     
-    allIdaMatches.sort(() => 0.5 - Math.random());
-    allVueltaMatches.sort(() => 0.5 - Math.random());
+    // Separate prioritized matches
+    let prioritizedMatches: GeneratedMatch[] = [];
+    let otherMatches: GeneratedMatch[] = [];
 
-    const matchQueue = [...allIdaMatches, ...allVueltaMatches];
+    if (settings.prioritizedCategory !== 'none') {
+        const priorityIda = allIdaMatches.filter(m => m.category === settings.prioritizedCategory);
+        const otherIda = allIdaMatches.filter(m => m.category !== settings.prioritizedCategory);
+        prioritizedMatches = [...priorityIda];
+        otherMatches = [...otherIda, ...allVueltaMatches];
+    } else {
+        otherMatches = [...allIdaMatches, ...allVueltaMatches];
+    }
+
+    prioritizedMatches.sort(() => 0.5 - Math.random());
+    otherMatches.sort(() => 0.5 - Math.random());
+
+    const matchQueue = [...prioritizedMatches, ...otherMatches];
 
     // Assign dates, times, referees, and dressing rooms
     let scheduledMatches: GeneratedMatch[] = [];
     let currentDate = startOfDay(settings.startDate);
     let refereeIndex = 0;
-    let dressingRoomIndex = 0;
     
+    let dressingRoomCounter = 0;
+
     while(matchQueue.length > 0) {
         const dayOfWeek = getDay(currentDate);
         if(settings.gameDays.includes(dayOfWeek)) {
@@ -953,10 +983,11 @@ export default function SchedulePage() {
                  const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
                  refereeIndex++;
                  
-                 const homeDressingRoom = (dressingRoomIndex % settings.numDressingRooms) + 1;
-                 dressingRoomIndex++;
-                 const awayDressingRoom = (dressingRoomIndex % settings.numDressingRooms) + 1;
-                 dressingRoomIndex++;
+                 const homeDressingRoom = (dressingRoomCounter % 2 === 0) ? (dressingRoomCounter % 4) + 1 : (dressingRoomCounter % 4) + 2;
+                 const awayDressingRoom = (dressingRoomCounter % 2 === 0) ? (dressingRoomCounter % 4) + 2 : (dressingRoomCounter % 4) + 1;
+
+                 dressingRoomCounter++;
+
 
                  scheduledMatches.push({
                     ...match,
@@ -964,8 +995,8 @@ export default function SchedulePage() {
                     time: format(matchDateTime, 'HH:mm'),
                     field: field,
                     refereeId: refereeId,
-                    homeDressingRoom: homeDressingRoom,
-                    awayDressingRoom: awayDressingRoom,
+                    homeDressingRoom: homeDressingRoom > settings.numDressingRooms ? homeDressingRoom - settings.numDressingRooms : homeDressingRoom,
+                    awayDressingRoom: awayDressingRoom > settings.numDressingRooms ? awayDressingRoom - settings.numDressingRooms : awayDressingRoom,
                 });
             });
         }
