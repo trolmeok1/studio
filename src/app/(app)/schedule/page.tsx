@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -142,33 +141,41 @@ const MatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, sho
     useEffect(() => { setIsClient(true); }, []);
     
     return (
-    <Link href={`/partido`}>
-        <div className="flex items-center justify-between p-2 bg-muted/20 rounded-md text-sm hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-2 font-semibold text-right w-2/5 justify-end">
-                <span className="truncate">{homeTeam?.name || match.home}</span>
-                <Image src={homeTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={homeTeam?.name || 'Home'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
-            </div>
-             <div className="text-center w-1/5">
-                <span className="text-primary font-bold mx-2">VS</span>
-                 <div className="mt-1 text-xs text-muted-foreground">
-                    {isClient && match.time ? `${match.time}` : 'Por definir'}
-                    {match.field && <span className="block">Cancha {match.field}</span>}
-                </div>
-            </div>
-            <div className="flex items-center gap-2 font-semibold text-left w-2/5">
-                <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
-                <span className="truncate">{awayTeam?.name || 'Away'}</span>
-            </div>
-             {showCategory && (
-                <div className="w-24 text-right">
-                    <Badge variant="outline">{match.category}{match.group && ` - ${match.group}`}</Badge>
-                </div>
-            )}
-        </div>
-    </Link>
-);
-}
+        <Link href={`/partido`} className="block group">
+            <Card className="overflow-hidden transition-all group-hover:shadow-lg">
+                <div className="relative grid grid-cols-2">
+                    {/* Team A Panel */}
+                    <div className="bg-blue-900/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-40">
+                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
+                         <span className="font-bold text-sm leading-tight">{homeTeam?.name || match.home}</span>
+                    </div>
+                     {/* Team B Panel */}
+                    <div className="bg-gray-700/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-40">
+                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
+                        <span className="font-bold text-sm leading-tight">{awayTeam?.name || 'Away'}</span>
+                    </div>
 
+                    {/* Center Info */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 bg-background/90 rounded-full border-4 border-background shadow-lg text-primary font-bold">
+                            VS
+                        </div>
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-full flex justify-between px-2">
+                             {showCategory && <Badge variant="secondary" className="text-xs">{match.category}{match.group && ` - ${match.group}`}</Badge>}
+                             <Badge variant="secondary" className="text-xs">{match.leg}</Badge>
+                        </div>
+                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                            <Badge className="bg-black/50 text-white backdrop-blur-sm">
+                                {isClient && match.time ? `${match.time}` : 'Por definir'}
+                                {match.field && ` / Cancha ${match.field}`}
+                            </Badge>
+                        </div>
+                    </div>
+                </div>
+            </Card>
+        </Link>
+    );
+}
 
 const LeagueView = ({ category, generatedMatches }: { category: Category, generatedMatches: GeneratedMatch[] }) => {
     const [teams, setTeams] = useState<Team[]>([]);
@@ -248,10 +255,10 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                 </div>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue='standings'>
+                <Tabs defaultValue='schedule'>
                      <TabsList>
-                        <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
                         <TabsTrigger value="schedule">Calendario de Partidos</TabsTrigger>
+                        <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
                     </TabsList>
                     <TabsContent value="standings">
                         {standings.map(({ group, standings: groupStandings }) => (
@@ -312,7 +319,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                             .map(([date, matchesOnDate]) => (
                             <div key={date}>
                                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
-                                <div className="space-y-2">
+                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => <MatchCard key={index} match={match} />)}
                                 </div>
                             </div>
@@ -578,7 +585,7 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                     .map(([date, matchesOnDate]) => (
                     <div key={date}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
-                        <div className="space-y-2">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => 
                                 <MatchCard key={`${match.home}-${match.away}-${index}`} match={match} showCategory={true} />
                             )}
@@ -932,4 +939,5 @@ export default function SchedulePage() {
   );
 }
 
+    
     
