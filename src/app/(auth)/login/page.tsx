@@ -29,13 +29,16 @@ export default function LoginPage() {
     }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/10 -z-10"></div>
         <CardHeader className="text-center">
-            <Trophy className="mx-auto h-12 w-12 text-primary" />
+            <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <Trophy className="h-10 w-10 text-primary" />
+            </div>
             <CardTitle className="text-3xl font-bold mt-4 font-headline">
                 Control Liga
             </CardTitle>
-            <CardDescription>Inicio de sesión para administradores</CardDescription>
+            <CardDescription>Inicio de sesion para administradores</CardDescription>
         </CardHeader>
         <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
