@@ -5,20 +5,121 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Landmark, Ban, AlertTriangle, Printer } from 'lucide-react';
-import { upcomingMatches, teams, type Category, generateFinancialReport } from '@/lib/mock-data';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { DollarSign, Landmark, Ban, AlertTriangle, Printer, PlusCircle, Trash2 } from 'lucide-react';
+import { upcomingMatches, teams, type Category, generateFinancialReport, expenses as mockExpenses, type Expense, addExpense, removeExpense } from '@/lib/mock-data';
 import { useEffect, useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import type { DateRange } from "react-day-picker";
+
+
+const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => void }) => {
+    const [description, setDescription] = useState('');
+    const [amount, setAmount] = useState<number | ''>('');
+    const [date, setDate] = useState<Date>(new Date());
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleSave = () => {
+        if (description && amount) {
+            onAdd({ description, amount, date: date.toISOString() });
+            setDescription('');
+            setAmount('');
+            setDate(new Date());
+            setIsOpen(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm">
+                    <PlusCircle className="mr-2" />
+                    Registrar Gasto
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Registrar Nuevo Gasto</DialogTitle>
+                    <DialogDescription>Añada un nuevo gasto a los registros de tesorería.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                     <div className="space-y-2">
+                        <Label>Fecha del Gasto</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {format(date, "PPP", { locale: es })}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar mode="single" selected={date} onSelect={(d) => setDate(d || new Date())} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Descripción del Gasto</Label>
+                        <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ej: Compra de trofeos" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="amount">Monto</Label>
+                        <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || '')} placeholder="500.00" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button onClick={handleSave}>Guardar Gasto</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 
 export default function TreasuryPage() {
     const [isClient, setIsClient] = useState(false);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+    const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+    
+    const handleAddExpense = (newExpense: Omit<Expense, 'id'>) => {
+        const addedExpense = addExpense(newExpense);
+        setExpenses(prev => [...prev, addedExpense]);
+    };
 
-    const paidMatches = upcomingMatches.filter(match => 
+    const handleRemoveExpense = (id: string) => {
+        removeExpense(id);
+        setExpenses(prev => prev.filter(e => e.id !== id));
+    };
+
+    const filteredMatches = useMemo(() => {
+        if (!dateRange?.from || !dateRange?.to) return upcomingMatches;
+        return upcomingMatches.filter(m => {
+            const matchDate = new Date(m.date);
+            return matchDate >= dateRange.from! && matchDate <= dateRange.to!;
+        });
+    }, [dateRange]);
+
+    const filteredExpenses = useMemo(() => {
+        if (!dateRange?.from || !dateRange?.to) return expenses;
+        return expenses.filter(e => {
+            const expenseDate = new Date(e.date);
+            return expenseDate >= dateRange.from! && expenseDate <= dateRange.to!;
+        });
+    }, [dateRange, expenses]);
+
+    const paidMatches = filteredMatches.filter(match => 
         match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' || 
         match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid'
     );
@@ -29,7 +130,7 @@ export default function TreasuryPage() {
         return acc + homePayment + awayPayment;
     }, 0);
     
-    const pendingPayments = upcomingMatches.flatMap(match => {
+    const pendingPayments = filteredMatches.flatMap(match => {
         const pending = [];
         if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
             pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date});
@@ -42,7 +143,7 @@ export default function TreasuryPage() {
 
     const totalSanctionIncome = 550; // Mock data for now
 
-    const absentTeams = upcomingMatches.flatMap(match => {
+    const absentTeams = filteredMatches.flatMap(match => {
         const absentees = [];
         if (!match.teams.home.attended) {
             absentees.push({ ...match.teams.home, date: match.date });
@@ -54,12 +155,12 @@ export default function TreasuryPage() {
     });
 
     const handleGenerateReport = () => {
-        const report = generateFinancialReport(upcomingMatches);
+        const report = generateFinancialReport(filteredMatches, filteredExpenses);
         const blob = new Blob([report], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'reporte_financiero.txt';
+        a.download = `reporte_financiero_${format(new Date(), 'yyyy-MM-dd')}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -132,7 +233,7 @@ export default function TreasuryPage() {
                  {matches.length === 0 && (
                      <TableRow>
                         <TableCell colSpan={4} className="text-center h-24">
-                            No hay vocalías registradas para esta categoría.
+                            No hay vocalías registradas en el período seleccionado.
                         </TableCell>
                     </TableRow>
                 )}
@@ -140,9 +241,9 @@ export default function TreasuryPage() {
         </Table>
     );
     
-    const matchesByMax = useMemo(() => upcomingMatches.filter(m => m.category === 'Máxima'), []);
-    const matchesByFirst = useMemo(() => upcomingMatches.filter(m => m.category === 'Primera'), []);
-    const matchesBySecond = useMemo(() => upcomingMatches.filter(m => m.category === 'Segunda'), []);
+    const matchesByMax = useMemo(() => filteredMatches.filter(m => m.category === 'Máxima'), [filteredMatches]);
+    const matchesByFirst = useMemo(() => filteredMatches.filter(m => m.category === 'Primera'), [filteredMatches]);
+    const matchesBySecond = useMemo(() => filteredMatches.filter(m => m.category === 'Segunda'), [filteredMatches]);
 
 
     return (
@@ -151,49 +252,75 @@ export default function TreasuryPage() {
                 <h2 className="text-3xl font-bold tracking-tight font-headline">
                     Tesorería
                 </h2>
-                <Button onClick={handleGenerateReport} variant="outline">
-                    <Printer className="mr-2" />
-                    Generar Reporte
-                </Button>
+                <div className="flex items-center gap-4">
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline">
+                                <CalendarIcon className="mr-2" />
+                                {dateRange?.from ? 
+                                    dateRange.to ? 
+                                    `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}` :
+                                    format(dateRange.from, "LLL dd, y") :
+                                    "Seleccionar Fecha"
+                                }
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                                locale={es}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <Button onClick={handleGenerateReport} variant="outline">
+                        <Printer className="mr-2" />
+                        Generar Reporte
+                    </Button>
+                </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Ingresos Totales (Pagados)
+                            Ingresos Totales
                         </CardTitle>
                         <Landmark className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${(totalVocalIncome + totalSanctionIncome).toLocaleString('en-US')}</div>
                         <p className="text-xs text-muted-foreground">
-                            Suma de vocalías y sanciones
+                            Vocalías y sanciones en el período
                         </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Ingresos por Vocalías (Pagados)
+                            Gastos Totales
                         </CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${totalVocalIncome.toLocaleString('en-US')}</div>
+                        <div className="text-2xl font-bold text-destructive">-${filteredExpenses.reduce((acc, e) => acc + e.amount, 0).toLocaleString('en-US')}</div>
                          <p className="text-xs text-muted-foreground">
-                            Basado en {paidMatches.length} partidos
+                            Gastos registrados en el período
                         </p>
                     </CardContent>
                 </Card>
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ingresos por Sanciones</CardTitle>
+                        <CardTitle className="text-sm font-medium">Balance del Período</CardTitle>
                         <Ban className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${totalSanctionIncome.toLocaleString('en-US')}</div>
+                        <div className="text-2xl font-bold text-primary">${((totalVocalIncome + totalSanctionIncome) - filteredExpenses.reduce((acc, e) => acc + e.amount, 0)).toLocaleString('en-US')}</div>
                         <p className="text-xs text-muted-foreground">
-                            Tarjetas y otras multas
+                           Ingresos menos gastos
                         </p>
                     </CardContent>
                 </Card>
@@ -215,7 +342,7 @@ export default function TreasuryPage() {
                     <CardHeader>
                         <CardTitle>Pagos Pendientes de Vocalía</CardTitle>
                          <CardDescription>
-                            Equipos que no han cancelado su valor de vocalía.
+                            Equipos que no han cancelado su valor de vocalía en el período seleccionado.
                         </CardDescription>
                     </CardHeader>
                      <CardContent>
@@ -250,38 +377,39 @@ export default function TreasuryPage() {
                     </CardContent>
                  </Card>
                  <Card>
-                    <CardHeader>
-                        <CardTitle>Sanciones por Ausencia</CardTitle>
-                        <CardDescription>
-                            Equipos que no se presentaron a sus partidos programados.
-                        </CardDescription>
+                    <CardHeader className="flex items-center justify-between">
+                         <div>
+                            <CardTitle>Registro de Gastos</CardTitle>
+                            <CardDescription>
+                                Egresos y gastos operativos de la liga en el período seleccionado.
+                            </CardDescription>
+                        </div>
+                        <AddExpenseDialog onAdd={handleAddExpense} />
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Fecha</TableHead>
-                                    <TableHead>Equipo</TableHead>
-                                    <TableHead>Categoría</TableHead>
-                                    <TableHead>Estado de Multa</TableHead>
+                                    <TableHead>Descripción</TableHead>
+                                    <TableHead className="text-right">Monto</TableHead>
                                     <TableHead className="text-right">Acción</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {absentTeams.length > 0 ? absentTeams.map((team, index) => (
-                                     <TableRow key={`${team.id}-${index}`}>
-                                        <TableCell>{isClient ? new Date(team.date).toLocaleDateString() : ''}</TableCell>
-                                        <TableCell className="font-medium">{team.name}</TableCell>
-                                        <TableCell>{(teams.find(t => t.id === team.id))?.category}</TableCell>
-                                        <TableCell><Badge variant="outline">Pendiente</Badge></TableCell>
+                                {filteredExpenses.length > 0 ? filteredExpenses.map((expense) => (
+                                     <TableRow key={expense.id}>
+                                        <TableCell>{isClient ? new Date(expense.date).toLocaleDateString() : ''}</TableCell>
+                                        <TableCell className="font-medium">{expense.description}</TableCell>
+                                        <TableCell className="text-right font-semibold text-destructive">-${expense.amount.toFixed(2)}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button size="sm">Aplicar Multa ($20)</Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveExpense(expense.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24">
-                                            No hay equipos ausentes registrados.
+                                        <TableCell colSpan={4} className="text-center h-24">
+                                            No hay gastos registrados.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -293,7 +421,7 @@ export default function TreasuryPage() {
              <Card>
                 <CardHeader>
                     <CardTitle>Registro de Vocalías por Partido</CardTitle>
-                    <CardDescription>Desglose de los ingresos por vocalía de cada partido.</CardDescription>
+                    <CardDescription>Desglose de los ingresos por vocalía de cada partido en el período seleccionado.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Tabs defaultValue="maxima" className="w-full">

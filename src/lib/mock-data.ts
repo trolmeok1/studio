@@ -1,5 +1,5 @@
 
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Referee } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Referee, Expense } from './types';
 
 export let referees: Referee[] = [
     { id: 'ref-1', name: 'Néstor Pitana', category: 'A' },
@@ -22,6 +22,21 @@ export const updateReferee = (updatedReferee: Referee) => {
         referees[index] = updatedReferee;
     }
     return updatedReferee;
+}
+
+export let expenses: Expense[] = [
+    { id: 'exp-1', date: new Date().toISOString(), description: 'Compra de trofeos para premiación', amount: 500 },
+    { id: 'exp-2', date: new Date().toISOString(), description: 'Pago de servicios básicos de la oficina', amount: 120.50 },
+];
+
+export const getExpenses = (): Expense[] => expenses;
+export const addExpense = (expense: Omit<Expense, 'id'>) => {
+    const newExpense: Expense = { id: `exp-${Date.now()}`, ...expense };
+    expenses.push(newExpense);
+    return newExpense;
+}
+export const removeExpense = (id: string) => {
+    expenses = expenses.filter(e => e.id !== id);
 }
 
 
@@ -379,10 +394,10 @@ export const setMatchAsFinished = (matchId: string) => {
     }
 };
 
-export const generateFinancialReport = (matches: Match[]): string => {
+export const generateFinancialReport = (matches: Match[], expenses: Expense[]): string => {
     let report = "REPORTE FINANCIERO - LIGA LA LUZ\n";
     report += "===================================\n\n";
-    
+
     let totalIncome = 0;
     const incomeByTeam: Record<string, number> = {};
 
@@ -403,14 +418,18 @@ export const generateFinancialReport = (matches: Match[]): string => {
             report += `[${new Date(match.date).toLocaleDateString()}] ${match.teams.away.name}: $${income.toFixed(2)}\n`;
         }
     });
+    
+    report += `\n**SUBTOTAL INGRESOS POR VOCALÍAS: $${totalIncome.toFixed(2)}**\n`;
 
-    report += "\nRESUMEN POR EQUIPO:\n";
+    report += "\n\nGASTOS REGISTRADOS:\n";
     report += "-------------------\n";
-    for (const teamName in incomeByTeam) {
-        report += `${teamName}: $${incomeByTeam[teamName].toFixed(2)}\n`;
-    }
+    let totalExpenses = 0;
+    expenses.forEach(expense => {
+        totalExpenses += expense.amount;
+        report += `[${new Date(expense.date).toLocaleDateString()}] ${expense.description}: -$${expense.amount.toFixed(2)}\n`;
+    });
+    report += `\n**TOTAL GASTOS: $${totalExpenses.toFixed(2)}**\n`;
 
-    report += `\n**INGRESO TOTAL POR VOCALÍAS: $${totalIncome.toFixed(2)}**\n`;
 
     report += "\n\nPAGOS PENDIENTES:\n";
     report += "-----------------\n";
@@ -428,6 +447,11 @@ export const generateFinancialReport = (matches: Match[]): string => {
         }
     });
      report += `\n**TOTAL PENDIENTE: $${totalPending.toFixed(2)}**\n`;
+
+     report += "\n\n===================================\n";
+     report += ` BALANCE FINAL (Ingresos - Gastos): $${(totalIncome - totalExpenses).toFixed(2)}\n`;
+     report += "===================================\n";
+
 
     return report;
 };

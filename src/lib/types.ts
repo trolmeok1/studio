@@ -5,7 +5,7 @@ export type Referee = {
     category: 'A' | 'B' | 'C';
 };
 
-export type Category = 'Primera' | 'Máxima' | 'Segunda';
+export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
 
@@ -205,4 +205,11 @@ export interface LogEntry {
   action: 'create' | 'update' | 'delete' | 'payment' | 'generate' | 'system';
   category: 'team' | 'player' | 'treasury' | 'system' | 'match';
   description: string;
+}
+
+export interface Expense {
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
 }
