@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category, getReferees, Referee } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -675,14 +675,21 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { al
 };
 
 
-const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: GeneratedMatch[] }) => {
+const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all' }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
+    
+    const filteredMatches = useMemo(() => {
+        if (selectedCategory === 'all') {
+            return generatedMatches;
+        }
+        return generatedMatches.filter(m => m.category === selectedCategory);
+    }, [generatedMatches, selectedCategory]);
 
     const groupedMatches = useMemo(() => {
-        if (generatedMatches.length === 0 || !isClient) return {};
+        if (filteredMatches.length === 0 || !isClient) return {};
 
-        return generatedMatches
+        return filteredMatches
             .reduce((acc, match) => {
                 if (!match.date) return acc;
                 const dateKey = format(match.date, 'PPPP', {locale: es});
@@ -693,7 +700,7 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                 acc[dateKey].push(match);
                 return acc;
             }, {} as Record<string, GeneratedMatch[]>);
-    }, [generatedMatches, isClient]);
+    }, [filteredMatches, isClient]);
 
      if (generatedMatches.length === 0) {
         return (
@@ -858,6 +865,7 @@ export default function SchedulePage() {
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [resetAlertStep, setResetAlertStep] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 
   const isTournamentStarted = generatedMatches.length > 0;
   
@@ -1053,7 +1061,23 @@ export default function SchedulePage() {
             <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
-                <GeneralScheduleView generatedMatches={generatedMatches} />
+                 <div className="flex justify-end mb-4">
+                    <div className="w-full max-w-xs">
+                         <Select onValueChange={(value) => setSelectedCategory(value as Category | 'all')} value={selectedCategory}>
+                            <SelectTrigger>
+                                <Filter className="mr-2" />
+                                <SelectValue placeholder="Filtrar por categoría..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Ver todas las categorías</SelectItem>
+                                <SelectItem value="Máxima">Máxima</SelectItem>
+                                <SelectItem value="Primera">Primera</SelectItem>
+                                <SelectItem value="Segunda">Segunda</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory={selectedCategory} />
             </TabsContent>
             <TabsContent value="copa">
             <Card>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState } from 'react';
@@ -37,10 +38,15 @@ const permissionModules: { key: keyof Permissions; label: string }[] = [
     { key: 'logs', label: 'Logs del Sistema' },
 ];
 
-const PermissionsDialog = ({ user, onSave, children }: { user?: User; onSave: (user: User) => void; children: React.ReactNode }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { user?: User; onSave: (user: User) => void; children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) => {
     const [userData, setUserData] = useState<Partial<User>>(user || { name: '', email: '' });
     const [permissions, setPermissions] = useState<Permissions>(user?.permissions || {} as Permissions);
+
+    React.useEffect(() => {
+        setUserData(user || { name: '', email: '' });
+        setPermissions(user?.permissions || {} as Permissions);
+    }, [user, open]);
+
 
     const handlePermissionChange = (module: keyof Permissions, type: 'view' | 'edit', value: boolean) => {
         setPermissions(prev => ({
@@ -76,12 +82,11 @@ const PermissionsDialog = ({ user, onSave, children }: { user?: User; onSave: (u
             avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
         };
         onSave(finalUser);
-        setIsOpen(false);
+        onOpenChange(false);
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>{children}</DialogTrigger>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>{user ? `Gestionar Permisos de ${user.name}` : 'Agregar Nuevo Usuario'}</DialogTitle>
@@ -134,9 +139,7 @@ const PermissionsDialog = ({ user, onSave, children }: { user?: User; onSave: (u
                     </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
-                     <DialogClose asChild>
-                        <Button type="button" variant="secondary">Cancelar</Button>
-                    </DialogClose>
+                     <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
                     <Button onClick={handleSave}>Guardar Cambios</Button>
                 </div>
             </DialogContent>
@@ -147,6 +150,8 @@ const PermissionsDialog = ({ user, onSave, children }: { user?: User; onSave: (u
 export default function RolesPage() {
   const { user: currentUser, users, setUsers } = useAuth();
   const isAdmin = currentUser.permissions.roles.edit;
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
   const handleSaveUser = (updatedUser: User) => {
       const userExists = users.some(u => u.id === updatedUser.id);
@@ -157,6 +162,16 @@ export default function RolesPage() {
       }
   };
 
+  const openAddDialog = () => {
+    setSelectedUser(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (user: User) => {
+    setSelectedUser(user);
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -164,12 +179,10 @@ export default function RolesPage() {
           Gestión de Roles y Usuarios
         </h2>
         {isAdmin && (
-            <PermissionsDialog onSave={handleSaveUser}>
-                <Button>
-                    <PlusCircle className='mr-2' />
-                    Agregar Usuario
-                </Button>
-            </PermissionsDialog>
+            <Button onClick={openAddDialog}>
+                <PlusCircle className='mr-2' />
+                Agregar Usuario
+            </Button>
         )}
       </div>
 
@@ -202,16 +215,14 @@ export default function RolesPage() {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                    <TableCell className="text-muted-foreground text-xs">
-                    {Object.entries(user.permissions).filter(([,p]) => p.edit).length} de {permissionModules.length} módulos con edición
+                    {Object.values(user.permissions).filter(p => p.edit).length} de {permissionModules.length} módulos con edición
                   </TableCell>
                   <TableCell className="text-right">
                     {isAdmin && (
-                         <PermissionsDialog user={user} onSave={handleSaveUser}>
-                            <Button variant="outline" size="sm">
-                               <UserCog className="mr-2 h-4 w-4" />
-                               Gestionar Permisos
-                            </Button>
-                        </PermissionsDialog>
+                        <Button variant="outline" size="sm" onClick={() => openEditDialog(user)}>
+                            <UserCog className="mr-2 h-4 w-4" />
+                            Gestionar Permisos
+                        </Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -220,6 +231,15 @@ export default function RolesPage() {
           </Table>
         </CardContent>
       </Card>
+      <PermissionsDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        user={selectedUser}
+        onSave={handleSaveUser}
+      >
+        {/* The dialog is triggered programmatically, so no trigger children needed here */}
+      </PermissionsDialog>
     </div>
   );
 }
+
