@@ -6,8 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Landmark, Ban, AlertTriangle } from 'lucide-react';
-import { upcomingMatches, teams } from '@/lib/mock-data';
-import { useEffect, useState } from 'react';
+import { upcomingMatches, teams, type Category } from '@/lib/mock-data';
+import { useEffect, useState, useMemo } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 export default function TreasuryPage() {
     const [isClient, setIsClient] = useState(false);
@@ -57,6 +59,78 @@ export default function TreasuryPage() {
             <span>${value.toFixed(2)}</span>
         </div>
     );
+    
+    const VocalitiesTable = ({ matches }: { matches: typeof upcomingMatches }) => (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Partido</TableHead>
+                    <TableHead>Vocalía Equipo A</TableHead>
+                    <TableHead>Vocalía Equipo B</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {matches.map(match => {
+                    const teamA = match.teams.home;
+                    const teamB = match.teams.away;
+                    const detailsA = teamA.vocalPaymentDetails;
+                    const detailsB = teamB.vocalPaymentDetails;
+
+                    const getStatusBadge = (status?: 'paid' | 'pending') => {
+                        if (status === 'paid') return <Badge>Pagado</Badge>
+                        if (status === 'pending') return <Badge variant="destructive">Pendiente</Badge>
+                        return null;
+                    }
+
+                    return (
+                        <TableRow key={match.id}>
+                            <TableCell>{isClient ? new Date(match.date).toLocaleDateString() : ''}</TableCell>
+                            <TableCell className="font-medium">{teamA.name} vs {teamB.name}</TableCell>
+                            <TableCell>
+                                <Card className="p-2 bg-muted/50">
+                                    <div className="flex justify-between items-center pb-1 border-b mb-1">
+                                        <p className="font-bold">${(detailsA?.total || 0).toFixed(2)}</p>
+                                        {getStatusBadge(detailsA?.paymentStatus)}
+                                    </div>
+                                    <VocalPaymentDetailRow label="Árbitro" value={detailsA?.referee || 0} />
+                                    <VocalPaymentDetailRow label="Cuota" value={detailsA?.fee || 0} />
+                                    <VocalPaymentDetailRow label="T. Amarillas" value={detailsA?.yellowCardFine || 0} />
+                                    <VocalPaymentDetailRow label="T. Rojas" value={detailsA?.redCardFine || 0} />
+                                    <VocalPaymentDetailRow label="Otras Multas" value={detailsA?.otherFines || 0} />
+                                </Card>
+                            </TableCell>
+                            <TableCell>
+                                <Card className="p-2 bg-muted/50">
+                                        <div className="flex justify-between items-center pb-1 border-b mb-1">
+                                        <p className="font-bold">${(detailsB?.total || 0).toFixed(2)}</p>
+                                        {getStatusBadge(detailsB?.paymentStatus)}
+                                    </div>
+                                    <VocalPaymentDetailRow label="Árbitro" value={detailsB?.referee || 0} />
+                                    <VocalPaymentDetailRow label="Cuota" value={detailsB?.fee || 0} />
+                                    <VocalPaymentDetailRow label="T. Amarillas" value={detailsB?.yellowCardFine || 0} />
+                                    <VocalPaymentDetailRow label="T. Rojas" value={detailsB?.redCardFine || 0} />
+                                    <VocalPaymentDetailRow label="Otras Multas" value={detailsB?.otherFines || 0} />
+                                </Card>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
+                 {matches.length === 0 && (
+                     <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24">
+                            No hay vocalías registradas para esta categoría.
+                        </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    );
+    
+    const matchesByMax = useMemo(() => upcomingMatches.filter(m => m.category === 'Máxima'), [upcomingMatches]);
+    const matchesByFirst = useMemo(() => upcomingMatches.filter(m => m.category === 'Primera'), [upcomingMatches]);
+    const matchesBySecond = useMemo(() => upcomingMatches.filter(m => m.category === 'Segunda'), [upcomingMatches]);
+
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -203,63 +277,22 @@ export default function TreasuryPage() {
                     <CardDescription>Desglose de los ingresos por vocalía de cada partido.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Fecha</TableHead>
-                                <TableHead>Partido</TableHead>
-                                <TableHead>Vocalía Equipo A</TableHead>
-                                <TableHead>Vocalía Equipo B</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {upcomingMatches.map(match => {
-                                const teamA = match.teams.home;
-                                const teamB = match.teams.away;
-                                const detailsA = teamA.vocalPaymentDetails;
-                                const detailsB = teamB.vocalPaymentDetails;
-
-                                const getStatusBadge = (status?: 'paid' | 'pending') => {
-                                    if (status === 'paid') return <Badge>Pagado</Badge>
-                                    if (status === 'pending') return <Badge variant="destructive">Pendiente</Badge>
-                                    return null;
-                                }
-
-                                return (
-                                    <TableRow key={match.id}>
-                                        <TableCell>{isClient ? new Date(match.date).toLocaleDateString() : ''}</TableCell>
-                                        <TableCell className="font-medium">{teamA.name} vs {teamB.name}</TableCell>
-                                        <TableCell>
-                                            <Card className="p-2 bg-muted/50">
-                                                <div className="flex justify-between items-center pb-1 border-b mb-1">
-                                                    <p className="font-bold">${(detailsA?.total || 0).toFixed(2)}</p>
-                                                    {getStatusBadge(detailsA?.paymentStatus)}
-                                                </div>
-                                                <VocalPaymentDetailRow label="Árbitro" value={detailsA?.referee || 0} />
-                                                <VocalPaymentDetailRow label="Cuota" value={detailsA?.fee || 0} />
-                                                <VocalPaymentDetailRow label="T. Amarillas" value={detailsA?.yellowCardFine || 0} />
-                                                <VocalPaymentDetailRow label="T. Rojas" value={detailsA?.redCardFine || 0} />
-                                                <VocalPaymentDetailRow label="Otras Multas" value={detailsA?.otherFines || 0} />
-                                            </Card>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Card className="p-2 bg-muted/50">
-                                                 <div className="flex justify-between items-center pb-1 border-b mb-1">
-                                                    <p className="font-bold">${(detailsB?.total || 0).toFixed(2)}</p>
-                                                    {getStatusBadge(detailsB?.paymentStatus)}
-                                                </div>
-                                                <VocalPaymentDetailRow label="Árbitro" value={detailsB?.referee || 0} />
-                                                <VocalPaymentDetailRow label="Cuota" value={detailsB?.fee || 0} />
-                                                <VocalPaymentDetailRow label="T. Amarillas" value={detailsB?.yellowCardFine || 0} />
-                                                <VocalPaymentDetailRow label="T. Rojas" value={detailsB?.redCardFine || 0} />
-                                                <VocalPaymentDetailRow label="Otras Multas" value={detailsB?.otherFines || 0} />
-                                            </Card>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                     </Table>
+                    <Tabs defaultValue="maxima" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="maxima">Máxima</TabsTrigger>
+                            <TabsTrigger value="primera">Primera</TabsTrigger>
+                            <TabsTrigger value="segunda">Segunda</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="maxima" className="mt-4">
+                            <VocalitiesTable matches={matchesByMax} />
+                        </TabsContent>
+                        <TabsContent value="primera" className="mt-4">
+                            <VocalitiesTable matches={matchesByFirst} />
+                        </TabsContent>
+                        <TabsContent value="segunda" className="mt-4">
+                             <VocalitiesTable matches={matchesBySecond} />
+                        </TabsContent>
+                    </Tabs>
                 </CardContent>
              </Card>
         </div>
