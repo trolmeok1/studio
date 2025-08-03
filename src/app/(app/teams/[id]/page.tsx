@@ -429,7 +429,7 @@ export default function TeamDetailsPage() {
     return <div>Cargando...</div>;
   }
   
-  const InfoRow = ({ icon: Icon, label, person, showContact }: { icon: React.ElementType, label, person?: Person, showContact: boolean }) => (
+  const InfoRow = ({ icon: Icon, label, person, showContact }: { icon: React.ElementType, label: string, person?: Person, showContact: boolean }) => (
     <div className="flex items-start gap-4 p-3 bg-muted/50 rounded-lg">
         <Icon className="w-5 h-5 text-primary mt-1" />
         <div className="flex-grow">
@@ -754,5 +754,7 @@ export default function TeamDetailsPage() {
     </div>
   );
 }
+
+    
 
     
