@@ -18,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon, Users } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse } from 'date-fns';
+import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -116,6 +116,14 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
     const awayTeam = getTeam(match.away);
     const vocalTeam = getTeam(match.vocalTeamId || '');
 
+    const TeamDisplay = ({ team, dressingRoom }: { team?: Team, dressingRoom?: number }) => (
+         <div className="flex flex-col items-center text-center gap-1">
+            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt={team?.name || ''} width={40} height={40} className="rounded-full" />
+            <p className="text-xs font-semibold leading-tight">{team?.name}</p>
+             {dressingRoom && <Badge variant="secondary" className="text-xs">Camerino {dressingRoom}</Badge>}
+        </div>
+    );
+
     const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Icon className="w-3.5 h-3.5" />
@@ -125,37 +133,36 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
     );
 
     return (
-        <Card className="overflow-hidden transition-all hover:shadow-lg">
+        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col">
             <CardHeader className="p-2 bg-muted/50 text-center text-sm font-bold">
-                {match.leg} - Fecha {match.round}
+                <div className="flex justify-center items-center gap-2">
+                    <span>{match.date ? format(match.date, 'HH:mm', { locale: es }) : 'Por definir'}</span>
+                </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 flex-grow">
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 p-3">
-                    <div className="flex flex-col items-center text-center gap-1">
-                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={40} height={40} className="rounded-full" />
-                        <p className="text-xs font-semibold leading-tight">{homeTeam?.name}</p>
-                    </div>
+                    <TeamDisplay team={homeTeam} dressingRoom={match.homeDressingRoom} />
                     <div className="flex flex-col items-center">
                         <p className="text-xl font-bold">VS</p>
                         <Badge variant="outline" className="mt-1">Por Jugar</Badge>
                     </div>
-                    <div className="flex flex-col items-center text-center gap-1">
-                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={40} height={40} className="rounded-full" />
-                        <p className="text-xs font-semibold leading-tight">{awayTeam?.name}</p>
-                    </div>
+                    <TeamDisplay team={awayTeam} dressingRoom={match.awayDressingRoom} />
                 </div>
             </CardContent>
             <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-x-4 gap-y-2">
-                <DetailRow icon={CalendarDays} label="Fecha" value={match.date ? format(match.date, 'eee, dd MMM, HH:mm', { locale: es }) : 'Por definir'} />
-                <DetailRow icon={Trophy} label="Categoría" value={match.category} />
-                <DetailRow icon={ChevronsRight} label="Jornada" value={`${match.leg} - Fecha ${match.round}`} />
-                <DetailRow icon={Shield} label="Cancha" value={match.field || 'N/A'} />
-                <DetailRow icon={UsersIcon} label="Vocalía" value={vocalTeam?.name || 'N/A'} />
-                <DetailRow icon={Home} label="Camerinos" value={`L: ${match.homeDressingRoom || 'N/A'} | V: ${match.awayDressingRoom || 'N/A'}`} />
+                <div>
+                     <p className="text-xs font-bold">{match.leg} - Fecha {match.round}</p>
+                     <p className="text-xs text-muted-foreground">{match.category}</p>
+                </div>
+                 <div className="flex flex-col items-end gap-1">
+                     <DetailRow icon={Shield} label="Cancha" value={match.field || 'N/A'} />
+                    <DetailRow icon={UsersIcon} label="Vocalía" value={vocalTeam?.name || 'N/A'} />
+                 </div>
             </CardFooter>
         </Card>
     );
 };
+
 
 const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
     const allTeams: Team[] = useMemo(() => [
@@ -682,7 +689,16 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
     const groupedMatches = useMemo(() => {
         if (filteredMatches.length === 0 || !isClient) return {};
 
-        return filteredMatches
+        const sortedMatches = [...filteredMatches].sort((a, b) => {
+            const dateA = a.date ? a.date.getTime() : 0;
+            const dateB = b.date ? b.date.getTime() : 0;
+            if (dateA !== dateB) return dateA - dateB;
+            const roundA = a.round || 0;
+            const roundB = b.round || 0;
+            return roundA - roundB;
+        });
+
+        return sortedMatches
             .reduce((acc, match) => {
                 if (!match.date) return acc;
                 const dateKey = format(match.date, 'PPPP', {locale: es});
@@ -694,6 +710,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
                 return acc;
             }, {} as Record<string, GeneratedMatch[]>);
     }, [filteredMatches, isClient]);
+
 
      if (generatedMatches.length === 0) {
         return (
@@ -717,15 +734,6 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
             </CardHeader>
             <CardContent className="space-y-6 mt-6">
                  {Object.entries(groupedMatches)
-                    .sort(([dateA], [dateB]) => {
-                         try {
-                             const parsedDateA = parse(dateA, 'PPPP', new Date(), { locale: es });
-                             const parsedDateB = parse(dateB, 'PPPP', new Date(), { locale: es });
-                             return parsedDateA.getTime() - parsedDateB.getTime();
-                         } catch (e) {
-                             return 0; 
-                         }
-                    })
                     .map(([date, matchesOnDate]) => (
                     <div key={date}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
@@ -1257,3 +1265,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
