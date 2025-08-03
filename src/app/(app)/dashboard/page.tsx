@@ -66,6 +66,8 @@ import {
   PlusCircle,
   Pencil,
   ShieldBan,
+  ArrowRight,
+  AlertCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
@@ -264,6 +266,30 @@ export default function DashboardPage() {
             </Carousel>
         </Card>
       
+        {isAdmin && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Alertas y Notificaciones</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="bg-amber-500/10 border-l-4 border-amber-500 text-amber-700 p-4 rounded-md" role="alert">
+                        <div className="flex items-start">
+                            <AlertCircle className="h-6 w-6 mr-3 mt-1"/>
+                            <div className="flex-grow">
+                                <p className="font-bold">Solicitudes Pendientes</p>
+                                <p className="text-sm">Tienes 2 nuevas solicitudes de recalificación que requieren tu aprobación.</p>
+                                <Button variant="link" className="p-0 h-auto text-amber-700 font-bold mt-1" asChild>
+                                    <Link href="/requests/requalification">
+                                        Revisar ahora <ArrowRight className="ml-2"/>
+                                    </Link>
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
 
         <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -433,7 +459,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
