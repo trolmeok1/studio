@@ -32,8 +32,11 @@ export default function LoginPage() {
     <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
             <Trophy className="mx-auto h-12 w-12 text-primary" />
-            <CardTitle className="text-2xl font-bold mt-4 font-headline">Bienvenido de Nuevo</CardTitle>
-            <CardDescription>Inicia sesión para administrar tus torneos.</CardDescription>
+            <CardTitle className="text-2xl font-bold mt-4 font-headline">
+                <div>Liga Deportiva Barrial</div>
+                <div>LA LUZ</div>
+            </CardTitle>
+            <CardDescription>Inicio de sesión para administradores</CardDescription>
         </CardHeader>
         <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -61,16 +64,17 @@ export default function LoginPage() {
                 <Separator className="flex-grow" />
             </div>
             
+            <p className="text-center text-sm text-muted-foreground mb-4">
+                Si no tienes cuenta, ingresa como invitado para visualizar el torneo.
+            </p>
+            
             <Button variant="outline" className="w-full" onClick={handleGuestLogin}>
                 <User className="mr-2" />
                 Ingresar como Invitado
             </Button>
              
-             <div className="mt-6 text-center text-sm">
-                ¿No tienes una cuenta?{" "}
-                <Link href="/register" className="text-primary hover:underline font-semibold">
-                    Contacta al administrador
-                </Link>
+             <div className="mt-6 text-center text-sm text-muted-foreground">
+                Aplicación oficial de la Liga barrial
             </div>
         </CardContent>
     </Card>
