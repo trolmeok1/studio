@@ -930,9 +930,11 @@ export default function SchedulePage() {
         }
     });
     
-    let allMatches = [...allIdaMatches, ...allVueltaMatches];
-    allMatches.sort(() => 0.5 - Math.random());
-    const matchQueue = allMatches;
+    // Shuffle each leg's matches independently
+    allIdaMatches.sort(() => 0.5 - Math.random());
+    allVueltaMatches.sort(() => 0.5 - Math.random());
+    
+    const matchQueue = [...allIdaMatches, ...allVueltaMatches];
 
     // Assign dates, times, referees, and dressing rooms
     let scheduledMatches: GeneratedMatch[] = [];
