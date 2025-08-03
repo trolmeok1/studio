@@ -203,7 +203,7 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
 };
 
 const FixtureView = ({ category, allGeneratedMatches }: { category: Category, allGeneratedMatches: GeneratedMatch[] }) => {
-     const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
+    const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
 
     const fixtureMatches = useMemo(() => {
@@ -249,20 +249,27 @@ const FixtureView = ({ category, allGeneratedMatches }: { category: Category, al
         };
     }, [category]);
     
-    const FixtureRound = ({ title, matches }: { title: string, matches: GeneratedMatch[]}) => (
+    const FixtureRoundTable = ({ title, matches }: { title: string, matches: GeneratedMatch[] }) => (
         <div className="space-y-4">
             <h4 className="text-xl font-bold text-center">{title}</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {matches.map((match, i) => (
-                    <Card key={i} className="p-2 text-center text-sm">
-                         <CardContent className="p-2 flex flex-col items-center justify-center h-full">
-                            <span className="font-semibold">{getTeamName(match.home)}</span>
-                            <span className="text-muted-foreground font-bold my-1">vs</span>
-                            <span className="font-semibold">{getTeamName(match.away)}</span>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            <Table>
+                 <TableHeader className="bg-primary/10">
+                    <TableRow>
+                        <TableHead className="text-right w-2/5 font-semibold">Equipo Local</TableHead>
+                        <TableHead className="text-center w-1/5 font-semibold">vs</TableHead>
+                        <TableHead className="w-2/5 font-semibold">Equipo Visitante</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                     {matches.map((match, i) => (
+                        <TableRow key={i}>
+                            <TableCell className="text-right font-medium">{getTeamName(match.home)}</TableCell>
+                            <TableCell className="text-center text-muted-foreground">vs</TableCell>
+                            <TableCell className="font-medium">{getTeamName(match.away)}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
     
@@ -290,7 +297,7 @@ const FixtureView = ({ category, allGeneratedMatches }: { category: Category, al
                 <h3 className="text-2xl font-bold text-center mb-4 pb-2 border-b-2">Primera Vuelta</h3>
                 <div className="space-y-6">
                     {Object.entries(roundsIda).map(([roundNum, matches]) => (
-                        <FixtureRound key={`ida-${roundNum}`} title={`Etapa ${roundNum}`} matches={matches} />
+                        <FixtureRoundTable key={`ida-${roundNum}`} title={`Fecha ${roundNum}`} matches={matches} />
                     ))}
                 </div>
             </div>
@@ -298,7 +305,7 @@ const FixtureView = ({ category, allGeneratedMatches }: { category: Category, al
                 <h3 className="text-2xl font-bold text-center mb-4 pb-2 border-b-2">Segunda Vuelta</h3>
                 <div className="space-y-6">
                      {Object.entries(roundsVuelta).map(([roundNum, matches]) => (
-                        <FixtureRound key={`vuelta-${roundNum}`} title={`Etapa ${parseInt(roundNum) + Object.keys(roundsIda).length}`} matches={matches} />
+                        <FixtureRoundTable key={`vuelta-${roundNum}`} title={`Fecha ${parseInt(roundNum) + Object.keys(roundsIda).length}`} matches={matches} />
                     ))}
                 </div>
             </div>
@@ -386,7 +393,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                 <Tabs defaultValue='schedule'>
                      <TabsList>
                         <TabsTrigger value="schedule">Calendario de Partidos</TabsTrigger>
-                        <TabsTrigger value="fixture">Fixture (Etapas)</TabsTrigger>
+                        <TabsTrigger value="fixture">Fixture (Fechas)</TabsTrigger>
                         <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
                     </TabsList>
                     <TabsContent value="fixture">
@@ -475,7 +482,6 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const [numDressingRooms, setNumDressingRooms] = useState(4);
     const [selectedRefereeIds, setSelectedRefereeIds] = useState<string[]>([]);
     const [allReferees, setAllReferees] = useState<Referee[]>([]);
-    const [prioritizedCategory, setPrioritizedCategory] = useState<Category | 'none'>('none');
 
     useEffect(() => {
         setAllReferees(getReferees());
@@ -506,7 +512,6 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
             numFields,
             numDressingRooms,
             selectedRefereeIds,
-            prioritizedCategory,
         });
     }
 
@@ -531,20 +536,6 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                                 <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
                             </PopoverContent>
                         </Popover>
-                    </div>
-                     <div>
-                        <Label htmlFor="prioritizedCategory">Priorizar Categoría (Primera Semana)</Label>
-                        <Select onValueChange={(value) => setPrioritizedCategory(value as Category | 'none')} value={prioritizedCategory}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Ninguna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Ninguna</SelectItem>
-                                <SelectItem value="Máxima">Máxima</SelectItem>
-                                <SelectItem value="Primera">Primera</SelectItem>
-                                <SelectItem value="Segunda">Segunda</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
                     <div>
                         <Label>Días de Juego</Label>
@@ -887,7 +878,7 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[], prioritizedCategory: Category | 'none' }) => {
+  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[] }) => {
     
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
@@ -939,23 +930,9 @@ export default function SchedulePage() {
         }
     });
     
-    // Separate prioritized matches
-    let prioritizedMatches: GeneratedMatch[] = [];
-    let otherMatches: GeneratedMatch[] = [];
-
-    if (settings.prioritizedCategory !== 'none') {
-        const priorityIda = allIdaMatches.filter(m => m.category === settings.prioritizedCategory);
-        const otherIda = allIdaMatches.filter(m => m.category !== settings.prioritizedCategory);
-        prioritizedMatches = [...priorityIda];
-        otherMatches = [...otherIda, ...allVueltaMatches];
-    } else {
-        otherMatches = [...allIdaMatches, ...allVueltaMatches];
-    }
-
-    prioritizedMatches.sort(() => 0.5 - Math.random());
-    otherMatches.sort(() => 0.5 - Math.random());
-
-    const matchQueue = [...prioritizedMatches, ...otherMatches];
+    let allMatches = [...allIdaMatches, ...allVueltaMatches];
+    allMatches.sort(() => 0.5 - Math.random());
+    const matchQueue = allMatches;
 
     // Assign dates, times, referees, and dressing rooms
     let scheduledMatches: GeneratedMatch[] = [];
@@ -985,7 +962,8 @@ export default function SchedulePage() {
                  
                  const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
                  const awayDressingRoom = ((homeDressingRoom - 1 + 2) % settings.numDressingRooms) + 1;
-                 dressingRoomCounter++;
+                 dressingRoomCounter = (dressingRoomCounter + 1) % settings.numDressingRooms;
+
 
                  scheduledMatches.push({
                     ...match,

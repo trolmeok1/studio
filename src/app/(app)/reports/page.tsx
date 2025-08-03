@@ -279,7 +279,7 @@ type ReportType = 'standings' | 'schedule' | 'sanctions' | 'finance' | null;
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
     const [category, setCategory] = useState<Category>('Máxima');
-    const [week, setWeek] = useState('Jornada 1');
+    const [week, setWeek] = useState('Fecha 1');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isClient, setIsClient] = useState(false);
 
@@ -393,20 +393,20 @@ export default function ReportsPage() {
                             </div>
                             <div>
                                 <CardTitle>Programación Semanal</CardTitle>
-                                <CardDescription>Cree un reporte con todos los partidos de la próxima jornada, incluyendo horarios, canchas y árbitros.</CardDescription>
+                                <CardDescription>Cree un reporte con todos los partidos de la próxima fecha, incluyendo horarios, canchas y árbitros.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-2">
-                            <Label htmlFor="week-schedule">Seleccionar Jornada</Label>
+                            <Label htmlFor="week-schedule">Seleccionar Fecha</Label>
                             <Select value={week} onValueChange={setWeek}>
                                 <SelectTrigger id="week-schedule">
-                                    <SelectValue placeholder="Elige una jornada..." />
+                                    <SelectValue placeholder="Elige una fecha..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {Array.from({ length: 22 }, (_, i) => (
-                                         <SelectItem key={i + 1} value={`Jornada ${i + 1}`}>Jornada {i + 1}</SelectItem>
+                                         <SelectItem key={i + 1} value={`Fecha ${i + 1}`}>Fecha {i + 1}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
