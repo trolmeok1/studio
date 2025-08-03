@@ -7,7 +7,7 @@ Como este es un entorno de desarrollo en la nube, no hay un botón de "descarga 
 ## Requisitos
 
 - **Node.js:** Asegúrate de tener instalado Node.js (que incluye npm). Puedes descargarlo desde [nodejs.org](https://nodejs.org/).
-- **Git:** Aunque no es estrictamente necesario para copiar los archivos, es la herramienta estándar para manejar proyectos de código (opcional pero recomendado).
+- **Git:** Necesitarás Git para subir tu código a GitHub. Puedes descargarlo desde [git-scm.com](https://git-scm.com/).
 
 ## Pasos
 
@@ -58,4 +58,33 @@ Esto iniciará un servidor local. Generalmente, podrás ver tu aplicación abrie
 
 **http://localhost:3000** (o el puerto que te indique la terminal).
 
-¡Y listo! Con estos pasos tendrás una réplica exacta de la aplicación funcionando en tu propia computadora, lista para que continúes desarrollándola.
+### 6. (Opcional) Sube tu proyecto a GitHub
+
+Es una excelente práctica guardar tu código en un repositorio de control de versiones como GitHub.
+
+1.  **Crea un nuevo repositorio en GitHub:** Ve a [GitHub.com](https://github.com), inicia sesión y crea un nuevo repositorio. **No** lo inicialices con un archivo `README` o `.gitignore`, déjalo completamente vacío.
+
+2.  **Inicializa Git en tu proyecto local:** En tu terminal, dentro de la carpeta del proyecto, ejecuta los siguientes comandos:
+
+    ```bash
+    # Inicializa el repositorio de Git
+    git init -b main
+
+    # Añade todos los archivos para ser rastreados
+    git add .
+
+    # Crea tu primer "commit" (una instantánea de tu código)
+    git commit -m "Primer commit: Proyecto inicial de TeamLink Hub"
+    ```
+
+3.  **Conecta y sube tu código:** GitHub te dará una URL para tu repositorio. Úsala en los siguientes comandos:
+
+    ```bash
+    # Reemplaza LA_URL_DE_TU_REPOSITORIO con la URL que te dio GitHub
+    git remote add origin TU_URL_DE_REPOSITORIO_AQUI.git
+
+    # Sube tu código a la rama "main" de tu repositorio en GitHub
+    git push -u origin main
+    ```
+
+¡Y listo! Con estos pasos tendrás una réplica exacta de la aplicación funcionando en tu propia computadora y respaldada en GitHub, lista para que continúes desarrollándola.
