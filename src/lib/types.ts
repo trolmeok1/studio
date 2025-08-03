@@ -5,6 +5,7 @@
 
 
 
+
 export type Category = 'Primera' | 'Máxima' | 'Segunda';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -90,6 +91,8 @@ export interface GeneratedMatch {
     date?: Date;
     time?: string;
     field?: number;
+    rescheduled?: boolean;
+    originalDate?: Date;
 }
 
 export interface MatchDataTeam extends Team {

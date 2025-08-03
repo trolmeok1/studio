@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -329,6 +329,8 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
     const [numFields, setNumFields] = useState(1);
+    const [priorityCategory, setPriorityCategory] = useState<Category | ''>('');
+    const [priorityCount, setPriorityCount] = useState(0);
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -349,6 +351,8 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
             gameDays,
             gameTimes: gameTimes.filter(t => t).sort(), // Filter out empty time slots and sort them
             numFields,
+            priorityCategory,
+            priorityCount,
         });
     }
 
@@ -396,6 +400,23 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                         ))}
                         <Button variant="outline" size="sm" onClick={handleAddTime}>Agregar Horario</Button>
                     </div>
+                </div>
+                <div className="border-t pt-4">
+                     <Label>Prioridad de Partidos (Opcional)</Label>
+                     <p className="text-xs text-muted-foreground mb-2">Asegura que un número de partidos de una categoría se jueguen la primera semana.</p>
+                     <div className="grid grid-cols-2 gap-2">
+                         <Select onValueChange={(v) => setPriorityCategory(v as Category)} value={priorityCategory}>
+                             <SelectTrigger>
+                                 <SelectValue placeholder="Categoría Prioritaria"/>
+                             </SelectTrigger>
+                             <SelectContent>
+                                 <SelectItem value="Máxima">Máxima</SelectItem>
+                                 <SelectItem value="Primera">Primera</SelectItem>
+                                 <SelectItem value="Segunda">Segunda</SelectItem>
+                             </SelectContent>
+                         </Select>
+                         <Input type="number" placeholder="No. de partidos" value={priorityCount || ''} onChange={e => setPriorityCount(parseInt(e.target.value) || 0)} min="0"/>
+                     </div>
                 </div>
             </div>
             <DialogFooter>
@@ -565,6 +586,53 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
     );
 };
 
+const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
+    const allTeams = useMemo(() => [
+        ...getTeamsByCategory('Máxima'),
+        ...getTeamsByCategory('Primera'),
+        ...getTeamsByCategory('Segunda')
+    ], []);
+    const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+    const rescheduledMatches = matches.filter(m => m.rescheduled);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Partidos Reagendados</CardTitle>
+                <CardDescription>Historial de todos los partidos que han sido movidos de su fecha original.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 {rescheduledMatches.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No hay partidos reagendados.</p>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Partido</TableHead>
+                                <TableHead>Fecha Original</TableHead>
+                                <TableHead>Nueva Fecha</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rescheduledMatches.map((match, i) => (
+                                <TableRow key={`${match.home}-${match.away}-${i}`}>
+                                    <TableCell className="font-medium">{getTeamName(match.home)} vs {getTeamName(match.away)}</TableCell>
+                                    <TableCell>
+                                        {match.originalDate ? format(match.originalDate, 'PPP, p', { locale: es }) : 'N/A'}
+                                    </TableCell>
+                                    <TableCell>
+                                        {match.date ? format(match.date, 'PPP, p', { locale: es }) : 'N/A'}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
 
 export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
@@ -578,8 +646,8 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
+  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, priorityCategory?: Category | '', priorityCount?: number }) => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -588,11 +656,9 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        let ida: GeneratedMatch[] = [];
-        let vuelta: GeneratedMatch[] = [];
+        let allMatches: GeneratedMatch[] = [];
 
-        const scheduleLeg = (leg: 'Ida' | 'Vuelta') => {
-            const legMatches: GeneratedMatch[] = [];
+        for (let leg of ['Ida', 'Vuelta'] as ('Ida' | 'Vuelta')[]) {
              let teamsForRound = [...currentTeams];
              for (let round = 0; round < numRounds; round++) {
                 for (let i = 0; i < matchesPerRound; i++) {
@@ -602,7 +668,7 @@ export default function SchedulePage() {
                     if (team1.id !== 'dummy' && team2.id !== 'dummy') {
                         const home = leg === 'Ida' ? team1 : team2;
                         const away = leg === 'Ida' ? team2 : team1;
-                        legMatches.push({ home: home.id, away: away.id, category, group, leg });
+                        allMatches.push({ home: home.id, away: away.id, category, group, leg });
                     }
                 }
                 const lastTeam = teamsForRound.pop();
@@ -610,14 +676,9 @@ export default function SchedulePage() {
                     teamsForRound.splice(1, 0, lastTeam);
                 }
             }
-            if (leg === 'Ida') ida.push(...legMatches);
-            else vuelta.push(...legMatches);
         }
         
-        scheduleLeg('Ida');
-        scheduleLeg('Vuelta');
-
-        return { ida, vuelta };
+        return allMatches;
     };
     
     const categoriesConfig: {category: Category, group?: 'A' | 'B'}[] = [
@@ -627,29 +688,36 @@ export default function SchedulePage() {
         { category: 'Segunda', group: 'B' }
     ];
 
-    let allIdaMatches: GeneratedMatch[] = [];
-    let allVueltaMatches: GeneratedMatch[] = [];
-    
+    let allMatchesPool: GeneratedMatch[] = [];
     categoriesConfig.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
-            const { ida, vuelta } = generateRoundRobinMatches(teams, cat.category, cat.group);
-            allIdaMatches.push(...ida);
-            allVueltaMatches.push(...vuelta);
+            allMatchesPool.push(...generateRoundRobinMatches(teams, cat.category, cat.group));
         }
     });
-
-    const allMatches = [...allIdaMatches, ...allVueltaMatches];
     
-    // Shuffle all matches randomly to interleave categories
-    for (let i = allMatches.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allMatches[i], allMatches[j]] = [allMatches[j], allMatches[i]];
+    // Separate priority matches
+    let priorityMatches: GeneratedMatch[] = [];
+    if (settings.priorityCategory && settings.priorityCount && settings.priorityCount > 0) {
+        let potentialPriorityMatches = allMatchesPool.filter(m => m.category === settings.priorityCategory && m.leg === 'Ida');
+        potentialPriorityMatches.sort(() => 0.5 - Math.random()); // Shuffle to get random matches from the category
+        priorityMatches = potentialPriorityMatches.slice(0, settings.priorityCount);
+        
+        // Remove priority matches from the main pool to avoid duplication
+        allMatchesPool = allMatchesPool.filter(match => 
+            !priorityMatches.some(p => p.home === match.home && p.away === match.away && p.leg === match.leg)
+        );
     }
     
-    // Assign dates and times
+    // Shuffle the remaining matches
+    for (let i = allMatchesPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allMatchesPool[i], allMatchesPool[j]] = [allMatchesPool[j], allMatchesPool[i]];
+    }
+    
+    // Assign dates and times, with priority matches first
     let scheduledMatches: GeneratedMatch[] = [];
-    let matchQueue = [...allMatches];
+    let matchQueue = [...priorityMatches, ...allMatchesPool];
     let currentDate = startOfDay(settings.startDate);
     
     while(matchQueue.length > 0) {
@@ -689,8 +757,10 @@ export default function SchedulePage() {
               if (m.home === matchToUpdate.home && m.away === matchToUpdate.away && m.leg === matchToUpdate.leg) {
                   return {
                       ...m,
+                      originalDate: m.date, // Save original date
                       date: newDate,
                       time: newTime,
+                      rescheduled: true,
                   };
               }
               return m;
@@ -759,6 +829,7 @@ export default function SchedulePage() {
             <TabsTrigger value="maxima">Máxima</TabsTrigger>
             <TabsTrigger value="primera">Primera</TabsTrigger>
             <TabsTrigger value="segunda">Segunda</TabsTrigger>
+            <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
                 <GeneralScheduleView generatedMatches={generatedMatches} />
@@ -782,6 +853,9 @@ export default function SchedulePage() {
             </TabsContent>
             <TabsContent value="segunda">
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
+            </TabsContent>
+            <TabsContent value="rescheduled">
+                <RescheduledMatchesView matches={generatedMatches} />
             </TabsContent>
         </Tabs>
         
