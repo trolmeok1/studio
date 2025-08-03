@@ -126,7 +126,7 @@ const CopaBracket = () => {
     );
 };
 
-const MatchCard = ({ match }: { match: GeneratedMatch }) => {
+const MatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, showCategory?: boolean }) => {
     const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
@@ -152,6 +152,11 @@ const MatchCard = ({ match }: { match: GeneratedMatch }) => {
                 <Image src={awayTeam?.logoUrl || 'https://placehold.co/40x40.png'} alt={awayTeam?.name || 'Away'} width={20} height={20} className="rounded-full" data-ai-hint="team logo" />
                 <span className="truncate">{awayTeam?.name || 'Away'}</span>
             </div>
+             {showCategory && (
+                <div className="w-24 text-right">
+                    <Badge variant="outline">{match.category}</Badge>
+                </div>
+            )}
         </div>
     </Link>
 );
@@ -408,6 +413,92 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     );
 };
 
+const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: GeneratedMatch[] }) => {
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => { setIsClient(true); }, []);
+
+    const groupedMatches = useMemo(() => {
+        if (generatedMatches.length === 0) return {};
+
+        const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
+
+        return generatedMatches
+            .reduce((acc, match) => {
+                const homeTeam = allTeams.find(t => t.id === match.home);
+                if (!homeTeam) return acc;
+                
+                const isGrouped = homeTeam.category === 'Segunda' && getTeamsByCategory('Segunda').length >= 16;
+                const categoryTeams = allTeams.filter(t => t.category === homeTeam.category && (isGrouped ? t.group === match.group : true));
+                const roundSize = categoryTeams.reduce((count, team) => team.id !== 'dummy' ? count + 1 : count, 0) / 2;
+                if (roundSize === 0) return acc;
+
+                const categoryMatches = generatedMatches.filter(m => m.category === homeTeam.category && (isGrouped ? m.group === match.group : true));
+                const matchIndexInSchedule = categoryMatches.findIndex(m => m.home === match.home && m.away === match.away && m.date === match.date);
+                
+                const totalRounds = (categoryTeams.length - (categoryTeams.length % 2 === 0 ? 0 : 1)) * 2; // *2 for two legs
+
+                let leg = 'Ida';
+                let currentRound = Math.floor(matchIndexInSchedule / roundSize) + 1;
+                
+                const singleLegRounds = totalRounds / 2;
+
+                const firstLegMatchesCount = generatedMatches.filter(m => m.leg === 'Ida').length;
+                const matchGlobalIndex = generatedMatches.findIndex(m => m === match);
+
+                if (matchGlobalIndex >= firstLegMatchesCount) {
+                     leg = 'Vuelta';
+                } else {
+                     leg = 'Ida';
+                }
+                 
+                const dateKey = `Fecha ${format(match.date || new Date(), 'PPPP', {locale: es})}`;
+                
+                if (!acc[dateKey]) {
+                    acc[dateKey] = [];
+                }
+                acc[dateKey].push(match);
+                return acc;
+            }, {} as Record<string, GeneratedMatch[]>);
+    }, [generatedMatches, isClient]);
+
+     if (generatedMatches.length === 0) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Calendario General</CardTitle>
+                    <CardDescription>Vista unificada de todos los partidos programados.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Equipos".</p>
+                </CardContent>
+             </Card>
+        )
+     }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Calendario General</CardTitle>
+                <CardDescription>Vista unificada de todos los partidos programados.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 mt-6">
+                 {Object.entries(groupedMatches)
+                    .sort(([dateA], [dateB]) => new Date(parse(dateA.split('Fecha ')[1], 'PPPP', new Date(), { locale: es })).getTime() - new Date(parse(dateB.split('Fecha ')[1], 'PPPP', new Date(), { locale: es })).getTime())
+                    .map(([date, matchesOnDate]) => (
+                    <div key={date}>
+                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
+                        <div className="space-y-2">
+                            {matchesOnDate.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => 
+                                <MatchCard key={index} match={match} showCategory={true} />
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+};
+
 
 export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
@@ -443,8 +534,8 @@ export default function SchedulePage() {
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    firstLeg.push({ home: team1.id, away: team2.id, category, group });
-                    secondLeg.push({ home: team2.id, away: team1.id, category, group });
+                    firstLeg.push({ home: team1.id, away: team2.id, category, group, leg: 'Ida' });
+                    secondLeg.push({ home: team2.id, away: team1.id, category, group, leg: 'Vuelta' });
                 }
             }
              // Rotate teams for the next round
@@ -570,13 +661,17 @@ export default function SchedulePage() {
             </Card>
         </div>
 
-        <Tabs defaultValue="copa" className="space-y-4">
+        <Tabs defaultValue="general" className="space-y-4">
             <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="copa">Copa La Luz</TabsTrigger>
             <TabsTrigger value="maxima">Máxima</TabsTrigger>
             <TabsTrigger value="primera">Primera</TabsTrigger>
             <TabsTrigger value="segunda">Segunda</TabsTrigger>
             </TabsList>
+            <TabsContent value="general">
+                <GeneralScheduleView generatedMatches={generatedMatches} />
+            </TabsContent>
             <TabsContent value="copa">
             <Card>
                 <CardHeader>
