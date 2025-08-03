@@ -69,7 +69,7 @@ export default function RequalificationPage() {
             : `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la recalificación para la segunda vuelta del campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`;
         const changeText = requestType === 'requalification' && playerOut
             ? `Solicito el cambio del Señor ${playerOut.name.toUpperCase()} con C.I. ${playerOut.idNumber} calificado con el Número ${playerOut.jerseyNumber} puesto que ${reason || 'el motivo especificado'}.`
-            : '';
+            : `Puesto que ${reason || 'el motivo especificado'}.`;
 
         return (
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -111,7 +111,7 @@ export default function RequalificationPage() {
                             <div className="space-y-4 text-justify leading-relaxed">
                                 <p>Reciban un cordial saludo de quienes conformamos el Club Deportivo {selectedTeam.name}.</p>
                                 <p>{requestText}</p>
-                                {changeText && <p>{changeText}</p>}
+                                <p>{changeText}</p>
                                 <p>Por este motivo solicitamos la {documentTitle.toLowerCase()} del siguiente jugador:</p>
                             </div>
 
@@ -237,12 +237,10 @@ export default function RequalificationPage() {
                                 <Input id="presidentId" value={presidentId} onChange={e => setPresidentId(e.target.value)} placeholder="C.I. del presidente del club" />
                             </div>
                         </div>
-                        {requestType === 'requalification' && (
-                            <div>
-                                <Label htmlFor="reason">Razón de la Recalificación (Puesto que...)</Label>
-                                <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} placeholder="Ej: ...hasta el momento no ha pisado cancha." />
-                            </div>
-                        )}
+                        <div>
+                            <Label htmlFor="reason">Razón de la {requestType === 'qualification' ? 'Calificación' : 'Recalificación'} (Puesto que...)</Label>
+                            <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} placeholder={requestType === 'qualification' ? "Ej: ...el jugador es un nuevo refuerzo para el equipo." : "Ej: ...el jugador anterior no ha pisado cancha."} />
+                        </div>
                     </div>
 
                     {/* Players Section */}
@@ -289,12 +287,16 @@ export default function RequalificationPage() {
                                     <Label htmlFor="playerInId">Número de Cédula</Label>
                                     <Input id="playerInId" value={playerIn.idNumber} onChange={e => setPlayerIn({...playerIn, idNumber: e.target.value})} placeholder="C.I. del nuevo jugador" />
                                 </div>
-                                {requestType === 'qualification' && (
-                                    <div>
-                                        <Label htmlFor="playerInNumber">N° Camiseta</Label>
-                                        <Input id="playerInNumber" type="number" value={playerIn.number} onChange={e => setPlayerIn({...playerIn, number: e.target.value})} placeholder="N° de camiseta" />
-                                    </div>
-                                )}
+                                <div>
+                                    <Label htmlFor="playerInNumber">N° Camiseta</Label>
+                                    <Input 
+                                        id="playerInNumber" 
+                                        type="number" 
+                                        value={playerIn.number} 
+                                        onChange={e => setPlayerIn({...playerIn, number: e.target.value})} 
+                                        placeholder={requestType === 'requalification' && playerOut ? `Reemplaza N° ${playerOut.jerseyNumber}` : "N°"}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
