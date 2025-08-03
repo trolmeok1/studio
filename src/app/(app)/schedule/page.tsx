@@ -114,7 +114,8 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
     const allTeams: Team[] = useMemo(() => [
         ...getTeamsByCategory('Máxima'),
         ...getTeamsByCategory('Primera'),
-        ...getTeamsByCategory('Segunda')
+        ...getTeamsByCategory('Segunda'),
+        ...getTeamsByCategory('Copa')
     ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
@@ -202,7 +203,7 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
     );
 };
 
-const FixtureView = ({ category, allGeneratedMatches }: { category: Category, allGeneratedMatches: GeneratedMatch[] }) => {
+const FixtureView = ({ category }: { category: Category }) => {
     const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
 
@@ -397,7 +398,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                         <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
                     </TabsList>
                     <TabsContent value="fixture">
-                         <FixtureView category={category} allGeneratedMatches={generatedMatches} />
+                         <FixtureView category={category} />
                     </TabsContent>
                     <TabsContent value="standings">
                         {standings.map(({ group, standings: groupStandings }) => (
@@ -474,7 +475,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     );
 };
 
-const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => void }) => {
+const DrawSettingsDialog = ({ onGenerate, tournamentType }: { onGenerate: (settings: any) => void, tournamentType: 'league' | 'cup' }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2));
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
@@ -518,13 +519,13 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     return (
         <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-                <DialogTitle>Configuración del Sorteo</DialogTitle>
+                <DialogTitle>Configuración de Programación ({tournamentType === 'league' ? 'Liga' : 'Copa'})</DialogTitle>
                 <DialogDescription>Define los parámetros para generar el calendario de partidos.</DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-[60vh] pr-6">
                 <div className="space-y-4 py-4">
                     <div>
-                        <Label>Fecha de Inicio del Torneo</Label>
+                        <Label>Fecha de Inicio</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
@@ -568,7 +569,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
                         </div>
                     </div>
                     <div className="border-t pt-4">
-                         <Label>Árbitros Disponibles para el Torneo</Label>
+                         <Label>Árbitros Disponibles</Label>
                          <p className="text-xs text-muted-foreground mb-2">Selecciona los árbitros que dirigirán los partidos.</p>
                          <div className="space-y-2">
                             {allReferees.map(referee => (
@@ -868,8 +869,9 @@ export default function SchedulePage() {
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [copaTeams, setCopaTeams] = useState<Team[]>([]);
   const [copaMatches, setCopaMatches] = useState<GeneratedMatch[]>([]);
-  const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
-  const [isCopaDialogOpen, setIsCopaDialogOpen] = useState(false);
+  const [isDrawLeagueDialogOpen, setIsDrawLeagueDialogOpen] = useState(false);
+  const [isDrawCopaDialogOpen, setIsDrawCopaDialogOpen] = useState(false);
+  const [isCopaSettingsDialogOpen, setIsCopaSettingsDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [resetAlertStep, setResetAlertStep] = useState(0);
@@ -882,8 +884,62 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[] }) => {
+  const scheduleMatches = (matchesToSchedule: GeneratedMatch[], settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[] }) => {
+    let scheduledMatches: GeneratedMatch[] = [];
+    const matchQueue = [...matchesToSchedule];
     
+    let currentDate = startOfDay(settings.startDate);
+    let refereeIndex = 0;
+    
+    // Find the next available slot based on already scheduled matches
+    const allScheduledMatches = [...generatedMatches, ...copaMatches.filter(m => m.date)];
+    if(allScheduledMatches.length > 0) {
+      const lastMatchDate = allScheduledMatches.reduce((latest, match) => {
+        return match.date && match.date > latest ? match.date : latest;
+      }, new Date(0));
+      currentDate = addDays(startOfDay(lastMatchDate), 1);
+    }
+    
+    while(matchQueue.length > 0) {
+        const dayOfWeek = getDay(currentDate);
+        if(settings.gameDays.includes(dayOfWeek)) {
+            const slotsPerDay = settings.gameTimes.length * settings.numFields;
+            const matchesForDay = matchQueue.splice(0, slotsPerDay);
+
+            matchesForDay.forEach((match, index) => {
+                 const timeIndex = index % settings.gameTimes.length;
+                 const fieldIndex = Math.floor(index / settings.gameTimes.length);
+                 
+                 const time = settings.gameTimes[timeIndex];
+                 const field = fieldIndex + 1;
+
+                 const timeParts = time.split(':');
+                 const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+
+                 const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
+                 refereeIndex++;
+                 
+                 let homeDressingRoom = ((index * 2) % settings.numDressingRooms) + 1;
+                 let awayDressingRoom = (homeDressingRoom + 1) % settings.numDressingRooms;
+                 if (awayDressingRoom === 0) awayDressingRoom = settings.numDressingRooms;
+
+                 scheduledMatches.push({
+                    ...match,
+                    date: matchDateTime,
+                    time: format(matchDateTime, 'HH:mm'),
+                    field: field,
+                    refereeId: refereeId,
+                    homeDressingRoom: homeDressingRoom,
+                    awayDressingRoom: awayDressingRoom,
+                });
+            });
+        }
+        currentDate = addDays(currentDate, 1);
+    }
+    return scheduledMatches;
+  };
+
+  const generateLeagueSchedule = (settings: any) => {
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
@@ -934,104 +990,57 @@ export default function SchedulePage() {
         }
     });
     
-    // Shuffle each leg's matches independently
     allIdaMatches.sort(() => 0.5 - Math.random());
     allVueltaMatches.sort(() => 0.5 - Math.random());
     
-    const matchQueue = [...allIdaMatches, ...allVueltaMatches];
-
-    // Assign dates, times, referees, and dressing rooms
-    let scheduledMatches: GeneratedMatch[] = [];
-    let currentDate = startOfDay(settings.startDate);
-    let refereeIndex = 0;
-    
-    let dressingRoomCounter = 0;
-
-    while(matchQueue.length > 0) {
-        const dayOfWeek = getDay(currentDate);
-        if(settings.gameDays.includes(dayOfWeek)) {
-            const slotsPerDay = settings.gameTimes.length * settings.numFields;
-            const matchesForDay = matchQueue.splice(0, slotsPerDay);
-
-            matchesForDay.forEach((match, index) => {
-                 const timeIndex = index % settings.gameTimes.length;
-                 const fieldIndex = Math.floor(index / settings.gameTimes.length);
-                 
-                 const time = settings.gameTimes[timeIndex];
-                 const field = fieldIndex + 1;
-
-                 const timeParts = time.split(':');
-                 const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-
-                 const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
-                 refereeIndex++;
-                 
-                 const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
-                 const awayDressingRoom = ((homeDressingRoom - 1 + 2) % settings.numDressingRooms) + 1;
-                 dressingRoomCounter = (dressingRoomCounter + 1) % settings.numDressingRooms;
-
-
-                 scheduledMatches.push({
-                    ...match,
-                    date: matchDateTime,
-                    time: format(matchDateTime, 'HH:mm'),
-                    field: field,
-                    refereeId: refereeId,
-                    homeDressingRoom: homeDressingRoom,
-                    awayDressingRoom: awayDressingRoom,
-                });
-            });
-        }
-        currentDate = addDays(currentDate, 1);
-    }
-    
-    setGeneratedMatches(scheduledMatches);
+    const scheduled = scheduleMatches([...allIdaMatches, ...allVueltaMatches], settings);
+    setGeneratedMatches(scheduled);
     setIsSuccessDialogOpen(true);
 };
 
-  const handleCopaGenerate = ({ teams }: { teams: Team[] }) => {
+  const handleCopaSettings = ({ teams }: { teams: Team[] }) => {
     setCopaTeams(teams);
     let shuffledTeams = [...teams].sort(() => 0.5 - Math.random());
 
     let matches: GeneratedMatch[] = [];
     for (let i = 0; i < shuffledTeams.length; i += 2) {
       if (shuffledTeams[i+1]) {
-        // Ida
-        matches.push({
-          home: shuffledTeams[i].id,
-          away: shuffledTeams[i+1].id,
-          category: 'Copa',
-          leg: 'Ida',
-          round: 1
-        });
-        // Vuelta
-        matches.push({
-          home: shuffledTeams[i+1].id,
-          away: shuffledTeams[i].id,
-          category: 'Copa',
-          leg: 'Vuelta',
-          round: 1
-        });
+        matches.push({ home: shuffledTeams[i].id, away: shuffledTeams[i+1].id, category: 'Copa', leg: 'Ida', round: 1 });
+        matches.push({ home: shuffledTeams[i+1].id, away: shuffledTeams[i].id, category: 'Copa', leg: 'Vuelta', round: 1 });
       }
     }
     setCopaMatches(matches);
+    setIsCopaSettingsDialogOpen(false);
+  }
+  
+  const scheduleCopaMatches = (settings: any) => {
+    const scheduled = scheduleMatches(copaMatches.filter(m => !m.date), settings);
+    setCopaMatches(prev => {
+        return prev.map(unscheduled => {
+            const found = scheduled.find(s => s.home === unscheduled.home && s.away === unscheduled.away && s.leg === unscheduled.leg);
+            return found || unscheduled;
+        });
+    });
+    setGeneratedMatches(prev => [...prev, ...scheduled]);
+    setIsDrawCopaDialogOpen(false);
+    setIsSuccessDialogOpen(true);
   }
 
   const handleReschedule = (matchToUpdate: GeneratedMatch, newDate: Date, newTime: string) => {
-      setGeneratedMatches(prevMatches => 
-          prevMatches.map(m => {
-              if (m.home === matchToUpdate.home && m.away === matchToUpdate.away && m.leg === matchToUpdate.leg) {
-                  return {
-                      ...m,
-                      originalDate: m.date, // Save original date
-                      date: newDate,
-                      time: newTime,
-                      rescheduled: true,
-                  };
-              }
-              return m;
-          })
-      );
+      const updateFn = (m: GeneratedMatch) => {
+         if (m.home === matchToUpdate.home && m.away === matchToUpdate.away && m.leg === matchToUpdate.leg) {
+              return {
+                  ...m,
+                  originalDate: m.date,
+                  date: newDate,
+                  time: newTime,
+                  rescheduled: true,
+              };
+          }
+          return m;
+      }
+      setGeneratedMatches(prev => prev.map(updateFn));
+      setCopaMatches(prev => prev.map(updateFn));
   };
 
 
@@ -1039,14 +1048,18 @@ export default function SchedulePage() {
       if (isTournamentStarted) {
           setIsRescheduleDialogOpen(true);
       } else {
-         setIsDrawDialogOpen(true);
+         setIsDrawLeagueDialogOpen(true);
       }
   }
 
   const handleResetConfirm = () => {
     setGeneratedMatches([]);
+    setCopaMatches([]);
+    setCopaTeams([]);
     setResetAlertStep(0);
   };
+
+  const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -1062,34 +1075,35 @@ export default function SchedulePage() {
                         onClick={handleDrawButtonClick}
                         >
                          {isTournamentStarted ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
-                         {isTournamentStarted ? "Reagendar Partido" : "Sorteo de Equipos"}
+                         {isTournamentStarted ? "Reagendar Partido" : "Sorteo de Liga"}
                      </Button>
                      {isTournamentStarted && (
                         <Button variant="destructive" onClick={() => setResetAlertStep(1)}>
                             <RefreshCw className="mr-2" />
-                            Reiniciar Calendario Actual
+                            Reiniciar Calendarios
                         </Button>
                     )}
                 </div>
             </Card>
         </div>
 
-        <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
-            <DrawSettingsDialog onGenerate={(settings) => {
-                generateMasterSchedule(settings);
-                setIsDrawDialogOpen(false);
-            }} />
+        <Dialog open={isDrawLeagueDialogOpen} onOpenChange={setIsDrawLeagueDialogOpen}>
+            <DrawSettingsDialog onGenerate={generateLeagueSchedule} tournamentType="league" />
+        </Dialog>
+
+        <Dialog open={isDrawCopaDialogOpen} onOpenChange={setIsDrawCopaDialogOpen}>
+            <DrawSettingsDialog onGenerate={scheduleCopaMatches} tournamentType="cup" />
         </Dialog>
         
         <RescheduleDialog 
-            allMatches={generatedMatches}
+            allMatches={[...generatedMatches, ...copaMatches]}
             open={isRescheduleDialogOpen}
             onOpenChange={setIsRescheduleDialogOpen}
             onReschedule={handleReschedule}
         />
         
-        <Dialog open={isCopaDialogOpen} onOpenChange={setIsCopaDialogOpen}>
-            <CopaSettingsDialog onGenerate={handleCopaGenerate} />
+        <Dialog open={isCopaSettingsDialogOpen} onOpenChange={setIsCopaSettingsDialogOpen}>
+            <CopaSettingsDialog onGenerate={handleCopaSettings} />
         </Dialog>
 
         <Tabs defaultValue="general" className="space-y-4">
@@ -1114,11 +1128,12 @@ export default function SchedulePage() {
                                 <SelectItem value="Máxima">Máxima</SelectItem>
                                 <SelectItem value="Primera">Primera</SelectItem>
                                 <SelectItem value="Segunda">Segunda</SelectItem>
+                                <SelectItem value="Copa">Copa</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory={selectedCategory} />
+                <GeneralScheduleView generatedMatches={[...generatedMatches, ...copaMatches]} selectedCategory={selectedCategory} />
             </TabsContent>
             <TabsContent value="copa">
             <Card>
@@ -1127,10 +1142,18 @@ export default function SchedulePage() {
                         <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
                         <CardDescription>Torneo de eliminación directa con los equipos seleccionados.</CardDescription>
                     </div>
-                     <Button onClick={() => setIsCopaDialogOpen(true)}>
-                        <Trophy className="mr-2"/>
-                        Iniciar Copa
-                    </Button>
+                     <div className="flex gap-2">
+                        <Button onClick={() => setIsCopaSettingsDialogOpen(true)} variant="outline">
+                            <Trophy className="mr-2"/>
+                            Configurar Copa
+                        </Button>
+                        {copaTeams.length > 0 && unscheduledCopaMatches > 0 && (
+                             <Button onClick={() => setIsDrawCopaDialogOpen(true)}>
+                                <CalendarPlus className="mr-2"/>
+                                Programar Partidos ({unscheduledCopaMatches})
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                   <CopaBracket teams={copaTeams} />
@@ -1174,7 +1197,7 @@ export default function SchedulePage() {
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
             <TabsContent value="rescheduled">
-                <RescheduledMatchesView matches={generatedMatches} />
+                <RescheduledMatchesView matches={[...generatedMatches, ...copaMatches]} />
             </TabsContent>
         </Tabs>
         
@@ -1183,7 +1206,7 @@ export default function SchedulePage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>¡Calendario Generado Exitosamente!</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Se ha generado el calendario de partidos para todas las categorías. Puedes verlo en las pestañas correspondientes.
+                        Se ha generado el calendario de partidos. Puedes verlo en la pestaña "General" o en las pestañas de cada categoría.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -1199,7 +1222,7 @@ export default function SchedulePage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>¿Estás seguro de reiniciar?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Esta acción eliminará permanentemente todos los partidos programados del calendario. No se puede deshacer. Los partidos ya jugados no se verán afectados.
+                                Esta acción eliminará permanentemente todos los partidos programados del calendario (Liga y Copa). No se puede deshacer. Los partidos ya jugados no se verán afectados.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -1214,7 +1237,7 @@ export default function SchedulePage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Confirmación Final</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Estás a punto de borrar el calendario. Esta es tu última oportunidad para cancelar.
+                                Estás a punto de borrar los calendarios. Esta es tu última oportunidad para cancelar.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -1222,25 +1245,11 @@ export default function SchedulePage() {
                                 Cancelar
                             </AlertDialogCancel>
                             <AlertDialogAction className={buttonVariants({variant: "destructive"})} onClick={handleResetConfirm}>
-                                Entendido, reiniciar el calendario
+                                Entendido, reiniciar los calendarios
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </>
-                 ) : (
-                      <>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Calendario Reiniciado</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Se han borrado todos los partidos programados. Ahora puedes generar un nuevo calendario desde el botón "Sorteo de Equipos".
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                             <AlertDialogAction onClick={() => setResetAlertStep(0)}>
-                                Entendido
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </>
-                 )}
+                 ) : null }
             </AlertDialogContent>
         </AlertDialog>
     </div>
