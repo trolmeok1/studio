@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { teams as allTeams, getPlayersByTeamId, type Player, type Team } from '@/lib/mock-data';
-import { ArrowLeft, Printer, UserPlus, UserX, FileText, BadgeCheck } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { teams as allTeams, getPlayersByTeamId, requalificationRequests as allRequests, type Player, type Team, type RequalificationRequest } from '@/lib/mock-data';
+import { ArrowLeft, Printer, UserPlus, UserX, FileText, BadgeCheck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
@@ -23,6 +25,77 @@ const initialNewPlayerState = {
 
 type NewPlayer = typeof initialNewPlayerState;
 type RequestType = 'qualification' | 'requalification';
+
+const RequestHistory = () => {
+    const [requests, setRequests] = useState<RequalificationRequest[]>(allRequests);
+
+    const getStatusVariant = (status: RequalificationRequest['status']) => {
+        switch (status) {
+            case 'approved': return 'default';
+            case 'rejected': return 'destructive';
+            case 'pending': return 'secondary';
+        }
+    };
+    
+     const getStatusIcon = (status: RequalificationRequest['status']) => {
+        switch (status) {
+            case 'approved': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+            case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
+            case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
+        }
+    };
+
+    return (
+        <Card className="mt-8">
+            <CardHeader>
+                <CardTitle>Historial de Solicitudes</CardTitle>
+                <CardDescription>Revisa el estado de todas las solicitudes de calificación y recalificación.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Equipo</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Jugador Entrante</TableHead>
+                            <TableHead>Jugador Saliente</TableHead>
+                            <TableHead>Estado</TableHead>
+                             <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {requests.map(req => (
+                            <TableRow key={req.id}>
+                                <TableCell>{format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
+                                <TableCell>{req.teamName}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline">{req.requestType === 'qualification' ? 'Calificación' : 'Recalificación'}</Badge>
+                                </TableCell>
+                                <TableCell className="font-medium">{req.playerInName}</TableCell>
+                                <TableCell>{req.playerOutName || 'N/A'}</TableCell>
+                                <TableCell>
+                                    <Badge variant={getStatusVariant(req.status)} className="flex items-center gap-1 w-fit">
+                                        {getStatusIcon(req.status)}
+                                        {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                     {req.status === 'pending' && (
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700">Aprobar</Button>
+                                            <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700">Rechazar</Button>
+                                        </div>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function RequalificationPage() {
     const [step, setStep] = useState(1);
@@ -181,7 +254,7 @@ export default function RequalificationPage() {
 
     if (!requestType) {
         return (
-            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 flex items-center justify-center">
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
                 <Card className="max-w-2xl mx-auto w-full">
                     <CardHeader>
                         <CardTitle>Nueva Solicitud</CardTitle>
@@ -198,6 +271,7 @@ export default function RequalificationPage() {
                         </Button>
                     </CardContent>
                 </Card>
+                <RequestHistory />
             </div>
         )
     }

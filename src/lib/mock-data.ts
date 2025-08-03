@@ -1,5 +1,5 @@
 
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Referee, Expense } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Referee, Expense, RequalificationRequest } from './types';
 
 export let referees: Referee[] = [
     { id: 'ref-1', name: 'Néstor Pitana', category: 'A' },
@@ -455,3 +455,46 @@ export const generateFinancialReport = (matches: Match[], expenses: Expense[]): 
 
     return report;
 };
+
+export let requalificationRequests: RequalificationRequest[] = [
+    {
+        id: 'req-1',
+        teamId: '1',
+        teamName: 'Cosmic Comets',
+        requestType: 'requalification',
+        playerInName: 'Ansu Fati',
+        playerOutName: 'Neymar Jr',
+        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+        status: 'pending',
+    },
+    {
+        id: 'req-2',
+        teamId: '2',
+        teamName: 'Solar Flares',
+        requestType: 'qualification',
+        playerInName: 'Pedri González',
+        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+        status: 'pending',
+    },
+    {
+        id: 'req-3',
+        teamId: '5',
+        teamName: 'Vortex Voyagers',
+        requestType: 'qualification',
+        playerInName: 'Gavi',
+        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+        status: 'approved',
+    },
+     {
+        id: 'req-4',
+        teamId: '7',
+        teamName: 'Quasar Quest',
+        requestType: 'requalification',
+        playerInName: 'Ferran Torres',
+        playerOutName: 'Un Jugador Viejo',
+        date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
+        status: 'rejected',
+    },
+];
+
+export const getRequalificationRequests = (): RequalificationRequest[] => requalificationRequests;

@@ -45,6 +45,7 @@ import {
   standings,
   topScorers,
   sanctions,
+  getRequalificationRequests,
 } from '@/lib/mock-data';
 import {
   Users,
@@ -73,7 +74,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const barData = [
   { name: 'W1', value: 10 },
@@ -212,6 +213,7 @@ function SanctionsCard() {
 export default function DashboardPage() {
   const { user } = useAuth();
   const isAdmin = user.role === 'admin';
+  const pendingRequests = useMemo(() => getRequalificationRequests().filter(r => r.status === 'pending'), []);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
@@ -266,7 +268,7 @@ export default function DashboardPage() {
             </Carousel>
         </Card>
       
-        {isAdmin && (
+        {isAdmin && pendingRequests.length > 0 && (
             <Card>
                 <CardHeader>
                     <CardTitle>Alertas y Notificaciones</CardTitle>
@@ -277,7 +279,7 @@ export default function DashboardPage() {
                             <AlertCircle className="h-6 w-6 mr-3 mt-1"/>
                             <div className="flex-grow">
                                 <p className="font-bold">Solicitudes Pendientes</p>
-                                <p className="text-sm">Tienes 2 nuevas solicitudes de recalificación que requieren tu aprobación.</p>
+                                <p className="text-sm">Tienes {pendingRequests.length} nuevas solicitudes de recalificación que requieren tu aprobación.</p>
                                 <Button variant="link" className="p-0 h-auto text-amber-700 font-bold mt-1" asChild>
                                     <Link href="/requests/requalification">
                                         Revisar ahora <ArrowRight className="ml-2"/>

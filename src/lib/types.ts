@@ -1,3 +1,4 @@
+
 export type Referee = {
     id: string;
     name: string;
@@ -212,4 +213,15 @@ export interface Expense {
     date: string;
     description: string;
     amount: number;
+}
+
+export interface RequalificationRequest {
+    id: string;
+    teamId: string;
+    teamName: string;
+    requestType: 'qualification' | 'requalification';
+    playerInName: string;
+    playerOutName?: string;
+    date: string;
+    status: 'pending' | 'approved' | 'rejected';
 }
