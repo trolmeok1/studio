@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -223,7 +222,7 @@ export default function DashboardPage() {
 
        <Card className="relative group">
             {isAdmin && (
-                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
                     <Button size="sm" asChild>
                        <label htmlFor="carousel-upload" className="cursor-pointer">
                            <PlusCircle />
