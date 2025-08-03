@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -201,33 +202,22 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     useEffect(() => { setIsClient(true) }, []);
 
     const groupedMatches = useMemo(() => {
-        if (teams.length === 0 || generatedMatches.length === 0) return {};
+        if (teams.length === 0 || generatedMatches.length === 0 || !isClient) return {};
 
         return generatedMatches
             .filter(m => m.category === category)
             .reduce((acc, match) => {
-                const dateKey = `Fecha ${match.roundNumber}` + (isGrouped ? ` - Grupo ${match.group}` : '');
+                if (!match.date) return acc;
+                // Group by actual date, not by round number
+                const dateKey = format(match.date, 'PPPP', {locale: es});
                 
                 if (!acc[dateKey]) {
-                    acc[dateKey] = {
-                        date: isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : 'Por definir',
-                        matches: []
-                    };
+                    acc[dateKey] = [];
                 }
-                acc[dateKey].matches.push(match);
-                // Find the earliest date for this round to display as the round date
-                const earliestDate = acc[dateKey].matches.reduce((earliest, current) => {
-                    if (!current.date) return earliest;
-                    return earliest && earliest.getTime() < current.date.getTime() ? earliest : current.date;
-                }, null as Date | null);
-                
-                if (isClient && earliestDate) {
-                    acc[dateKey].date = format(earliestDate, 'PPPP', { locale: es });
-                }
-
+                acc[dateKey].push(match);
                 return acc;
-            }, {} as Record<string, { date: string, matches: GeneratedMatch[] }>);
-    }, [generatedMatches, isClient, teams, category, isGrouped]);
+            }, {} as Record<string, GeneratedMatch[]>);
+    }, [generatedMatches, isClient, teams, category]);
 
 
     if(teams.length === 0) {
@@ -302,11 +292,13 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                         ))}
                     </TabsContent>
                     <TabsContent value="schedule" className="space-y-6 mt-6">
-                        {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches).sort().map(([roundName, roundData]) => (
-                            <div key={roundName}>
-                                <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{roundName} - <span className="font-normal">{roundData.date}</span></h3>
+                        {Object.keys(groupedMatches).length > 0 ? Object.entries(groupedMatches)
+                            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                            .map(([date, matchesOnDate]) => (
+                            <div key={date}>
+                                <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
                                 <div className="space-y-2">
-                                    {roundData.matches.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => <MatchCard key={index} match={match} />)}
+                                    {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => <MatchCard key={index} match={match} />)}
                                 </div>
                             </div>
                         )) : (
@@ -410,12 +402,12 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
     useEffect(() => { setIsClient(true); }, []);
 
     const groupedMatches = useMemo(() => {
-        if (generatedMatches.length === 0) return {};
+        if (generatedMatches.length === 0 || !isClient) return {};
 
         return generatedMatches
             .reduce((acc, match) => {
                 if (!match.date) return acc;
-                const dateKey = isClient ? format(match.date, 'PPPP', {locale: es}) : '';
+                const dateKey = format(match.date, 'PPPP', {locale: es});
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
@@ -450,18 +442,18 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                     .sort(([dateA], [dateB]) => {
                         try {
                              if (!dateA || !dateB) return 0;
-                             const timeA = parse(dateA, 'PPPP', new Date(), { locale: es }).getTime();
-                             const timeB = parse(dateB, 'PPPP', new Date(), { locale: es }).getTime();
-                             return timeA - timeB;
+                             // Use a known format for parsing that matches the key format
+                             return new Date(dateA).getTime() - new Date(dateB).getTime()
                         } catch(e) {
+                            console.error("Date parsing error", e);
                             return 0;
                         }
                     })
-                    .map(([roundAndDate, matchesOnDate]) => (
-                    <div key={roundAndDate}>
-                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{roundAndDate}</h3>
+                    .map(([date, matchesOnDate]) => (
+                    <div key={date}>
+                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
                         <div className="space-y-2">
-                            {matchesOnDate.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => 
+                            {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => 
                                 <MatchCard key={index} match={match} showCategory={true} />
                             )}
                         </div>
@@ -497,10 +489,9 @@ export default function SchedulePage() {
         const matchesPerRound = numTeams / 2;
         let allMatches: GeneratedMatch[] = [];
         
-        for (let leg of ['Ida', 'Vuelta'] as ('Ida' | 'Vuelta')[]) {
-            const legMatches: GeneratedMatch[] = [];
+        const scheduleMatches = (leg: 'Ida' | 'Vuelta') => {
             let roundTeams = [...currentTeams];
-            for (let round = 0; round < numRounds; round++) {
+             for (let round = 0; round < numRounds; round++) {
                 for (let i = 0; i < matchesPerRound; i++) {
                     const team1 = roundTeams[i];
                     const team2 = roundTeams[numTeams - 1 - i];
@@ -508,16 +499,20 @@ export default function SchedulePage() {
                     if (team1.id !== 'dummy' && team2.id !== 'dummy') {
                         const home = leg === 'Ida' ? team1.id : team2.id;
                         const away = leg === 'Ida' ? team2.id : team1.id;
-                        legMatches.push({ home, away, category, group, roundNumber: round + 1, leg });
+                        allMatches.push({ home, away, category, group, roundNumber: round + 1, leg });
                     }
                 }
+                // Rotate teams
                 const lastTeam = roundTeams.pop();
                 if (lastTeam) {
                     roundTeams.splice(1, 0, lastTeam);
                 }
             }
-             allMatches.push(...legMatches);
         }
+        
+        scheduleMatches('Ida');
+        scheduleMatches('Vuelta');
+
         return allMatches;
     };
     
@@ -548,9 +543,8 @@ export default function SchedulePage() {
     let scheduledMatches: GeneratedMatch[] = [];
     let matchQueue = [...allMatches];
     let currentDate = startOfDay(settings.startDate);
-    let matchIndex = 0;
     
-    while(matchIndex < allMatches.length) {
+    while(matchQueue.length > 0) {
         const dayOfWeek = getDay(currentDate);
         if(settings.gameDays.includes(dayOfWeek)) {
             // Create slots for the current valid day
@@ -573,7 +567,6 @@ export default function SchedulePage() {
                         time: format(daySlots[index].date, 'HH:mm'),
                         field: daySlots[index].field,
                     });
-                    matchIndex++;
                 }
             });
         }
@@ -717,5 +710,7 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
 
     
