@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { teams as allTeams, getPlayersByTeamId, type Player, type Team } from '@/lib/mock-data';
-import { ArrowLeft, Printer, UserPlus, UserX } from 'lucide-react';
+import { ArrowLeft, Printer, UserPlus, UserX, FileText, BadgeCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
@@ -22,9 +22,11 @@ const initialNewPlayerState = {
 };
 
 type NewPlayer = typeof initialNewPlayerState;
+type RequestType = 'qualification' | 'requalification';
 
 export default function RequalificationPage() {
     const [step, setStep] = useState(1);
+    const [requestType, setRequestType] = useState<RequestType | null>(null);
     const [selectedTeamId, setSelectedTeamId] = useState('');
     const [reason, setReason] = useState('');
     const [playerOutId, setPlayerOutId] = useState('');
@@ -36,7 +38,10 @@ export default function RequalificationPage() {
     const playerOut = useMemo(() => teamPlayers.find(p => p.id === playerOutId), [playerOutId]);
 
     const handleNextStep = () => {
-        if (selectedTeam && playerOut && playerIn.firstName && playerIn.idNumber) {
+        const isQualificationValid = requestType === 'qualification' && selectedTeam && playerIn.firstName && playerIn.idNumber;
+        const isRequalificationValid = requestType === 'requalification' && selectedTeam && playerOut && playerIn.firstName && playerIn.idNumber;
+
+        if (isQualificationValid || isRequalificationValid) {
             setStep(2);
         } else {
             alert('Por favor, completa todos los campos requeridos.');
@@ -47,19 +52,37 @@ export default function RequalificationPage() {
         window.print();
     }
 
-    if (step === 2 && selectedTeam && playerOut) {
+    const resetForm = () => {
+        setStep(1);
+        setRequestType(null);
+        setSelectedTeamId('');
+        setReason('');
+        setPlayerOutId('');
+        setPlayerIn(initialNewPlayerState);
+        setPresidentId('');
+    };
+
+    if (step === 2 && selectedTeam && (requestType === 'qualification' || playerOut)) {
+        const documentTitle = requestType === 'qualification' ? 'CALIFICACIÓN' : 'RECALIFICACIÓN';
+        const requestText = requestType === 'qualification'
+            ? `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la calificación para la segunda vuelta del campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`
+            : `Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la recalificación para la segunda vuelta del campeonato de la categoría ${selectedTeam.category.toUpperCase()}.`;
+        const changeText = requestType === 'requalification' && playerOut
+            ? `Solicito el cambio del Señor ${playerOut.name.toUpperCase()} con C.I. ${playerOut.idNumber} calificado con el Número ${playerOut.jerseyNumber} puesto que ${reason || 'el motivo especificado'}.`
+            : '';
+
         return (
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
                 <Card className="print:shadow-none print:border-none">
                     <CardHeader className="print:hidden">
-                        <CardTitle>Documento de Recalificación Generado</CardTitle>
+                        <CardTitle>Documento de {documentTitle.toLowerCase()} Generado</CardTitle>
                         <CardDescription>Los datos han sido guardados. Revisa el documento y procede a imprimir.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex gap-4 print:hidden mb-6">
-                            <Button variant="outline" onClick={() => setStep(1)}>
+                            <Button variant="outline" onClick={resetForm}>
                                 <ArrowLeft className="mr-2" />
-                                Volver a Editar
+                                Volver / Nueva Solicitud
                             </Button>
                              <Button onClick={handlePrint}>
                                 <Printer className="mr-2" />
@@ -87,13 +110,9 @@ export default function RequalificationPage() {
 
                             <div className="space-y-4 text-justify leading-relaxed">
                                 <p>Reciban un cordial saludo de quienes conformamos el Club Deportivo {selectedTeam.name}.</p>
-                                <p>
-                                    Por medio de la Presente queremos solicitarles de la manera más atenta y comedida la recalificación para la segunda vuelta del campeonato de la categoría {selectedTeam.category.toUpperCase()}.
-                                </p>
-                                <p>
-                                    Solicito el cambio del Señor {playerOut.name.toUpperCase()} con C.I. {playerOut.idNumber} calificado con el Número {playerOut.jerseyNumber} puesto que <span className="font-semibold underline">{reason || 'el motivo especificado'}</span>.
-                                </p>
-                                <p>Por este motivo solicitamos la recalificación del siguiente jugador:</p>
+                                <p>{requestText}</p>
+                                {changeText && <p>{changeText}</p>}
+                                <p>Por este motivo solicitamos la {documentTitle.toLowerCase()} del siguiente jugador:</p>
                             </div>
 
                             <table className="w-full border-collapse border border-black my-6 text-sm">
@@ -107,7 +126,7 @@ export default function RequalificationPage() {
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td className="border border-black p-1 text-center">{playerOut.jerseyNumber}</td>
+                                        <td className="border border-black p-1 text-center">{playerIn.number || playerOut?.jerseyNumber || ''}</td>
                                         <td className="border border-black p-1">{playerIn.firstName.toUpperCase()}</td>
                                         <td className="border border-black p-1">{playerIn.lastName.toUpperCase()}</td>
                                         <td className="border border-black p-1 text-center">{playerIn.idNumber}</td>
@@ -115,8 +134,11 @@ export default function RequalificationPage() {
                                 </tbody>
                             </table>
 
-                             <p className="mb-20">
+                             <p className="mb-8">
                                 En espera de que la petición sea favorablemente acogida por ustedes nos despedimos.
+                            </p>
+                            <p className="text-xs text-muted-foreground mb-16">
+                                Nota: Adjuntar copia de cédula a color del nuevo jugador.
                             </p>
 
                             <div className="text-center">
@@ -157,12 +179,40 @@ export default function RequalificationPage() {
         );
     }
 
+    if (!requestType) {
+        return (
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 flex items-center justify-center">
+                <Card className="max-w-2xl mx-auto w-full">
+                    <CardHeader>
+                        <CardTitle>Nueva Solicitud</CardTitle>
+                        <CardDescription>Selecciona el tipo de solicitud que deseas realizar.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => setRequestType('qualification')}>
+                            <BadgeCheck className="h-8 w-8" />
+                            <span className="text-lg">Calificación</span>
+                        </Button>
+                        <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => setRequestType('requalification')}>
+                            <FileText className="h-8 w-8" />
+                             <span className="text-lg">Recalificación</span>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Card className="max-w-4xl mx-auto">
                 <CardHeader>
-                    <CardTitle>Solicitud de Recalificación de Jugador</CardTitle>
-                    <CardDescription>Paso 1 de 2: Completa la información para el cambio de jugador.</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Solicitud de {requestType === 'qualification' ? 'Calificación' : 'Recalificación'} de Jugador</CardTitle>
+                            <CardDescription>Paso 1 de 2: Completa la información para la solicitud.</CardDescription>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setRequestType(null)}>Cambiar Tipo</Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-8">
                     {/* Team and Reason Section */}
@@ -187,39 +237,43 @@ export default function RequalificationPage() {
                                 <Input id="presidentId" value={presidentId} onChange={e => setPresidentId(e.target.value)} placeholder="C.I. del presidente del club" />
                             </div>
                         </div>
-                        <div>
-                            <Label htmlFor="reason">Razón de la Recalificación (Puesto que...)</Label>
-                            <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} placeholder="Ej: ...hasta el momento no ha pisado cancha." />
-                        </div>
+                        {requestType === 'requalification' && (
+                            <div>
+                                <Label htmlFor="reason">Razón de la Recalificación (Puesto que...)</Label>
+                                <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} placeholder="Ej: ...hasta el momento no ha pisado cancha." />
+                            </div>
+                        )}
                     </div>
 
                     {/* Players Section */}
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className={`grid ${requestType === 'requalification' ? 'md:grid-cols-2' : 'grid-cols-1'} gap-8`}>
                         {/* Player Out */}
-                        <div className="space-y-4 p-4 border rounded-lg border-destructive">
-                             <h3 className="font-semibold text-lg flex items-center gap-2"><UserX className="text-destructive"/> 2. Jugador Saliente</h3>
-                             <Select onValueChange={setPlayerOutId} value={playerOutId} disabled={!selectedTeamId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={selectedTeamId ? "Selecciona el jugador a reemplazar..." : "Primero elige un equipo"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {teamPlayers.map(player => (
-                                        <SelectItem key={player.id} value={player.id}>{player.name} (C.I. {player.idNumber})</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {playerOut && (
-                                <Card className="bg-muted/50 p-3 text-sm">
-                                    <p><strong>Nombre:</strong> {playerOut.name}</p>
-                                    <p><strong>Cédula:</strong> {playerOut.idNumber}</p>
-                                    <p><strong>Número Camiseta:</strong> {playerOut.jerseyNumber}</p>
-                                </Card>
-                            )}
-                        </div>
+                        {requestType === 'requalification' && (
+                            <div className="space-y-4 p-4 border rounded-lg border-destructive">
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><UserX className="text-destructive"/> 2. Jugador Saliente</h3>
+                                <Select onValueChange={setPlayerOutId} value={playerOutId} disabled={!selectedTeamId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={selectedTeamId ? "Selecciona el jugador a reemplazar..." : "Primero elige un equipo"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {teamPlayers.map(player => (
+                                            <SelectItem key={player.id} value={player.id}>{player.name} (C.I. {player.idNumber})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {playerOut && (
+                                    <Card className="bg-muted/50 p-3 text-sm">
+                                        <p><strong>Nombre:</strong> {playerOut.name}</p>
+                                        <p><strong>Cédula:</strong> {playerOut.idNumber}</p>
+                                        <p><strong>Número Camiseta:</strong> {playerOut.jerseyNumber}</p>
+                                    </Card>
+                                )}
+                            </div>
+                        )}
 
                         {/* Player In */}
                         <div className="space-y-4 p-4 border rounded-lg border-primary">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><UserPlus className="text-primary"/> 3. Jugador Entrante</h3>
+                            <h3 className="font-semibold text-lg flex items-center gap-2"><UserPlus className="text-primary"/> {requestType === 'requalification' ? '3.' : '2.'} Jugador Entrante</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <Label htmlFor="playerInFirstName">Nombres</Label>
@@ -230,19 +284,26 @@ export default function RequalificationPage() {
                                     <Input id="playerInLastName" value={playerIn.lastName} onChange={e => setPlayerIn({...playerIn, lastName: e.target.value})} placeholder="Apellidos completos" />
                                 </div>
                             </div>
-                            <div>
-                                <Label htmlFor="playerInId">Número de Cédula</Label>
-                                <Input id="playerInId" value={playerIn.idNumber} onChange={e => setPlayerIn({...playerIn, idNumber: e.target.value})} placeholder="C.I. del nuevo jugador" />
+                             <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <Label htmlFor="playerInId">Número de Cédula</Label>
+                                    <Input id="playerInId" value={playerIn.idNumber} onChange={e => setPlayerIn({...playerIn, idNumber: e.target.value})} placeholder="C.I. del nuevo jugador" />
+                                </div>
+                                {requestType === 'qualification' && (
+                                    <div>
+                                        <Label htmlFor="playerInNumber">N° Camiseta</Label>
+                                        <Input id="playerInNumber" type="number" value={playerIn.number} onChange={e => setPlayerIn({...playerIn, number: e.target.value})} placeholder="N° de camiseta" />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                     
                     <Button onClick={handleNextStep} className="w-full" size="lg">
-                        Generar Documento de Recalificación
+                        Generar Documento de {requestType === 'qualification' ? 'Calificación' : 'Recalificación'}
                     </Button>
                 </CardContent>
             </Card>
         </div>
     );
 }
-
