@@ -57,22 +57,22 @@ export let teams: Team[] = [
   { id: 't-pri-12', name: 'Dimension Drifters', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Gwyneth Paltrow' } },
 
   // Segunda Category - 16 teams
-  { id: '7', name: 'Quasar Quest', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Patricia Taylor' } },
-  { id: '8', name: 'Nebula Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Robert Wilson' } },
-  { id: '9', name: 'Asteroide FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Linda Garcia' } },
-  { id: '10', name: 'Supernova SC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Michael Miller' } },
-  { id: '11', name: 'Blackhole United', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Barbara Davis' } },
-  { id: '12', name: 'Rocket Rangers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'William Rodriguez' } },
-  { id: '13', name: 'Mars Rovers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Elizabeth Martinez' } },
-  { id: '14', name: 'Jupiter Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'David Hernandez' } },
-  { id: '15', name: 'Saturn Rings', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Jennifer Lopez' } },
-  { id: '16', name: 'Neptune Knights', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Richard Gonzalez' } },
-  { id: '17', name: 'Pluto Pups', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Susan Perez' } },
-  { id: '18', name: 'Mercury Meteors', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Joseph Sanchez' } },
-  { id: '19', name: 'Venus Vipers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Thomas Ramirez' } },
-  { id: '20', name: 'Earth Eagles', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Charles Torres' } },
-  { id: '21', name: 'Alpha Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Daniel Clark' } },
-  { id: '22', name: 'Proxima Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', president: { name: 'Nancy Lewis' } }
+  { id: '7', name: 'Quasar Quest', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Patricia Taylor' } },
+  { id: '8', name: 'Nebula Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Robert Wilson' } },
+  { id: '9', name: 'Asteroide FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Linda Garcia' } },
+  { id: '10', name: 'Supernova SC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Michael Miller' } },
+  { id: '11', name: 'Blackhole United', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Barbara Davis' } },
+  { id: '12', name: 'Rocket Rangers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'William Rodriguez' } },
+  { id: '13', name: 'Mars Rovers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Elizabeth Martinez' } },
+  { id: '14', name: 'Jupiter Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'David Hernandez' } },
+  { id: '15', name: 'Saturn Rings', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Jennifer Lopez' } },
+  { id: '16', name: 'Neptune Knights', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Richard Gonzalez' } },
+  { id: '17', name: 'Pluto Pups', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Susan Perez' } },
+  { id: '18', name: 'Mercury Meteors', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Joseph Sanchez' } },
+  { id: '19', name: 'Venus Vipers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Thomas Ramirez' } },
+  { id: '20', name: 'Earth Eagles', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Charles Torres' } },
+  { id: '21', name: 'Alpha Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Daniel Clark' } },
+  { id: '22', name: 'Proxima Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Nancy Lewis' } }
 ];
 
 export let players: Player[] = [
@@ -216,8 +216,8 @@ export const upcomingMatches: Match[] = [
         date: today.toISOString(),
         category: 'Segunda',
         teams: {
-            home: { ...teams[6], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
-            away: { ...teams[7], attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0, paymentStatus: 'pending'} }
+            home: { ...teams.find(t => t.id === '7')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
+            away: { ...teams.find(t => t.id === '8')!, attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0, paymentStatus: 'pending'} }
         },
         status: 'in-progress'
     },
@@ -226,8 +226,8 @@ export const upcomingMatches: Match[] = [
         date: yesterday.toISOString(),
         category: 'Segunda',
         teams: {
-            home: { ...teams[8], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
-            away: { ...teams[9], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
+            home: { ...teams.find(t => t.id === '9')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
+            away: { ...teams.find(t => t.id === '10')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
         },
         status: 'finished',
         score: { home: 0, away: 0 }
@@ -326,5 +326,3 @@ export const systemLogs: LogEntry[] = [
         description: "eliminó al jugador 'Neymar Jr' del equipo 'Cosmic Comets'."
     },
 ];
-
-    

@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse, addHours, isBefore, isEqual } from 'date-fns';
+import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -154,7 +154,7 @@ const MatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, sho
             </div>
              {showCategory && (
                 <div className="w-24 text-right">
-                    <Badge variant="outline">{match.category}</Badge>
+                    <Badge variant="outline">{match.category}{match.group && ` - ${match.group}`}</Badge>
                 </div>
             )}
         </div>
@@ -414,7 +414,7 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
 
         return generatedMatches
             .reduce((acc, match) => {
-                const dateKey = `Fecha ${isClient ? format(match.date || new Date(), 'PPPP', {locale: es}) : ''}`;
+                const dateKey = `Fecha ${isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : ''}`;
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
@@ -446,7 +446,12 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
             </CardHeader>
             <CardContent className="space-y-6 mt-6">
                  {Object.entries(groupedMatches)
-                    .sort(([dateA], [dateB]) => new Date(parse(dateA.split('Fecha ')[1], 'PPPP', new Date(), { locale: es })).getTime() - new Date(parse(dateB.split('Fecha ')[1], 'PPPP', new Date(), { locale: es })).getTime())
+                    .sort(([dateA], [dateB]) => {
+                        const parsedDateA = dateA.split('Fecha ')[1];
+                        const parsedDateB = dateB.split('Fecha ')[1];
+                        if (!parsedDateA || !parsedDateB) return 0;
+                        return new Date(parse(parsedDateA, 'PPPP', new Date(), { locale: es })).getTime() - new Date(parse(parsedDateB, 'PPPP', new Date(), { locale: es })).getTime()
+                    })
                     .map(([date, matchesOnDate]) => (
                     <div key={date}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
@@ -477,7 +482,7 @@ export default function SchedulePage() {
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
     const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
-    const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[][] => {
+    const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -494,76 +499,58 @@ export default function SchedulePage() {
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    const match = round % 2 === 0 
-                        ? { home: team1.id, away: team2.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta', roundNumber: round + 1 }
-                        : { home: team2.id, away: team1.id, category, group, leg: 'Ida' as 'Ida' | 'Vuelta', roundNumber: round + 1 };
-                    rounds[round].push(match);
+                     rounds[round].push({ home: team1.id, away: team2.id, category, group, roundNumber: round + 1 });
                 }
             }
-            // Rotate teams for the next round
+             // Rotate teams for the next round
             const lastTeam = currentTeams.pop();
             if (lastTeam) {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        return rounds;
+        return rounds.flat();
     };
 
-    let allRoundsFirstLeg: GeneratedMatch[][] = [];
-    
-    // 1. Generate all rounds for all categories
-    const categorySchedules: { [key in Category]?: GeneratedMatch[][] } = {};
-    let maxRounds = 0;
+    let allMatchesFirstLeg: GeneratedMatch[] = [];
+    let allMatchesSecondLeg: GeneratedMatch[] = [];
 
     categories.forEach(category => {
-        const teamsForCategory = getTeamsByCategory(category);
-        if(teamsForCategory.length < 2) return;
-        
-        const isGrouped = category === 'Segunda' && teamsForCategory.length >= 16;
-        if(isGrouped) {
-             const groupA = teamsForCategory.filter(t => t.group === 'A');
-             const groupB = teamsForCategory.filter(t => t.group === 'B');
-             const scheduleA = groupA.length > 1 ? generateRoundRobinScheduleForCategory(groupA, category, 'A') : [];
-             const scheduleB = groupB.length > 1 ? generateRoundRobinScheduleForCategory(groupB, category, 'B') : [];
-             
-             const combinedRounds = [];
-             const rounds = Math.max(scheduleA.length, scheduleB.length);
-             for(let i = 0; i < rounds; i++) {
-                combinedRounds.push([...(scheduleA[i] || []), ...(scheduleB[i] || [])]);
-             }
-             categorySchedules[category] = combinedRounds;
+        if (category === 'Segunda') {
+            const groupATeams = getTeamsByCategory('Segunda', 'A');
+            const groupBTeams = getTeamsByCategory('Segunda', 'B');
+            if (groupATeams.length > 1) {
+                const groupAMatches = generateRoundRobinScheduleForCategory(groupATeams, 'Segunda', 'A');
+                allMatchesFirstLeg.push(...groupAMatches);
+            }
+            if (groupBTeams.length > 1) {
+                const groupBMatches = generateRoundRobinScheduleForCategory(groupBTeams, 'Segunda', 'B');
+                allMatchesFirstLeg.push(...groupBMatches);
+            }
         } else {
-             categorySchedules[category] = generateRoundRobinScheduleForCategory(teamsForCategory, category);
-        }
-        if (categorySchedules[category] && (categorySchedules[category]?.length || 0) > maxRounds) {
-            maxRounds = categorySchedules[category]?.length || 0;
+            const teamsForCategory = getTeamsByCategory(category);
+            if (teamsForCategory.length > 1) {
+                const categoryMatches = generateRoundRobinScheduleForCategory(teamsForCategory, category);
+                allMatchesFirstLeg.push(...categoryMatches);
+            }
         }
     });
-    
-    // 2. Interleave rounds
-    for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
-        const mixedRound: GeneratedMatch[] = [];
-        categories.forEach(category => {
-            if (categorySchedules[category] && categorySchedules[category]![roundIndex]) {
-                mixedRound.push(...categorySchedules[category]![roundIndex]);
-            }
-        });
-        allRoundsFirstLeg.push(mixedRound);
-    }
-    
-    // 3. Flatten the interleaved rounds into a single list of matches
-    const firstLegMatches = allRoundsFirstLeg.flat();
 
-    // 4. Create the second leg by reversing home/away
-    const secondLegMatches = firstLegMatches.map(match => ({
+    // Create second leg by swapping home and away
+    allMatchesSecondLeg = allMatchesFirstLeg.map(match => ({
         ...match,
         home: match.away,
         away: match.home,
-        leg: 'Vuelta' as 'Ida' | 'Vuelta',
-        roundNumber: match.roundNumber! + maxRounds
     }));
+    
+    // Sort matches by round number to mix categories
+    const sortByRound = (a: GeneratedMatch, b: GeneratedMatch) => (a.roundNumber || 0) - (b.roundNumber || 0);
+    allMatchesFirstLeg.sort(sortByRound);
+    allMatchesSecondLeg.sort(sortByRound);
 
-    const combinedSchedule = [...firstLegMatches, ...secondLegMatches];
+    const combinedSchedule = [
+        ...allMatchesFirstLeg.map(m => ({ ...m, leg: 'Ida' as const })),
+        ...allMatchesSecondLeg.map(m => ({ ...m, leg: 'Vuelta' as const, roundNumber: (m.roundNumber || 0) + allMatchesFirstLeg.length }))
+    ];
     
     // 5. Create available time slots
     let availableSlots: { date: Date, field: number }[] = [];
@@ -733,4 +720,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
