@@ -89,7 +89,13 @@ export default function AiCardsPage() {
 
           {selectedTeamId && (
              <div id="card-grid" className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {selectedTeamPlayers.map(selectedPlayer => (
+                 {selectedTeamPlayers.map(selectedPlayer => {
+                    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                        `/players/${selectedPlayer.id}`
+                    )}`;
+                    const team = teams.find(t => t.id === selectedPlayer.teamId);
+
+                    return (
                      <div key={selectedPlayer.id} className="id-card-wrapper">
                          <Card className="w-full max-w-[300px] aspect-[2.125/3.375] bg-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans border-2 border-gray-200">
                            {/* Background Pattern */}
@@ -115,8 +121,8 @@ export default function AiCardsPage() {
 
                                {/* Main Content */}
                                <main className="flex-grow flex flex-col items-center justify-center text-center mt-2">
-                                   <p className="font-bold text-3xl">Carlos</p>
-                                   <p className="font-light text-2xl -mt-1">Ortega C.</p>
+                                   <p className="font-bold text-3xl">{selectedPlayer.name.split(' ')[0]}</p>
+                                   <p className="font-light text-2xl -mt-1">{selectedPlayer.name.split(' ').slice(1).join(' ')}</p>
                                    <Image
                                        src={selectedPlayer.photoUrl}
                                        alt={`Foto de ${selectedPlayer.name}`}
@@ -126,29 +132,28 @@ export default function AiCardsPage() {
                                        data-ai-hint="player portrait"
                                    />
                                    <div className="text-xs mt-2 text-left bg-white/50 px-2 py-1 rounded">
-                                       <p><strong className="font-semibold">Cédula:</strong> 1753002268</p>
-                                       <p><strong className="font-semibold">F. Nac.:</strong> Septiembre 05, 2006</p>
+                                       <p><strong className="font-semibold">Cédula:</strong> {selectedPlayer.idNumber}</p>
+                                       <p><strong className="font-semibold">F. Nac.:</strong> {new Date(selectedPlayer.birthDate).toLocaleDateString('es-ES', { month: 'long', day: '2-digit', year: 'numeric' })}</p>
                                    </div>
                                </main>
                                
                                {/* Footer */}
                                <footer className="bg-red-800 text-white mt-2 p-2 rounded-lg shadow-inner flex items-center justify-around">
                                    <div className="w-16 h-16 bg-white flex items-center justify-center rounded-md">
-                                        {/* QR Code Placeholder */}
-                                        <div className="w-14 h-14 bg-gray-200 flex items-center justify-center text-xs text-gray-500">QR</div>
+                                        <Image src={qrCodeUrl} alt="QR Code" width={60} height={60} />
                                    </div>
                                    <div className="text-center">
-                                       <p className="text-5xl font-bold">{selectedPlayer.id.slice(-2)}</p>
+                                       <p className="text-5xl font-bold">{selectedPlayer.jerseyNumber}</p>
                                        <p className="text-sm -mt-1 underline">No.</p>
                                    </div>
                                    <div className="bg-white p-1 rounded-full">
-                                        <Image src="https://placehold.co/100x100.png" alt={selectedPlayer.team} width={50} height={50} className="rounded-full" data-ai-hint="team logo" />
+                                        <Image src={team?.logoUrl || "https://placehold.co/100x100.png"} alt={selectedPlayer.team} width={50} height={50} className="rounded-full" data-ai-hint="team logo" />
                                    </div>
                                </footer>
                            </div>
                          </Card>
                      </div>
-                 ))}
+                 )})}
              </div>
           )}
         </CardContent>
@@ -205,7 +210,7 @@ export default function AiCardsPage() {
           }
            .print\\:border-none {
               border: none !important;
-          }
+           }
            .print\\:bg-transparent {
               background-color: transparent !important;
            }
