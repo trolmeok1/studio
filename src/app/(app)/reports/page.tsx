@@ -75,7 +75,6 @@ const StandingsReport = ({ category }: { category: Category }) => {
 
 const ScheduleReport = ({ week }: { week: string }) => {
     const matches = upcomingMatches.slice(0, 4); 
-    const referees = getReferees();
 
     return (
         <div id="printable-report" className="bg-gray-800 text-white font-headline relative print:border-none aspect-[1/1.414] max-w-2xl mx-auto">
@@ -91,7 +90,6 @@ const ScheduleReport = ({ week }: { week: string }) => {
 
                 <main className="flex-grow space-y-4">
                     {matches.map(match => {
-                        const assignedReferee = referees.find(r => r.id === match.teams.home.vocalPaymentDetails?.otherFinesDescription); // Just a mock for now
                         return (
                              <div key={match.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/20">
                                 {/* Team A */}
@@ -103,12 +101,6 @@ const ScheduleReport = ({ week }: { week: string }) => {
                                 
                                 {/* VS */}
                                 <div className="flex flex-col items-center text-center">
-                                    {assignedReferee && (
-                                         <div className="flex items-center gap-1 text-xs mb-1 bg-white/10 px-2 py-1 rounded-full">
-                                            <UserCheck className="h-3 w-3" />
-                                            <span>{assignedReferee.name}</span>
-                                        </div>
-                                    )}
                                     <div className="bg-yellow-400 text-black rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
                                         VS
                                     </div>
@@ -393,7 +385,7 @@ export default function ReportsPage() {
                             </div>
                             <div>
                                 <CardTitle>Programación Semanal</CardTitle>
-                                <CardDescription>Cree un reporte con todos los partidos de la próxima fecha, incluyendo horarios, canchas y árbitros.</CardDescription>
+                                <CardDescription>Cree un reporte con todos los partidos de la próxima fecha, incluyendo horarios y canchas.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>

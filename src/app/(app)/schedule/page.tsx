@@ -119,7 +119,6 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
     ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
-    const assignedReferee = getReferees().find(r => r.id === match.refereeId);
     
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
@@ -137,7 +136,7 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
                      {/* Team B Panel */}
                     <div className="bg-gray-700/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-48">
                          <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm leading-tight">{awayTeam?.name || 'Away'}</span>
+                        <span className="font-bold text-sm leading-tight">{awayTeam?.name || match.away}</span>
                         {match.awayDressingRoom && <Badge variant="secondary" className="mt-1">Camerino {match.awayDressingRoom}</Badge>}
                     </div>
 
@@ -151,7 +150,6 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
                              <Badge variant="secondary" className="text-xs">{match.leg}</Badge>
                         </div>
                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-full flex flex-col items-center gap-1">
-                            {assignedReferee && <Badge className="bg-black/50 text-white backdrop-blur-sm"><UserCheck className="mr-1.5" />{assignedReferee.name}</Badge>}
                             <Badge className="bg-black/50 text-white backdrop-blur-sm">
                                 {isClient && match.time ? `${match.time}` : 'Por definir'}
                                 {match.field && ` / Cancha ${match.field}`}
@@ -172,7 +170,6 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
     ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
-    const assignedReferee = getReferees().find(r => r.id === match.refereeId);
 
     return (
         <Link href={`/partido`} className="block group">
@@ -195,7 +192,6 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
                 </CardContent>
                 <div className="border-t p-2 flex justify-center items-center text-xs text-muted-foreground gap-4">
                      <span><Badge variant="outline" className="px-1.5 py-0.5">Cancha {match.field}</Badge></span>
-                    {assignedReferee && <span><Badge variant="outline" className="px-1.5 py-0.5">{assignedReferee.name}</Badge></span>}
                     <span><Badge variant="outline" className="px-1.5 py-0.5">V: {match.homeDressingRoom} / F: {match.awayDressingRoom}</Badge></span>
                 </div>
             </Card>
@@ -481,12 +477,6 @@ const DrawSettingsDialog = ({ onGenerate, tournamentType }: { onGenerate: (setti
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
     const [numFields, setNumFields] = useState(1);
     const [numDressingRooms, setNumDressingRooms] = useState(4);
-    const [selectedRefereeIds, setSelectedRefereeIds] = useState<string[]>([]);
-    const [allReferees, setAllReferees] = useState<Referee[]>([]);
-
-    useEffect(() => {
-        setAllReferees(getReferees());
-    }, []);
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -501,10 +491,6 @@ const DrawSettingsDialog = ({ onGenerate, tournamentType }: { onGenerate: (setti
     const handleAddTime = () => setGameTimes([...gameTimes, '']);
     const handleRemoveTime = (index: number) => setGameTimes(gameTimes.filter((_, i) => i !== index));
 
-    const handleRefereeToggle = (refId: string) => {
-        setSelectedRefereeIds(prev => prev.includes(refId) ? prev.filter(id => id !== refId) : [...prev, refId]);
-    }
-
     const handleSubmit = () => {
         onGenerate({
             startDate,
@@ -512,7 +498,6 @@ const DrawSettingsDialog = ({ onGenerate, tournamentType }: { onGenerate: (setti
             gameTimes: gameTimes.filter(t => t).sort(), // Filter out empty time slots and sort them
             numFields,
             numDressingRooms,
-            selectedRefereeIds,
         });
     }
 
@@ -568,18 +553,6 @@ const DrawSettingsDialog = ({ onGenerate, tournamentType }: { onGenerate: (setti
                             <Button variant="outline" size="sm" onClick={handleAddTime}>Agregar Horario</Button>
                         </div>
                     </div>
-                    <div className="border-t pt-4">
-                         <Label>Árbitros Disponibles</Label>
-                         <p className="text-xs text-muted-foreground mb-2">Selecciona los árbitros que dirigirán los partidos.</p>
-                         <div className="space-y-2">
-                            {allReferees.map(referee => (
-                                <div key={referee.id} className="flex items-center gap-2 rounded-md p-2 border bg-muted/50">
-                                    <Checkbox id={`ref-${referee.id}`} checked={selectedRefereeIds.includes(referee.id)} onCheckedChange={() => handleRefereeToggle(referee.id)} />
-                                    <Label htmlFor={`ref-${referee.id}`} className="font-normal">{referee.name}</Label>
-                                </div>
-                            ))}
-                         </div>
-                    </div>
                 </div>
             </ScrollArea>
             <DialogFooter>
@@ -587,7 +560,7 @@ const DrawSettingsDialog = ({ onGenerate, tournamentType }: { onGenerate: (setti
                     <Button variant="outline">Cancelar</Button>
                 </DialogClose>
                 <DialogClose asChild>
-                    <Button onClick={handleSubmit} disabled={selectedRefereeIds.length === 0}>Generar Calendario</Button>
+                    <Button onClick={handleSubmit}>Generar Calendario</Button>
                 </DialogClose>
             </DialogFooter>
         </DialogContent>
@@ -884,12 +857,11 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const scheduleMatches = (matchesToSchedule: GeneratedMatch[], settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number, selectedRefereeIds: string[] }) => {
+  const scheduleMatches = (matchesToSchedule: GeneratedMatch[], settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number }) => {
     let scheduledMatches: GeneratedMatch[] = [];
     const matchQueue = [...matchesToSchedule];
     
     let currentDate = startOfDay(settings.startDate);
-    let refereeIndex = 0;
     
     const allScheduledMatches = [...generatedMatches, ...copaMatches.filter(m => m.date)];
     if(allScheduledMatches.length > 0) {
@@ -916,12 +888,9 @@ export default function SchedulePage() {
 
                  const timeParts = time.split(':');
                  const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-
-                 const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
-                 refereeIndex++;
                  
                  const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
-                 const awayDressingRoom = ((dressingRoomCounter + 2) % settings.numDressingRooms) + 1;
+                 const awayDressingRoom = ((homeDressingRoom + 1) % settings.numDressingRooms) + 1;
                  dressingRoomCounter++;
 
                  scheduledMatches.push({
@@ -929,7 +898,6 @@ export default function SchedulePage() {
                     date: matchDateTime,
                     time: format(matchDateTime, 'HH:mm'),
                     field: field,
-                    refereeId: refereeId,
                     homeDressingRoom: homeDressingRoom,
                     awayDressingRoom: awayDressingRoom,
                 });
