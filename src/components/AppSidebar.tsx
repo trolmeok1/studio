@@ -30,6 +30,7 @@ import {
   UserCheck,
   BarChart2,
   Image as ImageIcon,
+  Database,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -209,10 +210,20 @@ export function AppSidebar() {
                 )}
                  {user.role === 'admin' && (
                   <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/settings')} tooltip="Ajustes">
+                      <SidebarMenuButton asChild isActive={isActive('/settings/appearance')} tooltip="Apariencia">
                           <Link href="/settings/appearance">
-                              <Settings />
-                              <span>Ajustes</span>
+                              <ImageIcon />
+                              <span>Apariencia</span>
+                          </Link>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                 {user.role === 'admin' && (
+                  <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/settings/data')} tooltip="Gestión de Datos">
+                          <Link href="/settings/data">
+                              <Database />
+                              <span>Gestión de Datos</span>
                           </Link>
                       </SidebarMenuButton>
                   </SidebarMenuItem>

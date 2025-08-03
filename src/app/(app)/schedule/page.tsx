@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category, getReferees, Referee } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -77,7 +77,7 @@ const CopaBracket = ({ teams }: { teams: Team[] }) => {
        return (
          <div className="text-center py-10 text-muted-foreground">
             <p>Aún no has configurado la copa.</p>
-            <p>Usa el botón "Iniciar Copa" para seleccionar los equipos participantes.</p>
+            <p>Usa el botón "Configurar Copa" para seleccionar los equipos participantes.</p>
         </div>
        )
     }
@@ -256,9 +256,9 @@ const FixtureView = ({ category }: { category: Category }) => {
             <Table>
                  <TableHeader className="bg-primary/10">
                     <TableRow>
-                        <TableHead className="text-right w-2/5 font-semibold">Equipo Local</TableHead>
-                        <TableHead className="text-center w-1/5 font-semibold">vs</TableHead>
-                        <TableHead className="w-2/5 font-semibold">Equipo Visitante</TableHead>
+                        <TableHead className="text-right w-2/5 font-semibold text-primary">Equipo Local</TableHead>
+                        <TableHead className="text-center w-1/5 font-semibold text-primary">vs</TableHead>
+                        <TableHead className="w-2/5 font-semibold text-primary">Equipo Visitante</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -880,7 +880,7 @@ export default function SchedulePage() {
   const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
 
 
-  const isTournamentStarted = generatedMatches.length > 0;
+  const isTournamentStarted = generatedMatches.length > 0 || copaMatches.length > 0;
   
   useEffect(() => { setIsClient(true) }, []);
 
@@ -891,7 +891,6 @@ export default function SchedulePage() {
     let currentDate = startOfDay(settings.startDate);
     let refereeIndex = 0;
     
-    // Find the next available slot based on already scheduled matches
     const allScheduledMatches = [...generatedMatches, ...copaMatches.filter(m => m.date)];
     if(allScheduledMatches.length > 0) {
       const lastMatchDate = allScheduledMatches.reduce((latest, match) => {
@@ -900,6 +899,8 @@ export default function SchedulePage() {
       currentDate = addDays(startOfDay(lastMatchDate), 1);
     }
     
+    let dressingRoomCounter = 0;
+
     while(matchQueue.length > 0) {
         const dayOfWeek = getDay(currentDate);
         if(settings.gameDays.includes(dayOfWeek)) {
@@ -919,9 +920,9 @@ export default function SchedulePage() {
                  const refereeId = settings.selectedRefereeIds[refereeIndex % settings.selectedRefereeIds.length];
                  refereeIndex++;
                  
-                 let homeDressingRoom = ((index * 2) % settings.numDressingRooms) + 1;
-                 let awayDressingRoom = (homeDressingRoom + 1) % settings.numDressingRooms;
-                 if (awayDressingRoom === 0) awayDressingRoom = settings.numDressingRooms;
+                 const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
+                 const awayDressingRoom = ((dressingRoomCounter + 2) % settings.numDressingRooms) + 1;
+                 dressingRoomCounter++;
 
                  scheduledMatches.push({
                     ...match,
@@ -948,18 +949,15 @@ export default function SchedulePage() {
 
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
-        const matchesPerRound = numTeams / 2;
         let idaMatches: GeneratedMatch[] = [];
-        let vueltaMatches: GeneratedMatch[] = [];
 
         for (let round = 0; round < numRounds; round++) {
-            for (let i = 0; i < matchesPerRound; i++) {
+            for (let i = 0; i < numTeams / 2; i++) {
                 const team1 = currentTeams[i];
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
                     idaMatches.push({ home: team1.id, away: team2.id, category, group, leg: 'Ida', round: round + 1 });
-                    vueltaMatches.push({ home: team2.id, away: team1.id, category, group, leg: 'Vuelta', round: round + 1 });
                 }
             }
             const lastTeam = currentTeams.pop();
@@ -967,6 +965,7 @@ export default function SchedulePage() {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
+        const vueltaMatches = idaMatches.map(m => ({...m, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta'}));
         
         return { ida: idaMatches, vuelta: vueltaMatches };
     };
@@ -1058,8 +1057,59 @@ export default function SchedulePage() {
     setCopaTeams([]);
     setResetAlertStep(0);
   };
+  
+  const handleFinalizeTournament = () => {
+    // This would typically involve archiving data, but for now it resets.
+    handleResetConfirm();
+  };
+
 
   const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
+
+    const ResetDialog = ({ step, onStepChange, onConfirm }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void }) => {
+        if (step === 0) return null;
+        
+        const content = [
+            {
+                title: "¿Estás seguro de reiniciar los calendarios?",
+                description: "Esta acción eliminará permanentemente todos los partidos programados (Liga y Copa). No se puede deshacer. Los partidos ya jugados no se verán afectados.",
+                confirmText: "Sí, entiendo los riesgos"
+            },
+            {
+                title: "Confirmación Adicional",
+                description: "Estás a un paso de borrar los calendarios. Esta es tu segunda advertencia.",
+                confirmText: "Sí, estoy seguro, proceder"
+            },
+            {
+                title: "ÚLTIMA ADVERTENCIA",
+                description: "Al hacer clic en \"BORRAR DEFINITIVAMENTE\", los calendarios se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
+                confirmText: "BORRAR DEFINITIVAMENTE"
+            }
+        ];
+        
+        const currentContent = content[step - 1];
+        
+        return (
+             <AlertDialog open={step > 0} onOpenChange={(open) => !open && onStepChange(0)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{currentContent.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{currentContent.description}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className={cn(step === 3 && buttonVariants({ variant: "destructive" }))}
+                            onClick={() => step < 3 ? onStepChange(step + 1) : onConfirm()}
+                        >
+                            {currentContent.confirmText}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        )
+    };
+
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -1078,10 +1128,16 @@ export default function SchedulePage() {
                          {isTournamentStarted ? "Reagendar Partido" : "Sorteo de Liga"}
                      </Button>
                      {isTournamentStarted && (
-                        <Button variant="destructive" onClick={() => setResetAlertStep(1)}>
-                            <RefreshCw className="mr-2" />
-                            Reiniciar Calendarios
-                        </Button>
+                        <>
+                            <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setResetAlertStep(1)}>
+                                <RefreshCw className="mr-2" />
+                                Reiniciar Calendarios
+                            </Button>
+                            <Button variant="destructive" onClick={() => setResetAlertStep(1)}>
+                                <Trophy className="mr-2" />
+                                Finalizar Torneo
+                            </Button>
+                        </>
                     )}
                 </div>
             </Card>
@@ -1204,7 +1260,10 @@ export default function SchedulePage() {
         <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>¡Calendario Generado Exitosamente!</AlertDialogTitle>
+                     <AlertDialogTitle className="flex items-center gap-2">
+                        <PartyPopper className="text-primary h-6 w-6"/>
+                        ¡Calendario Generado Exitosamente!
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
                         Se ha generado el calendario de partidos. Puedes verlo en la pestaña "General" o en las pestañas de cada categoría.
                     </AlertDialogDescription>
@@ -1214,44 +1273,9 @@ export default function SchedulePage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+        
+        <ResetDialog step={resetAlertStep} onStepChange={setResetAlertStep} onConfirm={handleResetConfirm} />
 
-         <AlertDialog open={resetAlertStep > 0} onOpenChange={(open) => !open && setResetAlertStep(0)}>
-            <AlertDialogContent>
-                 {resetAlertStep === 1 ? (
-                    <>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás seguro de reiniciar?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Esta acción eliminará permanentemente todos los partidos programados del calendario (Liga y Copa). No se puede deshacer. Los partidos ya jugados no se verán afectados.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setResetAlertStep(0)}>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => setResetAlertStep(2)}>
-                                Sí, continuar
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </>
-                 ) : resetAlertStep === 2 ? (
-                      <>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmación Final</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Estás a punto de borrar los calendarios. Esta es tu última oportunidad para cancelar.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                             <AlertDialogCancel onClick={() => setResetAlertStep(0)}>
-                                Cancelar
-                            </AlertDialogCancel>
-                            <AlertDialogAction className={buttonVariants({variant: "destructive"})} onClick={handleResetConfirm}>
-                                Entendido, reiniciar los calendarios
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </>
-                 ) : null }
-            </AlertDialogContent>
-        </AlertDialog>
     </div>
   );
 }
