@@ -1,11 +1,11 @@
 
 
 'use client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -111,63 +111,51 @@ const CopaBracket = ({ teams }: { teams: Team[] }) => {
     );
 };
 
-const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMatch, showCategory?: boolean }) => {
-    const allTeams: Team[] = useMemo(() => [
-        ...getTeamsByCategory('Máxima'),
-        ...getTeamsByCategory('Primera'),
-        ...getTeamsByCategory('Segunda'),
-        ...getTeamsByCategory('Copa')
-    ], []);
-    const homeTeam = allTeams.find(t => t.id === match.home);
-    const awayTeam = allTeams.find(t => t.id === match.away);
-    const vocalTeam = allTeams.find(t => t.id === match.vocalTeamId);
-    
-    const [isClient, setIsClient] = useState(false);
-    useEffect(() => { setIsClient(true); }, []);
-    
-    return (
-        <Link href={`/partido`} className="block group">
-            <Card className="overflow-hidden transition-all group-hover:shadow-lg">
-                <div className="relative grid grid-cols-2">
-                    {/* Team A Panel */}
-                    <div className="bg-blue-900/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-48">
-                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                         <span className="font-bold text-sm leading-tight">{homeTeam?.name || match.home}</span>
-                         {match.homeDressingRoom && <Badge variant="secondary" className="mt-1">Camerino {match.homeDressingRoom}</Badge>}
-                    </div>
-                     {/* Team B Panel */}
-                    <div className="bg-gray-700/80 text-white p-4 flex flex-col items-center justify-center gap-2 text-center h-48">
-                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm leading-tight">{awayTeam?.name || 'Away'}</span>
-                        {match.awayDressingRoom && <Badge variant="secondary" className="mt-1">Camerino {match.awayDressingRoom}</Badge>}
-                    </div>
+const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
+    const homeTeam = getTeam(match.home);
+    const awayTeam = getTeam(match.away);
+    const vocalTeam = getTeam(match.vocalTeamId || '');
 
-                    {/* Center Info */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 bg-background/90 rounded-full border-4 border-background shadow-lg text-primary font-bold">
-                            VS
-                        </div>
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-full flex justify-between px-2">
-                             {showCategory && <Badge variant="secondary" className="text-xs">{match.category}{match.group && ` - ${match.group}`}</Badge>}
-                             <Badge variant="secondary" className="text-xs">{match.leg}</Badge>
-                        </div>
-                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-full flex flex-col items-center gap-1">
-                            <Badge className="bg-black/50 text-white backdrop-blur-sm">
-                                {isClient && match.time ? `${match.time}` : 'Por definir'}
-                                {match.field && ` / Cancha ${match.field}`}
-                            </Badge>
-                             {vocalTeam && (
-                                <Badge variant="outline" className="bg-background/80 text-xs text-foreground flex items-center gap-1">
-                                    <Users className="w-3 h-3" /> Vocalía: {vocalTeam.name}
-                                </Badge>
-                            )}
-                        </div>
+    const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Icon className="w-3.5 h-3.5" />
+            <span className="font-semibold">{label}:</span>
+            <span className="text-foreground text-right flex-1 truncate">{value}</span>
+        </div>
+    );
+
+    return (
+        <Card className="overflow-hidden transition-all hover:shadow-lg">
+            <CardHeader className="p-2 bg-muted/50 text-center text-sm font-bold">
+                {match.leg} - Fecha {match.round}
+            </CardHeader>
+            <CardContent className="p-0">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 p-3">
+                    <div className="flex flex-col items-center text-center gap-1">
+                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={40} height={40} className="rounded-full" />
+                        <p className="text-xs font-semibold leading-tight">{homeTeam?.name}</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <p className="text-xl font-bold">VS</p>
+                        <Badge variant="outline" className="mt-1">Por Jugar</Badge>
+                    </div>
+                    <div className="flex flex-col items-center text-center gap-1">
+                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={40} height={40} className="rounded-full" />
+                        <p className="text-xs font-semibold leading-tight">{awayTeam?.name}</p>
                     </div>
                 </div>
-            </Card>
-        </Link>
+            </CardContent>
+            <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-x-4 gap-y-2">
+                <DetailRow icon={CalendarDays} label="Fecha" value={match.date ? format(match.date, 'eee, dd MMM, HH:mm', { locale: es }) : 'Por definir'} />
+                <DetailRow icon={Trophy} label="Categoría" value={match.category} />
+                <DetailRow icon={ChevronsRight} label="Jornada" value={`${match.leg} - Fecha ${match.round}`} />
+                <DetailRow icon={Shield} label="Cancha" value={match.field || 'N/A'} />
+                <DetailRow icon={UsersIcon} label="Vocalía" value={vocalTeam?.name || 'N/A'} />
+                <DetailRow icon={Home} label="Camerinos" value={`L: ${match.homeDressingRoom || 'N/A'} | V: ${match.awayDressingRoom || 'N/A'}`} />
+            </CardFooter>
+        </Card>
     );
-}
+};
 
 const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
     const allTeams: Team[] = useMemo(() => [
@@ -676,6 +664,14 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
     
+    const allTeams = useMemo(() => [
+        ...getTeamsByCategory('Máxima'),
+        ...getTeamsByCategory('Primera'),
+        ...getTeamsByCategory('Segunda'),
+        ...getTeamsByCategory('Copa'),
+    ], []);
+    const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
+
     const filteredMatches = useMemo(() => {
         if (selectedCategory === 'all') {
             return generatedMatches;
@@ -735,7 +731,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => 
-                                <GeneralMatchCard key={`${match.home}-${match.away}-${index}`} match={match} showCategory={true} />
+                                <GeneralMatchCard key={`${match.home}-${match.away}-${index}`} match={match} getTeam={getTeam} />
                             )}
                         </div>
                     </div>
@@ -866,7 +862,7 @@ export default function SchedulePage() {
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
-  const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
+  const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda'), ...getTeamsByCategory('Copa')], []);
   const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
 
 
