@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,81 +30,165 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recha
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const initialNewPlayerState = {
-    id: '',
+const initialNewPlayerState: Omit<Player, 'id' | 'team' | 'teamId' | 'category' | 'stats'> = {
     name: '',
-    firstName: '',
-    lastName: '',
     idNumber: '',
-    birthDate: undefined as Date | undefined,
-    position: '' as PlayerPosition | '',
-    jerseyNumber: '',
-    status: 'activo' as 'activo' | 'inactivo',
-    statusReason: '',
+    birthDate: new Date().toISOString().split('T')[0],
+    position: 'Delantero',
+    jerseyNumber: 0,
+    status: 'activo',
     photoUrl: 'https://placehold.co/400x400.png',
     idCardUrl: 'https://placehold.co/856x540.png',
 };
 
-const PlayerEditDialog = ({ player, team, onSave, children }: { player: Partial<typeof initialNewPlayerState>, team: Team, onSave: (player: Player) => void, children: React.ReactNode }) => {
-    const [editedPlayer, setEditedPlayer] = useState({
-        ...initialNewPlayerState,
-        ...player,
-        firstName: player.name?.split(' ')[0] || '',
-        lastName: player.name?.split(' ').slice(1).join(' ') || '',
-        birthDate: player.birthDate ? new Date(player.birthDate) : undefined,
-    });
+
+const PlayerCard = ({ player: initialPlayer, onSave }: { player: Player, onSave: (player: Player) => void }) => {
+    const [player, setPlayer] = useState(initialPlayer);
+    const [isEditing, setIsEditing] = useState(false);
+    
+    const handleInputChange = (field: keyof Player, value: any) => {
+        setPlayer(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleNameChange = (part: 'first' | 'last', value: string) => {
+        const currentName = player.name.split(' ');
+        const firstName = part === 'first' ? value : currentName[0];
+        const lastName = part === 'last' ? value : currentName.slice(1).join(' ');
+        setPlayer(prev => ({ ...prev, name: `${firstName} ${lastName}`}));
+    }
+
+    const handleSave = () => {
+        onSave(player);
+        setIsEditing(false);
+    }
+    
+    const getLastName = (name: string) => name.split(' ').slice(1).join(' ');
+    const getFirstName = (name: string) => name.split(' ')[0];
+
+    return (
+        <Card className="p-4 border-l-4 border-primary bg-background">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1 space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground">CÉDULA COMPLETA</Label>
+                    <Image
+                        src={player.idCardUrl || 'https://placehold.co/856x540.png'}
+                        alt={`Cédula de ${player.name}`}
+                        width={856}
+                        height={540}
+                        className="rounded-md w-full object-contain border bg-muted"
+                        data-ai-hint="id card"
+                    />
+                     <div className="flex items-center gap-2">
+                        <Input id={`idCardUrl-${player.id}`} type="file" className="flex-grow text-xs" />
+                        <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
+                    </div>
+                </div>
+                <div className="md:col-span-2 grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-muted-foreground">FOTO PERFIL</Label>
+                        <Image
+                            src={player.photoUrl}
+                            alt={`Perfil de ${player.name}`}
+                            width={150}
+                            height={150}
+                            className="rounded-md w-full aspect-square object-cover border-2"
+                            data-ai-hint="player portrait"
+                        />
+                         <div className="flex items-center gap-2">
+                            <Input id={`photoUrl-${player.id}`} type="file" className="flex-grow text-xs" />
+                        </div>
+                    </div>
+                    <div className="col-span-2 space-y-2 text-sm">
+                        <div className="grid grid-cols-2 gap-x-2">
+                            <div>
+                                <Label htmlFor={`lastName-${player.id}`} className="text-xs">Apellidos</Label>
+                                <Input id={`lastName-${player.id}`} value={getLastName(player.name)} onChange={e => { handleNameChange('last', e.target.value); setIsEditing(true); }} />
+                            </div>
+                            <div>
+                                <Label htmlFor={`firstName-${player.id}`} className="text-xs">Nombres</Label>
+                                <Input id={`firstName-${player.id}`} value={getFirstName(player.name)} onChange={e => { handleNameChange('first', e.target.value); setIsEditing(true); }} />
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-xs">F. Nacimiento</Label>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs h-9", !player.birthDate && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {player.birthDate ? format(new Date(player.birthDate), "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <CalendarPicker
+                                        mode="single"
+                                        selected={new Date(player.birthDate)}
+                                        onSelect={(date) => { if(date) { handleInputChange('birthDate', date.toISOString().split('T')[0]); setIsEditing(true); } }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-2">
+                            <div>
+                                <Label className="text-xs">Cédula</Label>
+                                <Input value={player.idNumber} onChange={e => { handleInputChange('idNumber', e.target.value); setIsEditing(true); }} />
+                            </div>
+                            <div>
+                                <Label className="text-xs">N°</Label>
+                                <Input type="number" value={player.jerseyNumber} onChange={e => { handleInputChange('jerseyNumber', parseInt(e.target.value, 10)); setIsEditing(true); }} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {isEditing && (
+                <div className="mt-4 flex justify-end">
+                    <Button onClick={handleSave} size="sm"><Check className="mr-2"/> Guardar Cambios</Button>
+                </div>
+            )}
+        </Card>
+    )
+}
+
+const AddPlayerDialog = ({ team, onSave, children }: { team: Team, onSave: (player: Player) => void, children: React.ReactNode }) => {
+    const [newPlayer, setNewPlayer] = useState(initialNewPlayerState);
     const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
 
     const handleSave = () => {
-        if (editedPlayer.firstName && editedPlayer.lastName && editedPlayer.position && editedPlayer.birthDate) {
+         if (newPlayer.name && newPlayer.position && newPlayer.birthDate) {
             const playerData: Player = {
-                id: editedPlayer.id || `p${Date.now()}`,
-                name: `${editedPlayer.firstName} ${editedPlayer.lastName}`,
-                position: editedPlayer.position as PlayerPosition,
+                id: `p${Date.now()}`,
                 team: team.name,
                 teamId: team.id,
                 category: team.category,
-                photoUrl: editedPlayer.photoUrl,
                 stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
-                idNumber: editedPlayer.idNumber,
-                birthDate: editedPlayer.birthDate.toISOString().split('T')[0],
-                jerseyNumber: parseInt(editedPlayer.jerseyNumber) || 0,
-                status: editedPlayer.status,
-                statusReason: editedPlayer.statusReason,
-                idCardUrl: editedPlayer.idCardUrl,
+                ...newPlayer,
+                birthDate: new Date(newPlayer.birthDate).toISOString().split('T')[0],
             };
             onSave(playerData);
             setIsPlayerDialogOpen(false);
-            if (!player.id) { // Reset only if it's a new player
-                setEditedPlayer(initialNewPlayerState);
-            }
+            setNewPlayer(initialNewPlayerState);
         }
     };
-
+    
     return (
         <Dialog open={isPlayerDialogOpen} onOpenChange={setIsPlayerDialogOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{player.id ? `Editar Jugador` : `Agregar Nuevo Jugador a ${team.name}`}</DialogTitle>
+                    <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
                     <DialogDescription>
-                        {player.id ? `Actualiza los datos de ${player.name}.` : 'Completa los datos del jugador. Los campos de la cédula solo serán visibles para administradores.'}
+                        Completa los datos del jugador. Los campos de la cédula solo serán visibles para administradores.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                 <div className="grid gap-4 py-4">
                      <div className="space-y-2">
-                        <Label htmlFor="firstName">Nombres</Label>
-                        <Input id="firstName" value={editedPlayer.firstName} onChange={(e) => setEditedPlayer({ ...editedPlayer, firstName: e.target.value })} placeholder="Nombres" />
+                        <Label htmlFor="name">Nombre Completo</Label>
+                        <Input id="name" value={newPlayer.name} onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })} placeholder="Nombres y Apellidos" />
                      </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="lastName">Apellidos</Label>
-                        <Input id="lastName" value={editedPlayer.lastName} onChange={(e) => setEditedPlayer({ ...editedPlayer, lastName: e.target.value })} placeholder="Apellidos" />
-                    </div>
-                  </div>
                    <div className="space-y-2">
                     <Label htmlFor="idNumber">Número de Cédula</Label>
-                    <Input id="idNumber" value={editedPlayer.idNumber} onChange={(e) => setEditedPlayer({ ...editedPlayer, idNumber: e.target.value })} placeholder="1234567890" />
+                    <Input id="idNumber" value={newPlayer.idNumber} onChange={(e) => setNewPlayer({ ...newPlayer, idNumber: e.target.value })} placeholder="1234567890" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
@@ -112,17 +197,17 @@ const PlayerEditDialog = ({ player, team, onSave, children }: { player: Partial<
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !editedPlayer.birthDate && "text-muted-foreground")}
+                                    className={cn("w-full justify-start text-left font-normal", !newPlayer.birthDate && "text-muted-foreground")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {editedPlayer.birthDate ? format(editedPlayer.birthDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                    {newPlayer.birthDate ? format(new Date(newPlayer.birthDate), "PPP", { locale: es }) : <span>Selecciona fecha</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                                 <CalendarPicker
                                     mode="single"
-                                    selected={editedPlayer.birthDate}
-                                    onSelect={(date) => setEditedPlayer({ ...editedPlayer, birthDate: date })}
+                                    selected={new Date(newPlayer.birthDate)}
+                                    onSelect={(date) => setNewPlayer({ ...newPlayer, birthDate: date?.toISOString().split('T')[0] || '' })}
                                     initialFocus
                                 />
                             </PopoverContent>
@@ -130,12 +215,12 @@ const PlayerEditDialog = ({ player, team, onSave, children }: { player: Partial<
                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="jerseyNumber">No. Camiseta</Label>
-                        <Input id="jerseyNumber" type="number" value={editedPlayer.jerseyNumber} onChange={(e) => setEditedPlayer({ ...editedPlayer, jerseyNumber: e.target.value })} placeholder="10" />
+                        <Input id="jerseyNumber" type="number" value={newPlayer.jerseyNumber} onChange={(e) => setNewPlayer({ ...newPlayer, jerseyNumber: parseInt(e.target.value,10) })} placeholder="10" />
                      </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="position">Posición</Label>
-                     <Select onValueChange={(value) => setEditedPlayer({ ...editedPlayer, position: value as PlayerPosition })} value={editedPlayer.position}>
+                     <Select onValueChange={(value) => setNewPlayer({ ...newPlayer, position: value as PlayerPosition })} value={newPlayer.position}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona una posición" />
                       </SelectTrigger>
@@ -162,45 +247,16 @@ const PlayerEditDialog = ({ player, team, onSave, children }: { player: Partial<
                         </div>
                         <p className="text-xs text-muted-foreground">Imagen rectangular. Visible solo para administradores.</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Estado del Jugador</Label>
-                    <RadioGroup
-                        value={editedPlayer.status}
-                        onValueChange={(value: 'activo' | 'inactivo') => setEditedPlayer({ ...editedPlayer, status: value })}
-                        className="flex gap-4"
-                    >
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="activo" id="status-active" />
-                            <Label htmlFor="status-active">Entrante (Activo)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="inactivo" id="status-inactive" />
-                            <Label htmlFor="status-inactive">Saliente (Inactivo)</Label>
-                        </div>
-                    </RadioGroup>
-                    </div>
-                    {editedPlayer.status === 'inactivo' && (
-                        <div className="space-y-2">
-                            <Label htmlFor="statusReason">Razón de Salida</Label>
-                            <Textarea
-                                id="statusReason"
-                                value={editedPlayer.statusReason}
-                                onChange={(e) => setEditedPlayer({ ...editedPlayer, statusReason: e.target.value })}
-                                placeholder="Ej: Transferencia a otro club, retiro, etc."
-                            />
-                        </div>
-                    )}
                 </div>
                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="secondary">Cancelar</Button>
-                    </DialogClose>
-                    <Button onClick={handleSave} type="submit">{player.id ? "Guardar Cambios" : "Guardar Jugador"}</Button>
+                    <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+                    <Button onClick={handleSave}>Guardar Jugador</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-};
+    )
+}
+
 
 const EditTeamDialog = ({ team, onSave }: { team: Team, onSave: (updatedTeam: Team) => void }) => {
     const [editedTeam, setEditedTeam] = useState(team);
@@ -342,14 +398,12 @@ export default function TeamDetailsPage() {
   }, [teamId]);
   
   const futureMatches = useMemo(() => {
-    if (!isClient) return [];
     return matches.filter(m => m.status === 'future' || m.status === 'in-progress');
-  }, [matches, isClient]);
+  }, [matches]);
 
   const finishedMatches = useMemo(() => {
-    if (!isClient) return [];
     return matches.filter(m => m.status === 'finished');
-  }, [matches, isClient]);
+  }, [matches]);
 
   
   const handleUpdateTeam = (updatedTeam: Team) => {
@@ -375,7 +429,7 @@ export default function TeamDetailsPage() {
     return <div>Cargando...</div>;
   }
   
-  const InfoRow = ({ icon: Icon, label, person, showContact }: { icon: React.ElementType, label: string, person?: Person, showContact: boolean }) => (
+  const InfoRow = ({ icon: Icon, label, person, showContact }: { icon: React.ElementType, label, person?: Person, showContact: boolean }) => (
     <div className="flex items-start gap-4 p-3 bg-muted/50 rounded-lg">
         <Icon className="w-5 h-5 text-primary mt-1" />
         <div className="flex-grow">
@@ -501,12 +555,12 @@ export default function TeamDetailsPage() {
                                 Descargar Nómina
                             </Link>
                         </Button>
-                        <PlayerEditDialog player={initialNewPlayerState} team={team} onSave={handleSavePlayer}>
+                        <AddPlayerDialog team={team} onSave={handleSavePlayer}>
                             <Button size="sm">
                               <PlusCircle className="mr-2 h-4 w-4" />
                               Agregar Jugador
                             </Button>
-                        </PlayerEditDialog>
+                        </AddPlayerDialog>
                     </div>
                   )}
                 </CardHeader>
@@ -543,65 +597,7 @@ export default function TeamDetailsPage() {
                     ) : (
                         <div className="space-y-4">
                             {players.map(player => (
-                                <Card key={player.id} className="p-4 border-l-4 border-primary bg-background">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="md:col-span-1">
-                                            <p className="text-xs font-semibold text-muted-foreground mb-1">CÉDULA COMPLETA</p>
-                                            <Image
-                                                src={player.idCardUrl || 'https://placehold.co/856x540.png'}
-                                                alt={`Cédula de ${player.name}`}
-                                                width={856}
-                                                height={540}
-                                                className="rounded-md w-full object-contain border bg-muted"
-                                                data-ai-hint="id card"
-                                            />
-                                        </div>
-                                        <div className="md:col-span-2 grid grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-xs font-semibold text-muted-foreground mb-1">FOTO PERFIL</p>
-                                                <Image
-                                                    src={player.photoUrl}
-                                                    alt={`Perfil de ${player.name}`}
-                                                    width={150}
-                                                    height={150}
-                                                    className="rounded-md w-full aspect-square object-cover border-2"
-                                                    data-ai-hint="player portrait"
-                                                />
-                                            </div>
-                                            <div className="col-span-2 space-y-2 text-sm">
-                                                <div className="grid grid-cols-2 gap-x-2">
-                                                    <div>
-                                                        <Label className="text-xs">Apellidos</Label>
-                                                        <Input readOnly value={player.name.split(' ').slice(1).join(' ')} />
-                                                    </div>
-                                                    <div>
-                                                        <Label className="text-xs">Nombres</Label>
-                                                        <Input readOnly value={player.name.split(' ')[0]} />
-                                                    </div>
-                                                </div>
-                                                 <div>
-                                                    <Label className="text-xs">F. Nacimiento</Label>
-                                                    <Input readOnly value={player.birthDate} />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-x-2">
-                                                    <div>
-                                                        <Label className="text-xs">Cédula</Label>
-                                                        <Input readOnly value={player.idNumber} />
-                                                    </div>
-                                                     <div>
-                                                        <Label className="text-xs">N°</Label>
-                                                        <Input readOnly value={player.jerseyNumber} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 flex justify-end">
-                                        <PlayerEditDialog player={player} team={team} onSave={handleSavePlayer}>
-                                            <Button variant="secondary" size="sm"><Pencil className="mr-2"/> Editar Jugador</Button>
-                                        </PlayerEditDialog>
-                                    </div>
-                                </Card>
+                                <PlayerCard key={player.id} player={player} onSave={handleSavePlayer} />
                             ))}
                         </div>
                     )}
@@ -758,3 +754,5 @@ export default function TeamDetailsPage() {
     </div>
   );
 }
+
+    
