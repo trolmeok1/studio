@@ -102,6 +102,7 @@ export interface GeneratedMatch {
     homeDressingRoom?: number;
     awayDressingRoom?: number;
     round?: number;
+    vocalTeamId?: string;
 }
 
 export interface MatchDataTeam extends Team {

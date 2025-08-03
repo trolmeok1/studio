@@ -17,14 +17,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Users } from 'lucide-react';
 import { format, addDays, setHours, setMinutes, getDay, startOfDay, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -120,6 +120,7 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
     ], []);
     const homeTeam = allTeams.find(t => t.id === match.home);
     const awayTeam = allTeams.find(t => t.id === match.away);
+    const vocalTeam = allTeams.find(t => t.id === match.vocalTeamId);
     
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
@@ -155,6 +156,11 @@ const GeneralMatchCard = ({ match, showCategory = false }: { match: GeneratedMat
                                 {isClient && match.time ? `${match.time}` : 'Por definir'}
                                 {match.field && ` / Cancha ${match.field}`}
                             </Badge>
+                             {vocalTeam && (
+                                <Badge variant="outline" className="bg-background/80 text-xs text-foreground flex items-center gap-1">
+                                    <Users className="w-3 h-3" /> Vocalía: {vocalTeam.name}
+                                </Badge>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -884,36 +890,42 @@ export default function SchedulePage() {
     
     let dressingRoomCounter = 0;
 
+    const allTeamsForVocal = [...new Set(matchesToSchedule.flatMap(m => [m.home, m.away]))]
+        .map(id => allTeams.find(t => t.id === id))
+        .filter(Boolean) as Team[];
+
     while(matchQueue.length > 0) {
         const dayOfWeek = getDay(currentDate);
         if(settings.gameDays.includes(dayOfWeek)) {
-            const slotsPerDay = settings.gameTimes.length * settings.numFields;
-            const matchesForDay = matchQueue.splice(0, slotsPerDay);
+            for (const time of settings.gameTimes) {
+                 if (matchQueue.length === 0) break;
+                 const matchesInSlot = matchQueue.splice(0, settings.numFields);
+                 const teamsPlayingInSlot = new Set(matchesInSlot.flatMap(m => [m.home, m.away]));
 
-            matchesForDay.forEach((match, index) => {
-                 const timeIndex = index % settings.gameTimes.length;
-                 const fieldIndex = Math.floor(index / settings.gameTimes.length);
-                 
-                 const time = settings.gameTimes[timeIndex];
-                 const field = fieldIndex + 1;
+                 const eligibleVocalTeams = allTeamsForVocal.filter(t => !teamsPlayingInSlot.has(t.id));
+                 const vocalTeam = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
 
-                 const timeParts = time.split(':');
-                 const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                 
-                 const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
-                 const awayDressingRoom = ((homeDressingRoom + 1) % settings.numDressingRooms) + 1;
-                 dressingRoomCounter += 2;
+                 matchesInSlot.forEach((match, fieldIndex) => {
+                     const field = fieldIndex + 1;
+                     const timeParts = time.split(':');
+                     const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+                     
+                     const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
+                     const awayDressingRoom = ((homeDressingRoom + 1) % settings.numDressingRooms) + 1;
+                     dressingRoomCounter += 2;
 
 
-                 scheduledMatches.push({
-                    ...match,
-                    date: matchDateTime,
-                    time: format(matchDateTime, 'HH:mm'),
-                    field: field,
-                    homeDressingRoom: homeDressingRoom,
-                    awayDressingRoom: awayDressingRoom,
-                });
-            });
+                     scheduledMatches.push({
+                        ...match,
+                        date: matchDateTime,
+                        time: format(matchDateTime, 'HH:mm'),
+                        field: field,
+                        homeDressingRoom: homeDressingRoom,
+                        awayDressingRoom: awayDressingRoom,
+                        vocalTeamId: vocalTeam?.id
+                    });
+                 });
+            }
         }
         currentDate = addDays(currentDate, 1);
     }
