@@ -264,9 +264,11 @@ const FixtureView = ({ category, allGeneratedMatches }: { category: Category, al
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {matches.map((match, i) => (
                     <Card key={i} className="p-2 text-center text-sm">
-                        <p>{getTeamName(match.home)}</p>
-                        <p className="font-bold">vs</p>
-                        <p>{getTeamName(match.away)}</p>
+                         <CardContent className="p-2 flex flex-col items-center justify-center h-full">
+                            <span className="font-semibold">{getTeamName(match.home)}</span>
+                            <span className="text-muted-foreground font-bold my-1">vs</span>
+                            <span className="font-semibold">{getTeamName(match.away)}</span>
+                        </CardContent>
                     </Card>
                 ))}
             </div>
@@ -799,6 +801,7 @@ export default function SchedulePage() {
   useEffect(() => { setIsClient(true) }, []);
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, priorityCategory?: Category | '', priorityCount?: number }) => {
+    
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
@@ -848,26 +851,28 @@ export default function SchedulePage() {
             allVueltaMatches.push(...vuelta);
         }
     });
-    
-    // Separate priority matches
-    let priorityMatches: GeneratedMatch[] = [];
+
+    let matchQueue: GeneratedMatch[] = [];
+
+    // Prioritize matches if needed
     if (settings.priorityCategory && settings.priorityCount && settings.priorityCount > 0) {
         let potentialPriorityMatches = allIdaMatches.filter(m => m.category === settings.priorityCategory);
         potentialPriorityMatches.sort(() => 0.5 - Math.random());
-        priorityMatches = potentialPriorityMatches.slice(0, settings.priorityCount);
+        const priorityMatches = potentialPriorityMatches.slice(0, settings.priorityCount);
+        matchQueue.push(...priorityMatches);
         
         allIdaMatches = allIdaMatches.filter(match => 
             !priorityMatches.some(p => p.home === match.home && p.away === match.away && p.leg === match.leg)
         );
     }
-    
-    // Shuffle the remaining matches
-    allIdaMatches.sort(() => 0.5 - Math.random());
-    allVueltaMatches.sort(() => 0.5 - Math.random());
+
+    // Combine and shuffle
+    const allMatches = [...allIdaMatches, ...allVueltaMatches];
+    allMatches.sort(() => 0.5 - Math.random()); // Shuffle all matches
+    matchQueue = [...matchQueue, ...allMatches]; // Add shuffled matches after priority ones
 
     // Assign dates and times
     let scheduledMatches: GeneratedMatch[] = [];
-    let matchQueue = [...priorityMatches, ...allIdaMatches, ...allVueltaMatches];
     let currentDate = startOfDay(settings.startDate);
     
     while(matchQueue.length > 0) {
@@ -1080,4 +1085,5 @@ export default function SchedulePage() {
 
     
     
+
 
