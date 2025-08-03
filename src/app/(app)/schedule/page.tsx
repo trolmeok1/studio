@@ -321,6 +321,93 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     );
 };
 
+const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => void }) => {
+    const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2));
+    const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
+    const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
+    const [numFields, setNumFields] = useState(2);
+
+    const handleDayToggle = (day: number) => {
+        setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
+    }
+    
+    const handleTimeChange = (index: number, value: string) => {
+        const newTimes = [...gameTimes];
+        newTimes[index] = value;
+        setGameTimes(newTimes);
+    }
+    
+    const handleAddTime = () => setGameTimes([...gameTimes, '']);
+    const handleRemoveTime = (index: number) => setGameTimes(gameTimes.filter((_, i) => i !== index));
+
+    const handleSubmit = () => {
+        onGenerate({
+            startDate,
+            gameDays,
+            gameTimes: gameTimes.filter(t => t), // Filter out empty time slots
+            numFields
+        });
+    }
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Configuración del Sorteo</DialogTitle>
+                <DialogDescription>Define los parámetros para generar el calendario de partidos.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div>
+                    <Label>Fecha de Inicio del Torneo</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {startDate ? format(startDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                <div>
+                    <Label>Días de Juego</Label>
+                    <div className="flex gap-2 mt-2">
+                        {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, index) => (
+                            <Button key={day} variant={gameDays.includes(index) ? 'default' : 'outline'} size="sm" onClick={() => handleDayToggle(index)}>{day}</Button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <Label>Horarios de los Partidos</Label>
+                    <div className="space-y-2 mt-2">
+                        {gameTimes.map((time, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input type="time" value={time} onChange={e => handleTimeChange(index, e.target.value)} />
+                                <Button variant="destructive" size="sm" onClick={() => handleRemoveTime(index)}>X</Button>
+                            </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={handleAddTime}>Agregar Horario</Button>
+                    </div>
+                </div>
+                <div>
+                    <Label>Número de Canchas</Label>
+                    <Input type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                    <Button onClick={handleSubmit}>Generar Calendario</Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    );
+};
+
+
 export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
@@ -332,9 +419,116 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
+  const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
+    let allGeneratedMatches: GeneratedMatch[] = [];
+    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+        let currentTeams = [...teams];
+        if (currentTeams.length % 2 !== 0) {
+            currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category });
+        }
+
+        const numTeams = currentTeams.length;
+        const numRounds = numTeams - 1;
+        const matchesPerRound = numTeams / 2;
+        let rounds: GeneratedMatch[][] = Array.from({ length: numRounds * 2 }, () => []);
+
+        for (let round = 0; round < numRounds * 2; round++) {
+            const isReturnLeg = round >= numRounds;
+            const currentRoundIndex = round % numRounds;
+
+            for (let i = 0; i < matchesPerRound; i++) {
+                const team1 = currentTeams[i];
+                const team2 = currentTeams[numTeams - 1 - i];
+
+                if (team1.id !== 'dummy' && team2.id !== 'dummy') {
+                    const home = isReturnLeg ? team2.id : team1.id;
+                    const away = isReturnLeg ? team1.id : team2.id;
+                    rounds[round].push({ home, away, category, group });
+                }
+            }
+             // Rotate teams for the next round
+            const lastTeam = currentTeams.pop();
+            if (lastTeam) {
+                currentTeams.splice(1, 0, lastTeam);
+            }
+        }
+        return rounds.flat();
+    };
+
+    categories.forEach(category => {
+        const teamsForCategory = getTeamsByCategory(category);
+        if(teamsForCategory.length < 2) return;
+        
+        const isGrouped = category === 'Segunda' && teamsForCategory.length >= 16;
+        if(isGrouped) {
+             const groupA = teamsForCategory.filter(t => t.group === 'A');
+             const groupB = teamsForCategory.filter(t => t.group === 'B');
+             if(groupA.length > 1) allGeneratedMatches.push(...generateRoundRobinMatches(groupA, category, 'A'));
+             if(groupB.length > 1) allGeneratedMatches.push(...generateRoundRobinMatches(groupB, category, 'B'));
+        } else {
+             allGeneratedMatches.push(...generateRoundRobinMatches(teamsForCategory, category));
+        }
+    });
+
+    // Schedule matches
+    let currentDate = startOfDay(settings.startDate);
+    let timeSlotIndex = 0;
+    
+    allGeneratedMatches.forEach(match => {
+        let assigned = false;
+        while(!assigned) {
+            const dayOfWeek = getDay(currentDate);
+            if (settings.gameDays.includes(dayOfWeek)) {
+                 const timeParts = settings.gameTimes[timeSlotIndex % settings.gameTimes.length].split(':');
+                 const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+
+                // Find a free slot (date, time, field)
+                const isSlotTaken = (field: number) => 
+                     generatedMatches.some(m => 
+                        m.date && isEqual(m.date, matchDateTime) && m.field === field
+                     );
+
+                for (let field = 1; field <= settings.numFields; field++) {
+                    if (!isSlotTaken(field)) {
+                        match.date = matchDateTime;
+                        match.time = format(matchDateTime, 'HH:mm');
+                        match.field = field;
+                        assigned = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!assigned) {
+                timeSlotIndex++;
+                if (timeSlotIndex >= settings.gameTimes.length * settings.numFields) {
+                    timeSlotIndex = 0;
+                    currentDate = addDays(currentDate, 1);
+                }
+            }
+        }
+    });
+
+
+    setGeneratedMatches(allGeneratedMatches);
+    setIsSuccessDialogOpen(true);
+};
+
+
   const handleDrawButtonClick = () => {
-    setIsDrawDialogOpen(true);
+      if (isTournamentStarted) {
+          setResetAlertStep(1);
+      } else {
+         setIsDrawDialogOpen(true);
+      }
   }
+
+  const handleResetConfirm = () => {
+    setGeneratedMatches([]);
+    setResetAlertStep(0);
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -352,6 +546,12 @@ export default function SchedulePage() {
                         <Dices className="mr-2" />
                         {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
                     </Button>
+                     {isTournamentStarted && (
+                        <Button variant="secondary" onClick={() => setResetAlertStep(1)}>
+                            <RefreshCw className="mr-2" />
+                            Reiniciar
+                        </Button>
+                    )}
                 </div>
             </Card>
         </div>
@@ -384,6 +584,63 @@ export default function SchedulePage() {
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
         </Tabs>
+
+        <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
+            <DrawSettingsDialog onGenerate={(settings) => {
+                generateMasterSchedule(settings);
+                setIsDrawDialogOpen(false);
+            }} />
+        </Dialog>
+        
+        <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¡Calendario Generado Exitosamente!</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Se ha generado el calendario de partidos para todas las categorías. Puedes verlo en las pestañas correspondientes.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogAction onClick={() => setIsSuccessDialogOpen(false)}>Entendido</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+         <AlertDialog open={resetAlertStep > 0} onOpenChange={(open) => !open && setResetAlertStep(0)}>
+            <AlertDialogContent>
+                 {resetAlertStep === 1 ? (
+                    <>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro de reiniciar el calendario?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción eliminará permanentemente todos los partidos generados y no se puede deshacer. Deberás generar un nuevo calendario.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setResetAlertStep(0)}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className={buttonVariants({variant: "destructive"})} onClick={() => setResetAlertStep(2)}>
+                                Sí, reiniciar calendario
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </>
+                 ) : (
+                      <>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Calendario Reiniciado</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Se han borrado todos los partidos. Ahora puedes generar un nuevo calendario desde el botón "Sorteo de Equipos".
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                             <AlertDialogAction onClick={handleResetConfirm}>
+                                Entendido
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </>
+                 )}
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
+
