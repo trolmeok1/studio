@@ -28,6 +28,7 @@ import {
   FileClock,
   ClipboardList,
   UserCheck,
+  BarChart2,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -150,12 +151,22 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                )}
-               {isAdmin && (
+                {isAdmin && (
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/referees')} tooltip="Árbitros">
                       <Link href="/referees">
                           <UserCheck />
                           <span>Árbitros</span>
+                      </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+               )}
+                 {isAdmin && (
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
+                      <Link href="/reports">
+                          <BarChart2 />
+                          <span>Reportes</span>
                       </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
