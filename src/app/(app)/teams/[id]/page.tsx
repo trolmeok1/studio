@@ -683,27 +683,63 @@ export default function TeamDetailsPage() {
             </Card>
         </TabsContent>
         <TabsContent value="stats">
-            <Card>
-                <CardHeader><CardTitle>Rendimiento del Equipo</CardTitle></CardHeader>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Rendimiento del Equipo</CardTitle>
+                </CardHeader>
                 <CardContent>
-                     <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={statsData}>
-                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                                <Tooltip
-                                    contentStyle={{
-                                        background: "hsl(var(--background))",
-                                        border: "1px solid hsl(var(--border))",
-                                        borderRadius: "var(--radius)",
-                                    }}
-                                />
-                                <Bar dataKey="G" fill="#16a34a" name="Ganados" stackId="a" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="E" fill="#f59e0b" name="Empatados" stackId="a" radius={[0, 0, 0, 0]} />
-                                <Bar dataKey="P" fill="#ef4444" name="Perdidos" stackId="a" radius={[0, 0, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Oponente</TableHead>
+                                <TableHead>Marcador</TableHead>
+                                <TableHead className="text-right">Resultado</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {matches.filter(m => m.status === 'finished').length > 0 ? (
+                                matches.filter(m => m.status === 'finished').map(match => {
+                                    const isHome = match.teams.home.id === teamId;
+                                    const score = match.score;
+                                    let result: 'G' | 'P' | 'E' = 'E';
+                                    let resultColor = 'bg-muted';
+                                    let resultText = 'Empate';
+
+                                    if (score) {
+                                        if (isHome && score.home > score.away) result = 'G';
+                                        else if (!isHome && score.away > score.home) result = 'G';
+                                        else if (score.home !== score.away) result = 'P';
+                                    }
+
+                                    if (result === 'G') {
+                                        resultColor = 'bg-green-600';
+                                        resultText = 'Victoria';
+                                    } else if (result === 'P') {
+                                        resultColor = 'bg-destructive';
+                                        resultText = 'Derrota';
+                                    }
+
+                                    return (
+                                        <TableRow key={match.id}>
+                                            <TableCell>{format(new Date(match.date), 'dd/MM/yyyy')}</TableCell>
+                                            <TableCell>{isHome ? match.teams.away.name : match.teams.home.name}</TableCell>
+                                            <TableCell className="font-semibold">{score?.home} - {score?.away}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge className={cn(resultColor, 'text-white')}>{resultText}</Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">
+                                        No hay estadísticas de partidos finalizados.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
         </TabsContent>
