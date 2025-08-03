@@ -12,7 +12,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
@@ -87,11 +87,12 @@ const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => 
 
 export default function TreasuryPage() {
     const [isClient, setIsClient] = useState(false);
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
 
     useEffect(() => {
         setIsClient(true);
+        setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
     }, []);
     
     const handleAddExpense = (newExpense: Omit<Expense, 'id'>) => {
@@ -105,7 +106,7 @@ export default function TreasuryPage() {
     };
 
     const filteredMatches = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return upcomingMatches;
+        if (!dateRange?.from || !dateRange?.to) return [];
         return upcomingMatches.filter(m => {
             const matchDate = new Date(m.date);
             return matchDate >= dateRange.from! && matchDate <= dateRange.to!;
@@ -113,7 +114,7 @@ export default function TreasuryPage() {
     }, [dateRange]);
 
     const filteredExpenses = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return expenses;
+        if (!dateRange?.from || !dateRange?.to) return [];
         return expenses.filter(e => {
             const expenseDate = new Date(e.date);
             return expenseDate >= dateRange.from! && expenseDate <= dateRange.to!;
@@ -233,6 +234,9 @@ export default function TreasuryPage() {
     const matchesByFirst = useMemo(() => filteredMatches.filter(m => m.category === 'Primera'), [filteredMatches]);
     const matchesBySecond = useMemo(() => filteredMatches.filter(m => m.category === 'Segunda'), [filteredMatches]);
 
+    if (!isClient) {
+        return null;
+    }
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

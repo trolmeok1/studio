@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy } from 'lucide-react';
@@ -157,13 +157,18 @@ const ScheduleReport = ({ week }: { week: string }) => {
 
 
 const SanctionsReport = () => {
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     return (
         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
              <header className="flex flex-col items-center text-center mb-6">
                 <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" />
                 <h1 className="text-2xl font-bold mt-2">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
                 <p className="text-lg font-semibold">REPORTE DE SANCIONES</p>
-                <p className="text-md">Fecha: {format(new Date(), 'PPP', { locale: es })}</p>
+                {isClient && <p className="text-md">Fecha: {format(new Date(), 'PPP', { locale: es })}</p>}
             </header>
             <Table>
                 <TableHeader>
@@ -190,6 +195,11 @@ const SanctionsReport = () => {
 };
 
 const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) => {
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const filteredMatches = useMemo(() => {
         if (!dateRange?.from) return [];
         return upcomingMatches.filter(m => {
@@ -226,6 +236,10 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
             <span className={cn(isNegative && "text-red-600")}>${value.toFixed(2)}</span>
         </div>
     );
+
+    if (!isClient) {
+        return null;
+    }
 
     return (
         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none font-sans">
@@ -290,6 +304,11 @@ export default function ReportsPage() {
         from: new Date(),
         to: new Date(),
     });
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const handleGenerate = (type: ReportType) => {
         setReportType(type);
@@ -455,7 +474,7 @@ export default function ReportsPage() {
                     <CardContent>
                          <div className="space-y-2">
                              <Label>Seleccionar Rango de Fechas</Label>
-                             <Popover>
+                             {isClient && <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
                                     variant={"outline"}
@@ -489,7 +508,7 @@ export default function ReportsPage() {
                                     numberOfMonths={2}
                                     />
                                 </PopoverContent>
-                            </Popover>
+                            </Popover>}
                         </div>
                          <Button className="w-full mt-4" onClick={() => handleGenerate('finance')}>
                             <Printer className="mr-2" />

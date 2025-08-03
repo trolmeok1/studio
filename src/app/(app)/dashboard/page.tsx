@@ -195,9 +195,9 @@ function SanctionsCard() {
                     <ShieldBan className="mr-2" />
                     {sanction.gamesSuspended} Partido(s)
                 </Badge>
-                <p className="text-xs text-muted-foreground mt-1">
-                    Sancionado el: {isClient ? new Date(sanction.date).toLocaleDateString() : ''}
-                </p>
+                {isClient && <p className="text-xs text-muted-foreground mt-1">
+                    Sancionado el: {new Date(sanction.date).toLocaleDateString()}
+                </p>}
              </div>
           </Card>
         ))}

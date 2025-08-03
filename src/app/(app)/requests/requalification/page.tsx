@@ -51,6 +51,10 @@ const RequestHistory = () => {
         }
     };
 
+    if (!isClient) {
+        return null;
+    }
+
     return (
         <Card className="mt-8">
             <CardHeader>
@@ -71,7 +75,7 @@ const RequestHistory = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isClient && requests.map(req => (
+                        {requests.map(req => (
                             <TableRow key={req.id}>
                                 <TableCell>{format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
                                 <TableCell>{req.teamName}</TableCell>
@@ -111,6 +115,11 @@ export default function RequalificationPage() {
     const [playerOutId, setPlayerOutId] = useState('');
     const [playerIn, setPlayerIn] = useState<NewPlayer>(initialNewPlayerState);
     const [presidentId, setPresidentId] = useState('');
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const selectedTeam = useMemo(() => allTeams.find(t => t.id === selectedTeamId), [selectedTeamId]);
     const teamPlayers = useMemo(() => selectedTeamId ? getPlayersByTeamId(selectedTeamId) : [], [selectedTeamId]);
@@ -177,7 +186,7 @@ export default function RequalificationPage() {
                             </header>
 
                             <div className="text-right mb-8">
-                                <p>Quito, {format(new Date(), "d 'de' MMMM 'del' yyyy", { locale: es })}</p>
+                                <p>Quito, {isClient ? format(new Date(), "d 'de' MMMM 'del' yyyy", { locale: es }) : ''}</p>
                             </div>
 
                             <div className="mb-6">

@@ -95,33 +95,41 @@ const MatchCard = ({ match }: { match: Match }) => {
 };
 
 export default function PartidoPage() {
-    const [matches] = useState<Match[]>(allMatches);
+    const [groupedFutureMatches, setGroupedFutureMatches] = useState<Record<string, Match[]>>({});
+    const [groupedPastMatches, setGroupedPastMatches] = useState<Record<string, Match[]>>({});
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
+        
+        const futureMatches = allMatches.filter(m => m.status === 'future' || m.status === 'in-progress').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const pastMatches = allMatches.filter(m => m.status === 'finished').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const groupFuture = futureMatches.reduce((acc, match) => {
+            const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            if (!acc[date]) {
+                acc[date] = [];
+            }
+            acc[date].push(match);
+            return acc;
+        }, {} as Record<string, Match[]>);
+        
+        const groupPast = pastMatches.reduce((acc, match) => {
+            const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            if (!acc[date]) {
+                acc[date] = [];
+            }
+            acc[date].push(match);
+            return acc;
+        }, {} as Record<string, Match[]>);
+
+        setGroupedFutureMatches(groupFuture);
+        setGroupedPastMatches(groupPast);
     }, []);
 
-    const futureMatches = matches.filter(m => m.status === 'future' || m.status === 'in-progress').sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const pastMatches = matches.filter(m => m.status === 'finished').sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    const groupedFutureMatches = futureMatches.reduce((acc, match) => {
-        const date = isClient ? new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) : '';
-        if (!acc[date]) {
-            acc[date] = [];
-        }
-        acc[date].push(match);
-        return acc;
-    }, {} as Record<string, Match[]>);
-    
-    const groupedPastMatches = pastMatches.reduce((acc, match) => {
-        const date = isClient ? new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) : '';
-        if (!acc[date]) {
-            acc[date] = [];
-        }
-        acc[date].push(match);
-        return acc;
-    }, {} as Record<string, Match[]>);
+    if (!isClient) {
+        return null; // or a loading spinner
+    }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
