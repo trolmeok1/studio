@@ -206,7 +206,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
         return generatedMatches
             .filter(m => m.category === category)
             .reduce((acc, match) => {
-                const dateKey = `Fecha ${match.roundNumber} (${match.leg})` + (isGrouped ? ` - Grupo ${match.group}` : '');
+                const dateKey = `Fecha ${match.roundNumber}` + (isGrouped ? ` - Grupo ${match.group}` : '');
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = {
@@ -495,42 +495,33 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        const allMatches: GeneratedMatch[] = [];
+        let allMatches: GeneratedMatch[] = [];
         
-        // Ida
-        for (let round = 0; round < numRounds; round++) {
-            for (let i = 0; i < matchesPerRound; i++) {
-                const team1 = currentTeams[i];
-                const team2 = currentTeams[numTeams - 1 - i];
+        for (let leg of ['Ida', 'Vuelta'] as ('Ida' | 'Vuelta')[]) {
+            const legMatches: GeneratedMatch[] = [];
+            let roundTeams = [...currentTeams];
+            for (let round = 0; round < numRounds; round++) {
+                for (let i = 0; i < matchesPerRound; i++) {
+                    const team1 = roundTeams[i];
+                    const team2 = roundTeams[numTeams - 1 - i];
 
-                if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                     allMatches.push({ home: team1.id, away: team2.id, category, group, roundNumber: round + 1, leg: 'Ida' });
+                    if (team1.id !== 'dummy' && team2.id !== 'dummy') {
+                        const home = leg === 'Ida' ? team1.id : team2.id;
+                        const away = leg === 'Ida' ? team2.id : team1.id;
+                        legMatches.push({ home, away, category, group, roundNumber: round + 1, leg });
+                    }
+                }
+                const lastTeam = roundTeams.pop();
+                if (lastTeam) {
+                    roundTeams.splice(1, 0, lastTeam);
                 }
             }
-            // Rotate teams
-            const lastTeam = currentTeams.pop();
-            if (lastTeam) {
-                currentTeams.splice(1, 0, lastTeam);
-            }
+             allMatches.push(...legMatches);
         }
-        
-        // Vuelta (swap home/away)
-         allMatches.forEach(match => {
-            if (match.leg === 'Ida') {
-                allMatches.push({ 
-                    ...match, 
-                    home: match.away, 
-                    away: match.home, 
-                    leg: 'Vuelta',
-                    roundNumber: (match.roundNumber || 0) + numRounds
-                });
-            }
-        });
-
         return allMatches;
     };
     
-    const categories: {category: Category, group?: 'A' | 'B'}[] = [
+    const categoriesConfig: {category: Category, group?: 'A' | 'B'}[] = [
         { category: 'Máxima' },
         { category: 'Primera' },
         { category: 'Segunda', group: 'A' },
@@ -539,7 +530,7 @@ export default function SchedulePage() {
 
     let allMatches: GeneratedMatch[] = [];
     
-    categories.forEach(cat => {
+    categoriesConfig.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
             const categoryMatches = generateRoundRobinMatches(teams, cat.category, cat.group);
@@ -547,46 +538,48 @@ export default function SchedulePage() {
         }
     });
 
-    // Shuffle the entire list of matches to mix categories
+    // Shuffle all matches randomly
     for (let i = allMatches.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allMatches[i], allMatches[j]] = [allMatches[j], allMatches[i]];
     }
     
-    // Separate Ida and Vuelta and then combine
-    const idaMatches = allMatches.filter(m => m.leg === 'Ida');
-    const vueltaMatches = allMatches.filter(m => m.leg === 'Vuelta');
-    const combinedSchedule = [...idaMatches, ...vueltaMatches];
-
-    let availableSlots: { date: Date, field: number }[] = [];
+    // Assign dates and times
+    let scheduledMatches: GeneratedMatch[] = [];
+    let matchQueue = [...allMatches];
     let currentDate = startOfDay(settings.startDate);
+    let matchIndex = 0;
     
-    for (let i = 0; i < 365 && availableSlots.length < combinedSchedule.length; i++) {
+    while(matchIndex < allMatches.length) {
         const dayOfWeek = getDay(currentDate);
-        if (settings.gameDays.includes(dayOfWeek)) {
+        if(settings.gameDays.includes(dayOfWeek)) {
+            // Create slots for the current valid day
+            const daySlots: { date: Date, field: number }[] = [];
             settings.gameTimes.sort().forEach(time => {
-                 for (let field = 1; field <= settings.numFields; field++) {
+                for(let field = 1; field <= settings.numFields; field++) {
                     const timeParts = time.split(':');
                     const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                    availableSlots.push({ date: matchDateTime, field: field });
+                    daySlots.push({ date: matchDateTime, field: field });
                 }
-            })
+            });
+
+            // Assign matches to the day's slots
+            const matchesForDay = matchQueue.splice(0, daySlots.length);
+            matchesForDay.forEach((match, index) => {
+                if (daySlots[index]) {
+                    scheduledMatches.push({
+                        ...match,
+                        date: daySlots[index].date,
+                        time: format(daySlots[index].date, 'HH:mm'),
+                        field: daySlots[index].field,
+                    });
+                    matchIndex++;
+                }
+            });
         }
         currentDate = addDays(currentDate, 1);
     }
-
-    const scheduledMatches = combinedSchedule.map((match, index) => {
-        if (availableSlots[index]) {
-            return {
-                ...match,
-                date: availableSlots[index].date,
-                time: format(availableSlots[index].date, 'HH:mm'),
-                field: availableSlots[index].field,
-            };
-        }
-        return match;
-    });
-
+    
     setGeneratedMatches(scheduledMatches);
     setIsSuccessDialogOpen(true);
 };
@@ -724,3 +717,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
