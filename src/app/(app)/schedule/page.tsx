@@ -414,7 +414,7 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
 
         return generatedMatches
             .reduce((acc, match) => {
-                const dateKey = `Fecha ${isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : ''}`;
+                const dateKey = `Fecha ${match.roundNumber} (${match.leg}) - ${isClient && match.date ? format(match.date, 'PPPP', {locale: es}) : ''}`;
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
@@ -447,14 +447,20 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
             <CardContent className="space-y-6 mt-6">
                  {Object.entries(groupedMatches)
                     .sort(([dateA], [dateB]) => {
-                        const parsedDateA = dateA.split('Fecha ')[1];
-                        const parsedDateB = dateB.split('Fecha ')[1];
-                        if (!parsedDateA || !parsedDateB) return 0;
-                        return new Date(parse(parsedDateA, 'PPPP', new Date(), { locale: es })).getTime() - new Date(parse(parsedDateB, 'PPPP', new Date(), { locale: es })).getTime()
+                        try {
+                             const parsedDateA = dateA.substring(dateA.indexOf('-') + 2);
+                             const parsedDateB = dateB.substring(dateB.indexOf('-') + 2);
+                             if (!parsedDateA || !parsedDateB) return 0;
+                             const timeA = parse(parsedDateA, 'PPPP', new Date(), { locale: es }).getTime();
+                             const timeB = parse(parsedDateB, 'PPPP', new Date(), { locale: es }).getTime();
+                             return timeA - timeB;
+                        } catch(e) {
+                            return 0;
+                        }
                     })
-                    .map(([date, matchesOnDate]) => (
-                    <div key={date}>
-                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
+                    .map(([roundAndDate, matchesOnDate]) => (
+                    <div key={roundAndDate}>
+                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{roundAndDate}</h3>
                         <div className="space-y-2">
                             {matchesOnDate.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => 
                                 <MatchCard key={index} match={match} showCategory={true} />
@@ -480,9 +486,8 @@ export default function SchedulePage() {
   useEffect(() => { setIsClient(true) }, []);
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
-    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-
-    const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+    
+    const generateRoundRobinScheduleForCategory = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[][] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -502,57 +507,50 @@ export default function SchedulePage() {
                      rounds[round].push({ home: team1.id, away: team2.id, category, group, roundNumber: round + 1 });
                 }
             }
-             // Rotate teams for the next round
             const lastTeam = currentTeams.pop();
             if (lastTeam) {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        return rounds.flat();
+        return rounds;
     };
+    
+    const categories: {category: Category, group?: 'A' | 'B'}[] = [
+        { category: 'Máxima' },
+        { category: 'Primera' },
+        { category: 'Segunda', group: 'A' },
+        { category: 'Segunda', group: 'B' }
+    ];
 
-    let allMatchesFirstLeg: GeneratedMatch[] = [];
-    let allMatchesSecondLeg: GeneratedMatch[] = [];
-
-    categories.forEach(category => {
-        if (category === 'Segunda') {
-            const groupATeams = getTeamsByCategory('Segunda', 'A');
-            const groupBTeams = getTeamsByCategory('Segunda', 'B');
-            if (groupATeams.length > 1) {
-                const groupAMatches = generateRoundRobinScheduleForCategory(groupATeams, 'Segunda', 'A');
-                allMatchesFirstLeg.push(...groupAMatches);
-            }
-            if (groupBTeams.length > 1) {
-                const groupBMatches = generateRoundRobinScheduleForCategory(groupBTeams, 'Segunda', 'B');
-                allMatchesFirstLeg.push(...groupBMatches);
-            }
-        } else {
-            const teamsForCategory = getTeamsByCategory(category);
-            if (teamsForCategory.length > 1) {
-                const categoryMatches = generateRoundRobinScheduleForCategory(teamsForCategory, category);
-                allMatchesFirstLeg.push(...categoryMatches);
-            }
+    let allRoundsFirstLeg: GeneratedMatch[][] = [];
+    let allRoundsSecondLeg: GeneratedMatch[][] = [];
+    
+    categories.forEach(cat => {
+        const teams = getTeamsByCategory(cat.category, cat.group);
+        if (teams.length > 1) {
+            const rounds = generateRoundRobinScheduleForCategory(teams, cat.category, cat.group);
+            allRoundsFirstLeg.push(...rounds);
+            
+            const secondLegRounds = rounds.map((round, roundIndex) => round.map(match => ({
+                ...match,
+                home: match.away,
+                away: match.home,
+                roundNumber: (match.roundNumber || 0) + rounds.length
+            })));
+            allRoundsSecondLeg.push(...secondLegRounds);
         }
     });
 
-    // Create second leg by swapping home and away
-    allMatchesSecondLeg = allMatchesFirstLeg.map(match => ({
-        ...match,
-        home: match.away,
-        away: match.home,
-    }));
-    
-    // Sort matches by round number to mix categories
-    const sortByRound = (a: GeneratedMatch, b: GeneratedMatch) => (a.roundNumber || 0) - (b.roundNumber || 0);
-    allMatchesFirstLeg.sort(sortByRound);
-    allMatchesSecondLeg.sort(sortByRound);
+    const transpose = (matrix: any[][]): any[][] => {
+        if (!matrix || matrix.length === 0) return [];
+        return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]).filter(item => item !== undefined));
+    };
 
-    const combinedSchedule = [
-        ...allMatchesFirstLeg.map(m => ({ ...m, leg: 'Ida' as const })),
-        ...allMatchesSecondLeg.map(m => ({ ...m, leg: 'Vuelta' as const, roundNumber: (m.roundNumber || 0) + allMatchesFirstLeg.length }))
-    ];
+    const firstLegMatches = transpose(allRoundsFirstLeg).flat().map(m => ({ ...m, leg: 'Ida' as const }));
+    const secondLegMatches = transpose(allRoundsSecondLeg).flat().map(m => ({ ...m, leg: 'Vuelta' as const }));
     
-    // 5. Create available time slots
+    const combinedSchedule = [...firstLegMatches, ...secondLegMatches];
+    
     let availableSlots: { date: Date, field: number }[] = [];
     let currentDate = startOfDay(settings.startDate);
     
@@ -570,7 +568,6 @@ export default function SchedulePage() {
         currentDate = addDays(currentDate, 1);
     }
 
-    // 6. Assign slots to matches
     const scheduledMatches = combinedSchedule.map((match, index) => {
         if (availableSlots[index]) {
             return {
