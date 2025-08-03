@@ -5,10 +5,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy } from 'lucide-react';
+import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense } from '@/lib/mock-data';
+import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense, getReferees } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -75,6 +75,7 @@ const StandingsReport = ({ category }: { category: Category }) => {
 
 const ScheduleReport = ({ week }: { week: string }) => {
     const matches = upcomingMatches.slice(0, 4); 
+    const referees = getReferees();
 
     return (
         <div id="printable-report" className="bg-gray-800 text-white font-headline relative print:border-none aspect-[1/1.414] max-w-2xl mx-auto">
@@ -89,37 +90,41 @@ const ScheduleReport = ({ week }: { week: string }) => {
                 </header>
 
                 <main className="flex-grow space-y-4">
-                    {matches.map(match => (
-                         <div key={match.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/20">
-                            {/* Team A */}
-                            <div className="flex flex-col items-center text-center">
-                                <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                                <p className="text-lg font-bold uppercase mt-2">{match.teams.home.name}</p>
-                                <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
-                                    <span>{format(new Date(match.date), "dd MMM", { locale: es })}</span>
+                    {matches.map(match => {
+                        const assignedReferee = referees.find(r => r.id === match.teams.home.vocalPaymentDetails?.otherFinesDescription); // Just a mock for now
+                        return (
+                             <div key={match.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/20">
+                                {/* Team A */}
+                                <div className="flex flex-col items-center text-center">
+                                    <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={60} height={60} className="rounded-full border-2 border-white/50" data-ai-hint="team logo" />
+                                    <p className="text-lg font-bold uppercase mt-2">{match.teams.home.name}</p>
+                                    <p className="text-xs text-gray-300 mt-1">Camerino {match.teams.home.vocalPaymentDetails?.otherFinesDescription || 'N/A'}</p>
                                 </div>
-                                {match.teams.home.vocalPaymentDetails?.otherFinesDescription && <p className="text-xs text-gray-300">Camerino {match.teams.home.vocalPaymentDetails?.otherFinesDescription}</p>}
-                            </div>
-                            
-                            {/* VS */}
-                            <div className="flex flex-col items-center">
-                                <div className="bg-yellow-400 text-black rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
-                                    VS
+                                
+                                {/* VS */}
+                                <div className="flex flex-col items-center text-center">
+                                    {assignedReferee && (
+                                         <div className="flex items-center gap-1 text-xs mb-1 bg-white/10 px-2 py-1 rounded-full">
+                                            <UserCheck className="h-3 w-3" />
+                                            <span>{assignedReferee.name}</span>
+                                        </div>
+                                    )}
+                                    <div className="bg-yellow-400 text-black rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
+                                        VS
+                                    </div>
+                                    <p className="text-xl font-bold text-yellow-400 mt-2">{format(new Date(match.date), 'HH:mm')}</p>
+                                    <p className="text-xs text-gray-300 mt-1">{format(new Date(match.date), "eeee, dd 'de' MMMM", { locale: es })}</p>
                                 </div>
-                                 <p className="text-sm text-yellow-400 mt-1">{format(new Date(match.date), 'HH:mm')}</p>
-                            </div>
 
-                            {/* Team B */}
-                            <div className="flex flex-col items-center text-center">
-                                <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={60} height={60} className="rounded-full" data-ai-hint="team logo" />
-                                <p className="text-lg font-bold uppercase mt-2">{match.teams.away.name}</p>
-                                <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
-                                     <span>{format(new Date(match.date), "dd MMM", { locale: es })}</span>
+                                {/* Team B */}
+                                <div className="flex flex-col items-center text-center">
+                                    <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={60} height={60} className="rounded-full border-2 border-white/50" data-ai-hint="team logo" />
+                                    <p className="text-lg font-bold uppercase mt-2">{match.teams.away.name}</p>
+                                    <p className="text-xs text-gray-300 mt-1">Camerino {match.teams.away.vocalPaymentDetails?.otherFinesDescription || 'N/A'}</p>
                                 </div>
-                                {match.teams.away.vocalPaymentDetails?.otherFinesDescription && <p className="text-xs text-gray-300">Camerino {match.teams.away.vocalPaymentDetails?.otherFinesDescription}</p>}
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </main>
 
                 <footer className="text-center text-xs text-gray-400 mt-8">
@@ -279,8 +284,10 @@ export default function ReportsPage() {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        setIsClient(true);
-        setDateRange({ from: new Date(), to: new Date() });
+        if (typeof window !== 'undefined') {
+            setIsClient(true);
+            setDateRange({ from: new Date(), to: new Date() });
+        }
     }, []);
 
     const handleGenerate = (type: ReportType) => {
