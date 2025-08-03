@@ -206,16 +206,17 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
                 if (roundSize === 0) return acc;
                 
                 const categoryMatches = generatedMatches.filter(m => m.category === category && (isGrouped ? m.group === match.group : true));
-                const totalRounds = (categoryTeams.length - (categoryTeams.length % 2 === 0 ? 0 : 1) -1);
+                const totalRounds = (categoryTeams.length - (categoryTeams.length % 2 === 0 ? 0 : 1) -1) * 2; // *2 for two legs
 
                 const matchIndexInSchedule = categoryMatches.indexOf(match);
 
                 let leg = 'Ida';
                 let currentRound = Math.floor(matchIndexInSchedule / roundSize) + 1;
                 
-                if (currentRound > totalRounds) {
+                const singleLegRounds = totalRounds / 2;
+                if (currentRound > singleLegRounds) {
                     leg = 'Vuelta';
-                    currentRound = currentRound - totalRounds;
+                    currentRound = currentRound - singleLegRounds;
                 }
                 
                 const dateKey = `Fecha ${currentRound} (${leg})` + (isGrouped ? ` - Grupo ${match.group}` : '');
@@ -344,7 +345,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
             startDate,
             gameDays,
             gameTimes: gameTimes.filter(t => t), // Filter out empty time slots
-            numFields: 1 // Hardcoded to 1 as per user request
+            numFields: 1
         });
     }
 
@@ -431,18 +432,14 @@ export default function SchedulePage() {
         let firstLeg: GeneratedMatch[] = [];
         let secondLeg: GeneratedMatch[] = [];
         
-        const rounds: GeneratedMatch[][] = Array.from({ length: numRounds }, () => []);
-
         for (let round = 0; round < numRounds; round++) {
             for (let i = 0; i < matchesPerRound; i++) {
                 const team1 = currentTeams[i];
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    // First leg
-                    rounds[round].push({ home: team1.id, away: team2.id, category, group });
-                    // Second leg (swapped)
-                    rounds[round].push({ home: team2.id, away: team1.id, category, group });
+                    firstLeg.push({ home: team1.id, away: team2.id, category, group });
+                    secondLeg.push({ home: team2.id, away: team1.id, category, group });
                 }
             }
              // Rotate teams for the next round
@@ -451,12 +448,6 @@ export default function SchedulePage() {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        
-        // Distribute matches into first and second legs
-        const allMatches = rounds.flat();
-        const totalMatchesPerLeg = (numRounds * matchesPerRound);
-        firstLeg = allMatches.slice(0, totalMatchesPerLeg);
-        secondLeg = allMatches.slice(totalMatchesPerLeg);
         
         return { firstLeg, secondLeg };
     };
@@ -487,48 +478,40 @@ export default function SchedulePage() {
     });
 
     const combinedSchedule = [...allFirstLegMatches, ...allSecondLegMatches];
-    // Schedule matches
-    let currentDate = startOfDay(settings.startDate);
-    let timeSlotIndex = 0;
     
-    combinedSchedule.forEach(match => {
-        let assigned = false;
-        while(!assigned) {
-            const dayOfWeek = getDay(currentDate);
-            if (settings.gameDays.includes(dayOfWeek)) {
-                const timeParts = settings.gameTimes[timeSlotIndex % settings.gameTimes.length].split(':');
-                const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-
-                // Check if this slot is already taken by any other match
-                const isSlotTaken = combinedSchedule.some(m => 
-                    m.date && isEqual(m.date, matchDateTime)
-                );
-
-                if (!isSlotTaken) {
-                    match.date = matchDateTime;
-                    match.time = format(matchDateTime, 'HH:mm');
-                    match.field = 1; // Always field 1
-                    assigned = true;
-                }
-            }
-
-            if (!assigned) {
-                timeSlotIndex++;
-                 if (timeSlotIndex >= settings.gameTimes.length) {
-                    timeSlotIndex = 0;
-                    currentDate = addDays(currentDate, 1);
-                }
-            } else {
-                 timeSlotIndex++;
-                 if (timeSlotIndex >= settings.gameTimes.length) {
-                    timeSlotIndex = 0;
-                    currentDate = addDays(currentDate, 1);
+    // Create a queue of available time slots
+    let availableSlots: { date: Date, field: number }[] = [];
+    let currentDate = startOfDay(settings.startDate);
+    
+    // Generate slots for a long period, e.g., 52 weeks
+    for (let i = 0; i < 365; i++) {
+        const dayOfWeek = getDay(currentDate);
+        if (settings.gameDays.includes(dayOfWeek)) {
+            for (const time of settings.gameTimes) {
+                for (let field = 1; field <= settings.numFields; field++) {
+                    const timeParts = time.split(':');
+                    const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+                    availableSlots.push({ date: matchDateTime, field: field });
                 }
             }
         }
+        currentDate = addDays(currentDate, 1);
+    }
+
+    // Assign slots to matches
+    const scheduledMatches = combinedSchedule.map((match, index) => {
+        if (availableSlots[index]) {
+            return {
+                ...match,
+                date: availableSlots[index].date,
+                time: format(availableSlots[index].date, 'HH:mm'),
+                field: availableSlots[index].field,
+            };
+        }
+        return match; // Should not happen if enough slots are generated
     });
 
-    setGeneratedMatches(combinedSchedule);
+    setGeneratedMatches(scheduledMatches);
     setIsSuccessDialogOpen(true);
 };
 
@@ -555,13 +538,22 @@ export default function SchedulePage() {
             <Card className="p-2 bg-card/50">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold mr-2">Admin:</span>
-                    <Button 
-                        variant={isTournamentStarted ? "destructive" : "outline"}
-                        onClick={handleDrawButtonClick}
-                    >
-                        <Dices className="mr-2" />
-                        {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
-                    </Button>
+                    <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button 
+                                variant={isTournamentStarted ? "destructive" : "outline"}
+                                onClick={handleDrawButtonClick}
+                                disabled={isTournamentStarted}
+                            >
+                                <Dices className="mr-2" />
+                                {isTournamentStarted ? "Torneo Iniciado" : "Sorteo de Equipos"}
+                            </Button>
+                         </DialogTrigger>
+                         <DrawSettingsDialog onGenerate={(settings) => {
+                            generateMasterSchedule(settings);
+                            setIsDrawDialogOpen(false);
+                        }} />
+                    </Dialog>
                      {isTournamentStarted && (
                         <Button variant="secondary" onClick={() => setResetAlertStep(1)}>
                             <RefreshCw className="mr-2" />
@@ -600,13 +592,6 @@ export default function SchedulePage() {
             <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
         </Tabs>
-
-        <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
-            <DrawSettingsDialog onGenerate={(settings) => {
-                generateMasterSchedule(settings);
-                setIsDrawDialogOpen(false);
-            }} />
-        </Dialog>
         
         <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
             <AlertDialogContent>
@@ -660,3 +645,4 @@ export default function SchedulePage() {
   );
 }
 
+    
