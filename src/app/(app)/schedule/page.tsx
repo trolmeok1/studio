@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -23,6 +23,7 @@ import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const BracketNode = ({ team, isWinner }: { team: string | null; isWinner?: boolean }) => {
@@ -346,7 +347,7 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
         onGenerate({
             startDate,
             gameDays,
-            gameTimes: gameTimes.filter(t => t), // Filter out empty time slots
+            gameTimes: gameTimes.filter(t => t).sort(), // Filter out empty time slots and sort them
             numFields,
         });
     }
@@ -409,6 +410,95 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     );
 };
 
+const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { allMatches: GeneratedMatch[], open: boolean, onOpenChange: (open: boolean) => void, onReschedule: (match: GeneratedMatch, newDate: Date, newTime: string) => void }) => {
+    const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>();
+    const [newDate, setNewDate] = useState<Date | undefined>();
+    const [newTime, setNewTime] = useState<string>('');
+
+    const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
+    const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+    
+    const occupiedSlots = useMemo(() => {
+        if (!newDate) return [];
+        const dateStr = format(newDate, 'yyyy-MM-dd');
+        return allMatches
+            .filter(m => m.date && format(m.date, 'yyyy-MM-dd') === dateStr)
+            .map(m => m.time)
+            .filter(Boolean) as string[];
+    }, [newDate, allMatches]);
+
+    const handleConfirmReschedule = () => {
+        if (!selectedMatchId || !newDate || !newTime) return;
+        const matchToReschedule = allMatches.find(m => `${m.home}-${m.away}-${m.leg}` === selectedMatchId);
+        if (matchToReschedule) {
+            const [hours, minutes] = newTime.split(':').map(Number);
+            const finalDate = setMinutes(setHours(startOfDay(newDate), hours), minutes);
+            onReschedule(matchToReschedule, finalDate, newTime);
+            onOpenChange(false); // Close dialog on success
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Reagendar Partido</DialogTitle>
+                    <DialogDescription>Seleccione un partido y elija una nueva fecha y hora.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div>
+                        <Label>Seleccionar Partido</Label>
+                        <Select onValueChange={setSelectedMatchId} value={selectedMatchId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Elige un partido para mover..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allMatches.map((match) => (
+                                    <SelectItem key={`${match.home}-${match.away}-${match.leg}`} value={`${match.home}-${match.away}-${match.leg}`}>
+                                        {getTeamName(match.home)} vs {getTeamName(match.away)} ({match.leg})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <Label>Nueva Fecha</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {newDate ? format(newDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar mode="single" selected={newDate} onSelect={setNewDate} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    {newDate && (
+                         <div>
+                            <Label>Nueva Hora</Label>
+                            <Input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                             {occupiedSlots.length > 0 && (
+                                 <p className="text-xs text-muted-foreground mt-2">
+                                     Horarios ocupados este día: {occupiedSlots.sort().join(', ')}
+                                 </p>
+                            )}
+                         </div>
+                    )}
+                </div>
+                 <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancelar</Button>
+                    </DialogClose>
+                    <Button onClick={handleConfirmReschedule} disabled={!selectedMatchId || !newDate || !newTime}>Confirmar Cambio</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: GeneratedMatch[] }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
@@ -453,12 +543,11 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                  {Object.entries(groupedMatches)
                     .sort(([dateA], [dateB]) => {
                          try {
-                             // The date is already a formatted string, so we need to parse it back to compare
                              const parsedDateA = parse(dateA, 'PPPP', new Date(), { locale: es });
                              const parsedDateB = parse(dateB, 'PPPP', new Date(), { locale: es });
                              return parsedDateA.getTime() - parsedDateB.getTime();
                          } catch (e) {
-                             return 0; // Fallback for any parsing errors
+                             return 0; 
                          }
                     })
                     .map(([date, matchesOnDate]) => (
@@ -466,7 +555,7 @@ const GeneralScheduleView = ({ generatedMatches }: { generatedMatches: Generated
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
                         <div className="space-y-2">
                             {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => 
-                                <MatchCard key={index} match={match} showCategory={true} />
+                                <MatchCard key={`${match.home}-${match.away}-${index}`} match={match} showCategory={true} />
                             )}
                         </div>
                     </div>
@@ -481,6 +570,7 @@ export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [resetAlertStep, setResetAlertStep] = useState(0);
 
@@ -489,8 +579,7 @@ export default function SchedulePage() {
   useEffect(() => { setIsClient(true) }, []);
 
   const generateMasterSchedule = (settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number }) => {
-    
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -499,32 +588,36 @@ export default function SchedulePage() {
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
         const matchesPerRound = numTeams / 2;
-        let allMatches: GeneratedMatch[] = [];
-        
-        const scheduleRound = (teamsForRound: Team[], leg: 'Ida' | 'Vuelta') => {
+        let ida: GeneratedMatch[] = [];
+        let vuelta: GeneratedMatch[] = [];
+
+        const scheduleLeg = (leg: 'Ida' | 'Vuelta') => {
+            const legMatches: GeneratedMatch[] = [];
+             let teamsForRound = [...currentTeams];
              for (let round = 0; round < numRounds; round++) {
                 for (let i = 0; i < matchesPerRound; i++) {
                     const team1 = teamsForRound[i];
                     const team2 = teamsForRound[numTeams - 1 - i];
 
                     if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                        const home = leg === 'Ida' ? team1.id : team2.id;
-                        const away = leg === 'Ida' ? team2.id : team1.id;
-                        allMatches.push({ home, away, category, group, leg });
+                        const home = leg === 'Ida' ? team1 : team2;
+                        const away = leg === 'Ida' ? team2 : team1;
+                        legMatches.push({ home: home.id, away: away.id, category, group, leg });
                     }
                 }
-                // Rotate teams
                 const lastTeam = teamsForRound.pop();
                 if (lastTeam) {
                     teamsForRound.splice(1, 0, lastTeam);
                 }
             }
+            if (leg === 'Ida') ida.push(...legMatches);
+            else vuelta.push(...legMatches);
         }
         
-        scheduleRound([...currentTeams], 'Ida');
-        scheduleRound([...currentTeams], 'Vuelta');
+        scheduleLeg('Ida');
+        scheduleLeg('Vuelta');
 
-        return allMatches;
+        return { ida, vuelta };
     };
     
     const categoriesConfig: {category: Category, group?: 'A' | 'B'}[] = [
@@ -534,16 +627,20 @@ export default function SchedulePage() {
         { category: 'Segunda', group: 'B' }
     ];
 
-    let allMatches: GeneratedMatch[] = [];
+    let allIdaMatches: GeneratedMatch[] = [];
+    let allVueltaMatches: GeneratedMatch[] = [];
     
     categoriesConfig.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
-            const categoryMatches = generateRoundRobinMatches(teams, cat.category, cat.group);
-            allMatches.push(...categoryMatches);
+            const { ida, vuelta } = generateRoundRobinMatches(teams, cat.category, cat.group);
+            allIdaMatches.push(...ida);
+            allVueltaMatches.push(...vuelta);
         }
     });
 
+    const allMatches = [...allIdaMatches, ...allVueltaMatches];
+    
     // Shuffle all matches randomly to interleave categories
     for (let i = allMatches.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -565,7 +662,7 @@ export default function SchedulePage() {
                  const timeIndex = index % settings.gameTimes.length;
                  const fieldIndex = Math.floor(index / settings.gameTimes.length);
                  
-                 const time = settings.gameTimes.sort()[timeIndex];
+                 const time = settings.gameTimes[timeIndex];
                  const field = fieldIndex + 1;
 
                  const timeParts = time.split(':');
@@ -586,10 +683,25 @@ export default function SchedulePage() {
     setIsSuccessDialogOpen(true);
 };
 
+  const handleReschedule = (matchToUpdate: GeneratedMatch, newDate: Date, newTime: string) => {
+      setGeneratedMatches(prevMatches => 
+          prevMatches.map(m => {
+              if (m.home === matchToUpdate.home && m.away === matchToUpdate.away && m.leg === matchToUpdate.leg) {
+                  return {
+                      ...m,
+                      date: newDate,
+                      time: newTime,
+                  };
+              }
+              return m;
+          })
+      );
+  };
+
 
   const handleDrawButtonClick = () => {
       if (isTournamentStarted) {
-          setResetAlertStep(1);
+          setIsRescheduleDialogOpen(true);
       } else {
          setIsDrawDialogOpen(true);
       }
@@ -609,22 +721,13 @@ export default function SchedulePage() {
             <Card className="p-2 bg-card/50">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold mr-2">Admin:</span>
-                    <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button 
-                                variant={isTournamentStarted ? "outline" : "default"}
-                                onClick={handleDrawButtonClick}
-                                
-                            >
-                                <Dices className="mr-2" />
-                                {isTournamentStarted ? "Generar Nuevo Calendario" : "Sorteo de Equipos"}
-                            </Button>
-                         </DialogTrigger>
-                         <DrawSettingsDialog onGenerate={(settings) => {
-                            generateMasterSchedule(settings);
-                            setIsDrawDialogOpen(false);
-                        }} />
-                    </Dialog>
+                     <Button 
+                        variant={isTournamentStarted ? "outline" : "default"}
+                        onClick={handleDrawButtonClick}
+                        >
+                         {isTournamentStarted ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
+                         {isTournamentStarted ? "Reagendar Partido" : "Sorteo de Equipos"}
+                     </Button>
                      {isTournamentStarted && (
                         <Button variant="destructive" onClick={() => setResetAlertStep(1)}>
                             <RefreshCw className="mr-2" />
@@ -634,6 +737,20 @@ export default function SchedulePage() {
                 </div>
             </Card>
         </div>
+
+        <Dialog open={isDrawDialogOpen} onOpenChange={setIsDrawDialogOpen}>
+            <DrawSettingsDialog onGenerate={(settings) => {
+                generateMasterSchedule(settings);
+                setIsDrawDialogOpen(false);
+            }} />
+        </Dialog>
+        
+        <RescheduleDialog 
+            allMatches={generatedMatches}
+            open={isRescheduleDialogOpen}
+            onOpenChange={setIsRescheduleDialogOpen}
+            onReschedule={handleReschedule}
+        />
 
         <Tabs defaultValue="general" className="space-y-4">
             <TabsList>
