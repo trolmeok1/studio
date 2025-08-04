@@ -6,7 +6,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { useState, useEffect } from 'react';
 import LoadingScreen from '@/components/LoadingScreen';
 
 /*
@@ -21,15 +20,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 10000); 
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -41,7 +31,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        {loading && <LoadingScreen />}
+        <LoadingScreen />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

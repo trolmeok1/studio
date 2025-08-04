@@ -1,21 +1,32 @@
 
 'use client';
 
-import { Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 export default function LoadingScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const fadeOutTimer = setTimeout(() => {
       setIsFadingOut(true);
     }, 9500); // Start fade out 500ms before removing
 
-    return () => clearTimeout(timer);
+    const hideTimer = setTimeout(() => {
+      setIsHidden(true);
+    }, 10000); // Hide completely after 10s
+
+    return () => {
+      clearTimeout(fadeOutTimer);
+      clearTimeout(hideTimer);
+    };
   }, []);
+
+  if (isHidden) {
+    return null;
+  }
 
   return (
     <div className={cn(
