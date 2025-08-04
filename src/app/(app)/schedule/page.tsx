@@ -314,8 +314,8 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
         return (
              <Card>
                 <CardHeader>
-                    <CardTitle>Calendario General</CardTitle>
-                    <CardDescription>Vista unificada de todos los partidos programados.</CardDescription>
+                    <CardTitle>Calendario</CardTitle>
+                    <CardDescription>Vista de todos los partidos programados.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Equipos".</p>
@@ -327,7 +327,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Calendario General</CardTitle>
+                <CardTitle>Calendario {selectedCategory === 'all' ? 'General' : selectedCategory}</CardTitle>
                 <CardDescription>Vista unificada de todos los partidos programados.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 mt-6">
@@ -466,7 +466,7 @@ export default function SchedulePage() {
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+  const [activeTab, setActiveTab] = useState('general');
   const [finalMatches, setFinalMatches] = useState<GeneratedMatch[]>([]);
   
   const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
@@ -547,7 +547,8 @@ export default function SchedulePage() {
     let dressingRoomCounter = 0;
 
     for (const round of sortedRounds) {
-        let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5); // Shuffle to mix categories
+        let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5);
+        let weekMatchesScheduled = 0;
         
         while(roundMatches.length > 0) {
             const dayOfWeek = getDay(currentDate);
@@ -569,7 +570,8 @@ export default function SchedulePage() {
                         const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
                         const pairIndex = dressingRoomCounter % numDressingRoomPairs;
                         const homeDressingRoom = pairIndex * 2 + 1;
-                        const awayDressingRoom = pairIndex * 2 + 2;
+                        const awayDressingRoom = homeDressingRoom + 2 > settings.numDressingRooms ? 2 : homeDressingRoom + 2;
+
 
                         scheduledMatches.push({
                            ...match,
@@ -582,11 +584,13 @@ export default function SchedulePage() {
                         });
 
                         dressingRoomCounter++;
+                        weekMatchesScheduled++;
                      }
                 }
             }
-            if (roundMatches.length > 0) {
+             if (roundMatches.length > 0 || weekMatchesScheduled > 0) {
                currentDate = addDays(currentDate, 1);
+               weekMatchesScheduled = 0; 
             }
         }
     }
@@ -749,30 +753,26 @@ export default function SchedulePage() {
             onReschedule={handleReschedule}
         />
         
-        <Tabs defaultValue="general" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            {isTournamentGenerated && <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>}
-            {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="maxima">Máxima</TabsTrigger>
+                <TabsTrigger value="primera">Primera</TabsTrigger>
+                <TabsTrigger value="segunda">Segunda</TabsTrigger>
+                {isTournamentGenerated && <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>}
+                {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
-                 <div className="flex justify-end mb-4">
-                    <div className="w-full max-w-xs">
-                         <Select onValueChange={(value) => setSelectedCategory(value as Category | 'all')} value={selectedCategory}>
-                            <SelectTrigger>
-                                <Filter className="mr-2" />
-                                <SelectValue placeholder="Filtrar por categoría..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Ver todas las categorías</SelectItem>
-                                <SelectItem value="Máxima">Máxima</SelectItem>
-                                <SelectItem value="Primera">Primera</SelectItem>
-                                <SelectItem value="Segunda">Segunda</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory={selectedCategory} />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="all" />
+            </TabsContent>
+             <TabsContent value="maxima">
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" />
+            </TabsContent>
+             <TabsContent value="primera">
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" />
+            </TabsContent>
+             <TabsContent value="segunda">
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" />
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
@@ -831,6 +831,7 @@ export default function SchedulePage() {
     
 
   
+
 
 
 
