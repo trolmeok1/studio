@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -68,17 +68,25 @@ export default function AiCardsPage() {
         const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
         const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
-        // Pre-fetch all assets
+        // --- Pre-fetch all assets ---
         const leagueLogoUrl = 'https://placehold.co/100x100.png';
-        const backgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
+        const defaultBackgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
         
-        const [leagueLogoBase64, backgroundImageBase64] = await Promise.all([
-            toDataURL(leagueLogoUrl),
-            toDataURL(backgroundImageUrl),
-        ]);
+        let backgroundImageBase64 = localStorage.getItem('card-background-image');
+        if (!backgroundImageBase64) {
+            backgroundImageBase64 = await toDataURL(defaultBackgroundImageUrl);
+        }
 
+        const [leagueLogoBase64] = await Promise.all([
+            toDataURL(leagueLogoUrl),
+        ]);
+        
         const playersWithImages = await Promise.all(selectedTeamPlayers.map(async (player) => {
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
+            const host = window.location.host;
+            const protocol = window.location.protocol;
+            const profileUrl = `${protocol}//${host}/players/${player.id}`;
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(profileUrl)}`;
+            
             const [playerPhotoBase64, qrCodeBase64] = await Promise.all([
                 toDataURL(player.photoUrl),
                 toDataURL(qrCodeUrl),
@@ -101,7 +109,14 @@ export default function AiCardsPage() {
             
             // --- Draw Card Background ---
             if (backgroundImageBase64) {
-                pdf.addImage(backgroundImageBase64, 'JPEG', x, y, cardWidthMM, cardHeightMM);
+                 try {
+                    const imgProps = pdf.getImageProperties(backgroundImageBase64);
+                    pdf.addImage(backgroundImageBase64, imgProps.format, x, y, cardWidthMM, cardHeightMM);
+                 } catch (e) {
+                     console.error("Error adding background image:", e);
+                     pdf.setFillColor('#1a233c');
+                     pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
+                 }
             } else {
                 pdf.setFillColor('#1a233c'); // Dark blue background fallback
                 pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
@@ -178,8 +193,12 @@ export default function AiCardsPage() {
             // League Logo
             if (leagueLogoBase64) {
                 const logoX = x + cardWidthMM - itemSize - 5;
-                const logoProps = pdf.getImageProperties(leagueLogoBase64);
-                pdf.addImage(leagueLogoBase64, logoProps.format, logoX, footerY, itemSize, itemSize);
+                 try {
+                    const logoProps = pdf.getImageProperties(leagueLogoBase64);
+                    pdf.addImage(leagueLogoBase64, logoProps.format, logoX, footerY, itemSize, itemSize);
+                } catch(e) {
+                    console.error("Error adding league logo to PDF:", e);
+                }
             }
 
             // Jersey Number
