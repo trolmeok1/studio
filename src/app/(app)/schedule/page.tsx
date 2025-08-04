@@ -354,21 +354,6 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupBy }: { generat
             }, {} as Record<string, GeneratedMatch[]>);
     }, [filteredMatches, isClient, groupBy]);
 
-
-     if (generatedMatches.length === 0) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Calendario</CardTitle>
-                    <CardDescription>Vista de todos los partidos programados.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Liga".</p>
-                </CardContent>
-             </Card>
-        )
-     }
-
     const CardComponent = groupBy === 'date' ? GeneralMatchCard : CategoryMatchCard;
     const gridColsClass = groupBy === 'date' ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3";
 
@@ -672,11 +657,7 @@ export default function SchedulePage() {
   };
 
   const handleDrawButtonClick = () => {
-      if (isTournamentGenerated) {
-          setIsRescheduleDialogOpen(true);
-      } else {
-         setIsDrawLeagueDialogOpen(true);
-      }
+    setIsDrawLeagueDialogOpen(true);
   }
   
   const handleFinalizeTournament = () => {
@@ -770,23 +751,27 @@ export default function SchedulePage() {
                   </span>
                 </h2>
             </div>
-            {user.permissions.schedule.edit && (
+            {user.permissions.schedule.edit && !isTournamentGenerated && (
                 <Card className="p-2 bg-card/50">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold mr-2">Admin:</span>
-                        <Button 
-                            variant={isTournamentGenerated ? "outline" : "default"}
-                            onClick={handleDrawButtonClick}
-                            >
-                            {isTournamentGenerated ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
-                            {isTournamentGenerated ? "Reagendar Partido" : "Sorteo de Liga"}
+                        <Button onClick={handleDrawButtonClick}>
+                            <Dices className="mr-2" />
+                            Sorteo de Liga
                         </Button>
-                        {isTournamentGenerated && (
-                            <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
-                                <Trophy className="mr-2" />
-                                Finalizar Torneo
-                            </Button>
-                        )}
+                    </div>
+                </Card>
+            )}
+             {user.permissions.schedule.edit && isTournamentGenerated && (
+                <Card className="p-2 bg-card/50">
+                    <div className="flex items-center gap-2">
+                         <Button variant="outline" onClick={() => setIsRescheduleDialogOpen(true)}>
+                            <CalendarPlus className="mr-2" />
+                            Reagendar Partido
+                        </Button>
+                        <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
+                            <Trophy className="mr-2" />
+                            Finalizar Torneo
+                        </Button>
                     </div>
                 </Card>
             )}
@@ -804,51 +789,64 @@ export default function SchedulePage() {
             onReschedule={handleReschedule}
         />
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList>
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="maxima">Máxima</TabsTrigger>
-                <TabsTrigger value="primera">Primera</TabsTrigger>
-                <TabsTrigger value="segunda">Segunda</TabsTrigger>
-                {isTournamentGenerated && <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>}
-                {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
-            </TabsList>
-            <TabsContent value="general">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupBy="date" />
-            </TabsContent>
-             <TabsContent value="maxima">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupBy="round" />
-            </TabsContent>
-             <TabsContent value="primera">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupBy="round" />
-            </TabsContent>
-             <TabsContent value="segunda">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupBy="round" />
-            </TabsContent>
-            <TabsContent value="rescheduled">
-                <RescheduledMatchesView matches={generatedMatches} />
-            </TabsContent>
-             <TabsContent value="finals">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Fase Final del Torneo</CardTitle>
-                        <CardDescription>Partidos de eliminación directa para definir a los campeones.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {finalMatches.length === 0 && areAllMatchesFinished && (
-                             <div className="text-center py-10">
-                                <p className="text-muted-foreground mb-4">La temporada regular ha concluido. ¡Es hora de definir a los campeones!</p>
-                                <Button onClick={handleGenerateFinals}>
-                                    <Trophy className="mr-2"/>
-                                    Generar Finales
-                                </Button>
-                            </div>
-                        )}
-                        <FinalsView finals={finalMatches} getTeam={getTeam} />
-                    </CardContent>
-                </Card>
-            </TabsContent>
-        </Tabs>
+        {!isTournamentGenerated && !user.permissions.schedule.edit ? (
+            <Card className="h-96 flex flex-col items-center justify-center text-center">
+                <CardHeader>
+                    <CardTitle className="text-2xl">Torneo en Preparación</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">
+                        El calendario aún no ha sido generado. <br/> ¡Mantente atento para futuras actualizaciones!
+                    </p>
+                </CardContent>
+            </Card>
+        ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="maxima">Máxima</TabsTrigger>
+                    <TabsTrigger value="primera">Primera</TabsTrigger>
+                    <TabsTrigger value="segunda">Segunda</TabsTrigger>
+                    {isTournamentGenerated && <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>}
+                    {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
+                </TabsList>
+                <TabsContent value="general">
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupBy="date" />
+                </TabsContent>
+                <TabsContent value="maxima">
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupBy="round" />
+                </TabsContent>
+                <TabsContent value="primera">
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupBy="round" />
+                </TabsContent>
+                <TabsContent value="segunda">
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupBy="round" />
+                </TabsContent>
+                <TabsContent value="rescheduled">
+                    <RescheduledMatchesView matches={generatedMatches} />
+                </TabsContent>
+                <TabsContent value="finals">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Fase Final del Torneo</CardTitle>
+                            <CardDescription>Partidos de eliminación directa para definir a los campeones.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {finalMatches.length === 0 && areAllMatchesFinished && (
+                                <div className="text-center py-10">
+                                    <p className="text-muted-foreground mb-4">La temporada regular ha concluido. ¡Es hora de definir a los campeones!</p>
+                                    <Button onClick={handleGenerateFinals}>
+                                        <Trophy className="mr-2"/>
+                                        Generar Finales
+                                    </Button>
+                                </div>
+                            )}
+                            <FinalsView finals={finalMatches} getTeam={getTeam} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        )}
         
         <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
             <AlertDialogContent>
@@ -893,3 +891,4 @@ export default function SchedulePage() {
 
 
     
+
