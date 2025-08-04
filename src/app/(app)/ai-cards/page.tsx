@@ -7,8 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { players, teams, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
-import { Download } from 'lucide-react';
+import { Download, Trophy } from 'lucide-react';
 import jsPDF from 'jspdf';
+import type { Player } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 // Function to fetch image as Base64 data URI
 const toDataURL = (url: string): Promise<string> => fetch(url)
@@ -19,6 +21,57 @@ const toDataURL = (url: string): Promise<string> => fetch(url)
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   }));
+
+const CardPreview = ({ player }: { player: Player | null }) => {
+    if (!player) return null;
+
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
+    const leagueLogoUrl = 'https://placehold.co/100x100.png';
+
+    return (
+        <div className="mt-8 flex flex-col items-center">
+            <h3 className="text-xl font-bold mb-4">Vista Previa del Carnet</h3>
+            <div className="w-80 h-[480px] bg-[#1a233c] text-white rounded-2xl p-6 flex flex-col shadow-lg">
+                {/* Header */}
+                <div className="text-center mb-4">
+                    <p className="font-bold text-sm">LIGA DEPORTIVA BARRIAL</p>
+                    <p className="font-bold text-lg">LA LUZ</p>
+                </div>
+
+                {/* Player Photo */}
+                <div className="flex justify-center mb-4">
+                     <div className="w-32 h-32 rounded-full border-2 border-[#FFA500] overflow-hidden">
+                        <Image src={player.photoUrl} alt={player.name} width={128} height={128} className="object-cover w-full h-full" />
+                    </div>
+                </div>
+
+                {/* Player Info */}
+                <div className="text-center flex-grow">
+                    <p className="font-bold text-2xl text-[#FFA500] uppercase">{player.name}</p>
+                    <p className="text-sm uppercase">{player.category}</p>
+                    <p className="text-sm">{player.idNumber}</p>
+                    <p className="font-bold uppercase">{player.team}</p>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between mt-auto">
+                    {/* QR Code */}
+                    <div className="w-16 h-16 bg-white p-1 rounded-md">
+                        <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
+                    </div>
+                    {/* League Logo */}
+                    <div className="w-16 h-16">
+                         <Image src={leagueLogoUrl} alt="League Logo" width={64} height={64} className="object-contain" />
+                    </div>
+                    {/* Jersey Number */}
+                    <div className="w-16 h-16 flex items-center justify-center">
+                        <span className="font-bold text-4xl" style={{color: '#9400D3'}}>{player.jerseyNumber}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 export default function AiCardsPage() {
@@ -204,6 +257,11 @@ export default function AiCardsPage() {
             </div>
             </CardContent>
         </Card>
+        
+        {selectedTeamId && (
+            <CardPreview player={selectedTeamPlayers[0] || null} />
+        )}
+
       </main>
     </div>
   );
