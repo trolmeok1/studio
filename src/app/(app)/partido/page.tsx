@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MatchCard = ({ match }: { match: Match }) => {
     const [isClient, setIsClient] = useState(false);
@@ -163,14 +164,22 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
 
 
 export default function PartidoPage() {
-    const [groupedPastMatches, setGroupedPastMatches] = useState<Record<string, Match[]>>({});
     const [isClient, setIsClient] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 
     useEffect(() => {
         setIsClient(true);
-        const pastMatches = allMatches.filter(m => m.status === 'finished').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, []);
+
+    const groupedPastMatches = useMemo(() => {
+        if (!isClient) return {};
+
+        const pastMatches = allMatches
+            .filter(m => m.status === 'finished')
+            .filter(m => selectedCategory === 'all' || m.category === selectedCategory)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
-        const groupPast = pastMatches.reduce((acc, match) => {
+        return pastMatches.reduce((acc, match) => {
             const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             if (!acc[date]) {
                 acc[date] = [];
@@ -179,8 +188,7 @@ export default function PartidoPage() {
             return acc;
         }, {} as Record<string, Match[]>);
 
-        setGroupedPastMatches(groupPast);
-    }, []);
+    }, [isClient, selectedCategory]);
 
     if (!isClient) {
         return null;
@@ -203,6 +211,21 @@ export default function PartidoPage() {
                 <TabsTrigger value="segunda">Posiciones: Segunda</TabsTrigger>
             </TabsList>
             <TabsContent value="results" className="space-y-6 mt-6">
+                 <div className="flex justify-end">
+                    <div className="w-full max-w-xs">
+                         <Select onValueChange={(value) => setSelectedCategory(value as Category | 'all')} defaultValue="all">
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filtrar por categoría..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las Categorías</SelectItem>
+                                <SelectItem value="Máxima">Máxima</SelectItem>
+                                <SelectItem value="Primera">Primera</SelectItem>
+                                <SelectItem value="Segunda">Segunda</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
                  {Object.keys(groupedPastMatches).length > 0 ? Object.entries(groupedPastMatches).map(([date, matchesOnDate]) => (
                     <div key={date}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
@@ -211,7 +234,7 @@ export default function PartidoPage() {
                         </div>
                     </div>
                 )) : (
-                     <p className="text-muted-foreground text-center py-8">Aún no se han registrado resultados.</p>
+                     <p className="text-muted-foreground text-center py-8">No se han registrado resultados para la categoría seleccionada.</p>
                 )}
             </TabsContent>
              <TabsContent value="maxima">
