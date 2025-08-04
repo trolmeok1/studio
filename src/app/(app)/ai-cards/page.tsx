@@ -172,42 +172,43 @@ export default function AiCardsPage() {
             size: A4 portrait;
             margin: 1cm;
           }
-          body {
-            background: white !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          body > *:not(#card-grid) {
+            display: none !important;
           }
-          .flex-1.space-y-4 {
-            padding: 0 !important;
-            margin: 0 !important;
+          html, body {
+            background: white !important;
+            visibility: hidden;
+          }
+          #card-grid, #card-grid * {
+            visibility: visible;
           }
           #card-grid {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
-            grid-template-rows: repeat(3, auto) !important;
             gap: 1cm !important;
-            width: 100% !important;
-            height: auto !important;
+            padding: 1cm !important;
+            margin: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .id-card-wrapper {
              break-inside: avoid;
              page-break-inside: avoid;
-             padding: 0 !important;
-             margin: 0 !important;
-             display: block !important;
              width: 100% !important; 
-             height: 100% !important;
-             overflow: visible !important;
+             max-width: 100% !important;
+             height: auto !important;
+             display: block !important;
           }
           .id-card-wrapper > div {
             width: 100% !important;
-            height: 100% !important;
             max-width: none !important;
-            display: flex !important;
-            flex-direction: column !important;
-          }
-          .print\\:hidden {
-              display: none !important;
+            height: auto !important;
+            box-shadow: none !important;
+            border: 2px solid #ddd !important;
           }
         }
       `}</style>
