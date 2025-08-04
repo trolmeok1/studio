@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { upcomingMatches as allMatches, type Match, type Team, getTeamsByCategory, standings as mockStandings, type Standing, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
@@ -230,4 +230,3 @@ export default function PartidoPage() {
     </div>
   );
 }
-
