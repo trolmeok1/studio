@@ -24,14 +24,12 @@ export default function LoadingScreen() {
     };
   }, []);
 
-  if (isHidden) {
-    return null;
-  }
 
   return (
     <div className={cn(
         "fixed inset-0 bg-black z-[200] flex items-center justify-center transition-opacity duration-500",
-        isFadingOut ? 'opacity-0' : 'opacity-100'
+        isFadingOut ? 'opacity-0' : 'opacity-100',
+        isHidden ? 'pointer-events-none' : ''
       )}>
       <div className="text-center animate-zoom-in-slow">
         <Image
