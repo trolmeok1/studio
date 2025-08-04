@@ -148,8 +148,8 @@ export default function AiCardsPage() {
                                             <div className="w-16 h-16 bg-white p-1 rounded-md">
                                                 <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
                                             </div>
-
-                                             <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                                             
+                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={40} height={40} className="rounded-full" data-ai-hint="league logo" />
                                              
                                              {/* Jersey Number */}
                                              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
@@ -204,3 +204,4 @@ export default function AiCardsPage() {
     </div>
   );
 }
+
