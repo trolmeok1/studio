@@ -134,9 +134,9 @@ export default function AiCardsPage() {
                                             <p className="text-purple-300 text-sm uppercase">{selectedPlayer.category}</p>
                                             <p className="text-muted-foreground text-xs">{selectedPlayer.idNumber}</p>
                                         </div>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                        <div className="flex flex-col items-center gap-2 mt-2">
                                             <p className="text-white font-semibold text-md">{selectedPlayer.team}</p>
+                                            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
                                         </div>
                                     </main>
 
@@ -181,7 +181,7 @@ export default function AiCardsPage() {
             .print\\:hidden {
                 display: none !important;
             }
-            main, .flex-1, .id-card-wrapper {
+            main, .flex-1 {
                 display: block !important;
                 padding: 0 !important;
                 margin: 0 !important;
