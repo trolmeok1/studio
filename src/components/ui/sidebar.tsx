@@ -217,7 +217,7 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-card-foreground"
+        className="group peer hidden md:block text-card-foreground print:hidden"
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
@@ -761,3 +761,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
