@@ -36,7 +36,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
 
     const TeamDisplay = ({ team, dressingRoom }: { team?: Team, dressingRoom?: number }) => (
          <div className="flex flex-col items-center text-center gap-1">
-            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt={team?.name || ''} width={40} height={40} className="rounded-full" />
+            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt={team?.name || ''} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
             <p className="text-xs font-semibold leading-tight">{team?.name}</p>
              {dressingRoom && <Badge variant="secondary" className="text-xs mt-1">Camerino {dressingRoom}</Badge>}
         </div>
@@ -51,7 +51,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
     );
 
     return (
-        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col">
+        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col" neon="blue">
             <CardHeader className="p-2 bg-muted/50 text-center text-sm font-bold">
                 <div className="flex justify-center items-center gap-2">
                     <span>{match.date ? format(match.date, 'HH:mm', { locale: es }) : 'Por definir'}</span>
@@ -93,7 +93,7 @@ const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
 
     return (
         <Link href={`/partido`} className="block group">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer p-0 relative overflow-hidden text-white">
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer p-0 relative overflow-hidden text-white" neon="blue">
                 <div className="absolute inset-0 flex z-0">
                     <div className="w-1/2 bg-gray-700"></div>
                     <div className="w-1/2 bg-red-800 animate-pulse"></div>
@@ -215,7 +215,7 @@ const LeagueView = ({ category, generatedMatches }: { category: Category, genera
     }
 
     return (
-        <Card>
+        <Card neon="blue">
             <CardHeader className="flex-row items-center justify-between">
                 <div>
                     <CardTitle>Torneo {category}</CardTitle>
@@ -558,7 +558,7 @@ const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
     const rescheduledMatches = matches.filter(m => m.rescheduled);
 
     return (
-        <Card>
+        <Card neon="blue">
             <CardHeader>
                 <CardTitle>Partidos Reagendados</CardTitle>
                 <CardDescription>Historial de todos los partidos que han sido movidos de su fecha original.</CardDescription>
@@ -798,9 +798,13 @@ export default function SchedulePage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">
-                Programación de Partidos
-            </h2>
+             <div className="text-center w-full">
+                <h2 className="text-4xl font-extrabold tracking-tight">
+                  <span className="bg-gradient-to-r from-primary via-blue-500 to-sky-400 text-transparent bg-clip-text">
+                    Programación de Partidos
+                  </span>
+                </h2>
+            </div>
             <Card className="p-2 bg-card/50">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold mr-2">Admin:</span>

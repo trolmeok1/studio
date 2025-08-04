@@ -370,7 +370,7 @@ export default function CopaPage() {
                             <h3 className="text-lg font-semibold mb-2">Partidos de Copa Programados</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                {copaMatches.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, i) => (
-                                    <Card key={i} className="p-3">
+                                    <Card key={i} className="p-3" neon="purple">
                                         <p className="font-semibold">{getTeamName(match.home)} vs {getTeamName(match.away)}</p>
                                         <p className="text-sm text-muted-foreground">{match.leg}</p>
                                          <p className="text-xs text-muted-foreground mt-2">{match.date ? format(match.date, 'PPP p', {locale: es}) : 'Por programar'}</p>
