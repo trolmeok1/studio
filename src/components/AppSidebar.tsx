@@ -33,6 +33,7 @@ import {
   Database,
   Sun,
   Moon,
+  Home,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -42,6 +43,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -259,4 +261,39 @@ export function AppSidebar() {
       </SidebarFooter>
     </>
   );
+}
+
+
+export function BottomNavbar() {
+    const pathname = usePathname();
+    const { user } = useAuth();
+    const { permissions } = user;
+
+    const isActive = (path: string) => {
+      return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
+    };
+
+    const navItems = [
+      { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
+      { href: '/players', icon: Users, label: 'Jugadores', permission: permissions.players.view },
+      { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
+      { href: '/partido', icon: Swords, label: 'Partidos', permission: permissions.partido.view },
+      { href: '/copa', icon: Trophy, label: 'Copa', permission: permissions.copa.view },
+    ].filter(item => item.permission);
+
+
+    return (
+        <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t border-border">
+            <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
+                {navItems.map(item => (
+                    <Link key={item.href} href={item.href} className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted group">
+                         <item.icon className={cn("w-5 h-5 mb-1 text-muted-foreground group-hover:text-primary", isActive(item.href) && "text-primary")} />
+                        <span className={cn("text-xs text-muted-foreground group-hover:text-primary", isActive(item.href) && "text-primary")}>
+                            {item.label}
+                        </span>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
 }
