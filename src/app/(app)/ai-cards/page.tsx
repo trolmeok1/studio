@@ -131,7 +131,7 @@ export default function AiCardsPage() {
 
 
         // --- Player Photo ---
-        const photoSize = 35; // Reduced photo size
+        const photoSize = 30; // Further reduced photo size
         const photoX = x + (cardWidthMM - photoSize) / 2;
         const photoY = y + 18;
         pdf.setDrawColor('#FFA500'); // Orange border
