@@ -63,6 +63,7 @@ export function AppSidebar() {
   const { permissions } = user;
 
   const canViewCopa = permissions.copa.edit || (permissions.copa.view && isCopaPublic);
+  const hasAdminPermissions = user.role === 'admin' || user.role === 'secretary';
 
   return (
     <>
@@ -113,6 +114,14 @@ export function AppSidebar() {
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>}
+           {permissions.teams.view && <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive('/teams')} tooltip="Equipos">
+                  <Link href="/teams">
+                      <Shield />
+                      <span>Equipos</span>
+                  </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>}
           {canViewCopa && <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive('/copa')} tooltip="Copa">
                 <Link href="/copa">
@@ -123,119 +132,114 @@ export function AppSidebar() {
           </SidebarMenuItem>}
         </SidebarMenu>
         
-        <SidebarSeparator />
+        {hasAdminPermissions && (
+            <>
+                <SidebarSeparator />
+                <SidebarGroup>
+                   <SidebarGroupLabel>Admin</SidebarGroupLabel>
+                   <SidebarMenu>
+                      {permissions.aiCards.view && (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/ai-cards')} tooltip="Carnets AI">
+                              <Link href="/ai-cards">
+                                  <CreditCard />
+                                  <span>Carnets AI</span>
+                              </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )}
+                       {permissions.committees.view && (
+                         <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/committees')} tooltip="Vocalías">
+                              <Link href="/committees">
+                                  <FilePen />
+                                  <span>Vocalías</span>
+                              </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                       )}
+                        {permissions.treasury.view && (
+                         <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/treasury')} tooltip="Tesorería">
+                              <Link href="/treasury">
+                                  <Landmark />
+                                  <span>Tesorería</span>
+                              </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                       )}
+                        {permissions.requests.view && (
+                         <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/requests/requalification')} tooltip="Solicitudes">
+                              <Link href="/requests/requalification">
+                                  <UserCheck />
+                                  <span>Solicitudes</span>
+                              </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                       )}
+                         {permissions.reports.view && (
+                         <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
+                              <Link href="/reports">
+                                  <BarChart2 />
+                                  <span>Reportes</span>
+                              </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                       )}
+                   </SidebarMenu>
+                </SidebarGroup>
+                 
+                <SidebarSeparator />
 
-        <SidebarGroup>
-           <SidebarGroupLabel>Admin</SidebarGroupLabel>
-           <SidebarMenu>
-              {permissions.aiCards.view && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/ai-cards')} tooltip="Carnets AI">
-                      <Link href="/ai-cards">
-                          <CreditCard />
-                          <span>Carnets AI</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-               {permissions.committees.view && (
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/committees')} tooltip="Vocalías">
-                      <Link href="/committees">
-                          <FilePen />
-                          <span>Vocalías</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-               )}
-                {permissions.treasury.view && (
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/treasury')} tooltip="Tesorería">
-                      <Link href="/treasury">
-                          <Landmark />
-                          <span>Tesorería</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-               )}
-                {permissions.requests.view && (
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/requests/requalification')} tooltip="Solicitudes">
-                      <Link href="/requests/requalification">
-                          <UserCheck />
-                          <span>Solicitudes</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-               )}
-                 {permissions.reports.view && (
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/reports')} tooltip="Reportes">
-                      <Link href="/reports">
-                          <BarChart2 />
-                          <span>Reportes</span>
-                      </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-               )}
-           </SidebarMenu>
-        </SidebarGroup>
-         
-        <SidebarSeparator />
-
-        <SidebarGroup>
-           <SidebarGroupLabel>Configuración</SidebarGroupLabel>
-            <SidebarMenu>
-               {permissions.teams.view && <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/teams')} tooltip="Equipos">
-                      <Link href="/teams">
-                          <Shield />
-                          <span>Equipos</span>
-                      </Link>
-                  </SidebarMenuButton>
-              </SidebarMenuItem>}
-                {permissions.roles.view && (
-                  <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/roles')} tooltip="Roles">
-                          <Link href="/roles">
-                              <UserCog />
-                              <span>Roles</span>
-                          </Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                 {permissions.logs.view && (
-                  <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/logs')} tooltip="Logs">
-                          <Link href="/logs">
-                              <FileClock />
-                              <span>Logs</span>
-                          </Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                 {user.role === 'admin' && (
-                  <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/settings/appearance')} tooltip="Apariencia">
-                          <Link href="/settings/appearance">
-                              <ImageIcon />
-                              <span>Apariencia</span>
-                          </Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                 {user.role === 'admin' && (
-                  <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/settings/data')} tooltip="Gestión de Datos">
-                          <Link href="/settings/data">
-                              <Database />
-                              <span>Gestión de Datos</span>
-                          </Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-            </SidebarMenu>
-        </SidebarGroup>
+                <SidebarGroup>
+                   <SidebarGroupLabel>Configuración</SidebarGroupLabel>
+                    <SidebarMenu>
+                        {permissions.roles.view && (
+                          <SidebarMenuItem>
+                              <SidebarMenuButton asChild isActive={isActive('/roles')} tooltip="Roles">
+                                  <Link href="/roles">
+                                      <UserCog />
+                                      <span>Roles</span>
+                                  </Link>
+                              </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
+                         {permissions.logs.view && (
+                          <SidebarMenuItem>
+                              <SidebarMenuButton asChild isActive={isActive('/logs')} tooltip="Logs">
+                                  <Link href="/logs">
+                                      <FileClock />
+                                      <span>Logs</span>
+                                  </Link>
+                              </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
+                         {user.role === 'admin' && (
+                          <SidebarMenuItem>
+                              <SidebarMenuButton asChild isActive={isActive('/settings/appearance')} tooltip="Apariencia">
+                                  <Link href="/settings/appearance">
+                                      <ImageIcon />
+                                      <span>Apariencia</span>
+                                  </Link>
+                              </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
+                         {user.role === 'admin' && (
+                          <SidebarMenuItem>
+                              <SidebarMenuButton asChild isActive={isActive('/settings/data')} tooltip="Gestión de Datos">
+                                  <Link href="/settings/data">
+                                      <Database />
+                                      <span>Gestión de Datos</span>
+                                  </Link>
+                              </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
+                    </SidebarMenu>
+                </SidebarGroup>
+            </>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <div className="flex flex-col items-stretch gap-3 rounded-md p-2">
