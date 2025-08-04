@@ -203,7 +203,7 @@ export default function AiCardsPage() {
             }
             @page {
                 size: A4 portrait;
-                margin: 0.5cm;
+                margin: 0;
             }
         }
       `}</style>
