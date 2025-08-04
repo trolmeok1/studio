@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -316,6 +317,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
         const statsUpdate = {
             goals: eventType === 'goal' ? 1 : 0,
+            assists: eventType === 'assist' ? 1 : 0,
             yellowCards: eventType === 'yellow_card' ? 1 : 0,
             redCards: eventType === 'red_card' ? 1 : 0,
         };
@@ -323,6 +325,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         
         let toastMessage = '';
         if (eventType === 'goal') toastMessage = `Gol registrado para ${player.name}!`;
+        if (eventType === 'assist') toastMessage = `Asistencia registrada para ${player.name}.`;
         if (eventType === 'yellow_card') toastMessage = `Tarjeta amarilla para ${player.name}.`;
         if (eventType === 'red_card') {
             toastMessage = `Tarjeta ROJA para ${player.name}. ¡Será suspendido!`;
@@ -355,6 +358,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
         const statsUpdate = {
             goals: eventToRemove.event === 'goal' ? -1 : 0,
+            assists: eventToRemove.event === 'assist' ? -1 : 0,
             yellowCards: eventToRemove.event === 'yellow_card' ? -1 : 0,
             redCards: eventToRemove.event === 'red_card' ? -1 : 0,
         };
@@ -374,6 +378,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const getEventBadge = (event: MatchEventType) => {
         switch(event) {
             case 'goal': return <Badge variant="default">GOL</Badge>;
+            case 'assist': return <Badge variant="secondary">ASISTENCIA</Badge>;
             case 'yellow_card': return <Badge variant="secondary" className="bg-yellow-400 text-black">T.A.</Badge>;
             case 'red_card': return <Badge variant="destructive">T.R.</Badge>;
         }
@@ -583,6 +588,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                                         </div>
                                         <div className="flex gap-1">
                                             <Button size="sm" onClick={() => addEvent(player, 'goal')} disabled={!canEdit}>Gol</Button>
+                                            <Button size="sm" onClick={() => addEvent(player, 'assist')} disabled={!canEdit} variant="outline">Asistencia</Button>
                                             <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => addEvent(player, 'yellow_card')} disabled={!canEdit}>T.A.</Button>
                                             <Button size="sm" variant="destructive" onClick={() => addEvent(player, 'red_card')} disabled={!canEdit}>T.R.</Button>
                                         </div>
@@ -857,4 +863,3 @@ export default function CommitteesPage() {
     </div>
   );
 }
-

@@ -6,6 +6,12 @@ export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
 
+export interface PlayerCareer {
+    teamName: string;
+    startDate: string;
+    endDate?: string;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -20,6 +26,7 @@ export interface Player {
   position: PlayerPosition;
   status: PlayerStatus;
   statusReason?: string;
+  careerHistory?: PlayerCareer[];
   stats: {
     goals: number;
     assists: number;
@@ -63,7 +70,7 @@ export interface MatchTeam extends Team {
     vocalPaymentDetails?: VocalPaymentDetails;
 }
 
-export type MatchEventType = 'goal' | 'yellow_card' | 'red_card';
+export type MatchEventType = 'goal' | 'assist' | 'yellow_card' | 'red_card';
 
 export interface MatchEvent {
   id: string;

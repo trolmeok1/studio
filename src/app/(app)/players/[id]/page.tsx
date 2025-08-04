@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX, Star, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX, Star, ShieldAlert, History } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
@@ -32,7 +32,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
 
   const age = getAge(player.birthDate);
   const ageCategory = age < 19 ? 'Juvenil' : 'Mayor';
-  const averageFoulsPerGame = ((player.stats.yellowCards + player.stats.redCards) / 20).toFixed(2);
+  const averageFoulsPerGame = player.stats.yellowCards + player.stats.redCards > 0 ? ((player.stats.yellowCards + player.stats.redCards) / 20).toFixed(2) : '0.00';
 
 
   return (
@@ -164,26 +164,32 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
               </Table>
             </CardContent>
           </Card>
-
-          <Card>
+          
+           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2">
-                <Shield /> Información del Equipo
+                <History /> Trayectoria en la Liga
               </CardTitle>
             </CardHeader>
             <CardContent>
-                 <Link href={`/teams/${player.teamId}`}>
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                        <div>
-                            <p className="text-sm text-muted-foreground">Equipo Actual</p>
-                            <p className="text-xl font-semibold">{player.team}</p>
-                            <Badge className="mt-1">{player.category}</Badge>
-                        </div>
-                        <ArrowUpRight />
+                {player.careerHistory && player.careerHistory.length > 0 ? (
+                    <div className="space-y-4">
+                        {player.careerHistory.map((entry, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                <div>
+                                    <p className="font-semibold">{entry.teamName}</p>
+                                    <p className="text-sm text-muted-foreground">{entry.startDate} - {entry.endDate || 'Presente'}</p>
+                                </div>
+                                <Badge variant={entry.endDate ? 'outline' : 'default'}>{entry.endDate ? 'Anterior' : 'Actual'}</Badge>
+                            </div>
+                        ))}
                     </div>
-                </Link>
+                ) : (
+                    <p className="text-muted-foreground text-sm">No hay historial de equipos anteriores para este jugador.</p>
+                )}
             </CardContent>
           </Card>
+
         </div>
       </div>
     </div>
