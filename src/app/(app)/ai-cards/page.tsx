@@ -134,29 +134,26 @@ export default function AiCardsPage() {
                                         
                                         <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
                                         
-                                        <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={40} height={40} className="opacity-50 my-2" data-ai-hint="league logo" />
-
                                         <div className="text-center mt-1 text-sm">
-                                            <p><span className="font-semibold">Categoría:</span> {selectedPlayer.category}</p>
-                                            <p><span className="font-semibold">C.I:</span> {selectedPlayer.idNumber}</p>
-                                            <p><span className="font-semibold">Equipo:</span> {selectedPlayer.team}</p>
+                                            <p>{selectedPlayer.category.toUpperCase()}</p>
+                                            <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
+                                            <p className="font-semibold">{selectedPlayer.team}</p>
                                         </div>
                                     </main>
 
                                     {/* Footer */}
-                                    <footer className="mt-auto pt-3 border-t border-white/10">
-                                         <div className="flex items-center justify-between gap-4">
+                                    <footer className="mt-auto pt-3">
+                                         <div className="flex items-end justify-between gap-4">
                                             {/* QR Code */}
                                             <div className="w-16 h-16 bg-white p-1 rounded-md">
                                                 <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
                                             </div>
 
-                                             {/* Jersey Number & Team Logo */}
-                                            <div className="flex items-center gap-2">
-                                                 <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
-                                                 <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-                                                    <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
-                                                </div>
+                                             <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                                             
+                                             {/* Jersey Number */}
+                                             <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                                                <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
                                             </div>
                                         </div>
                                     </footer>
