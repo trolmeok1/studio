@@ -47,7 +47,7 @@ export default function AiCardsPage() {
       </div>
 
       <Card className="lg:col-span-2 print:shadow-none print:border-none print:bg-transparent">
-        <CardContent className="pt-0 print:p-0">
+        <CardContent className="pt-6 print:p-0">
           <div className="grid gap-4 md:grid-cols-3 print:hidden">
             <div>
               <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
@@ -168,48 +168,40 @@ export default function AiCardsPage() {
             }
         }
         @media print {
-          @page {
-            size: A4 portrait;
-            margin: 1cm;
-          }
-          body > *:not(#card-grid) {
-            display: none !important;
-          }
-          html, body {
-            background: white !important;
-            visibility: hidden;
-          }
-          #card-grid, #card-grid * {
-            visibility: visible;
-          }
-          #card-grid {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 1cm !important;
-            padding: 1cm !important;
-            margin: 0 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .id-card-wrapper {
-             break-inside: avoid;
-             page-break-inside: avoid;
-             width: 100% !important; 
-             max-width: 100% !important;
-             height: auto !important;
-             display: block !important;
-          }
-          .id-card-wrapper > div {
-            width: 100% !important;
-            max-width: none !important;
-            height: auto !important;
-            box-shadow: none !important;
-            border: 2px solid #ddd !important;
-          }
+            body * {
+                visibility: hidden;
+            }
+            #card-grid, #card-grid * {
+                visibility: visible;
+            }
+            #card-grid {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 10px !important;
+                padding: 1cm !important;
+                margin: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .id-card-wrapper {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                width: 100% !important;
+                max-width: 100% !important;
+                display: block !important;
+            }
+            .id-card-wrapper > div {
+                box-shadow: none !important;
+                border: 2px solid #ddd !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
         }
       `}</style>
     </div>
