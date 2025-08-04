@@ -1,25 +1,10 @@
 
 
+'use client';
 import { players as allPlayers, teams as allTeams, type Category } from '@/lib/mock-data';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { cn } from '@/lib/utils';
 import { PlayerSearch } from './_components/PlayerSearch';
 
-const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
-
 export default function PlayersPage() {
-  const getPlayersByTeam = (teamId: string) => {
-    return allPlayers.filter(p => p.teamId === teamId);
-  }
-
-  const getTeamsByCategory = (category: Category) => {
-      return allTeams.filter(t => t.category === category);
-  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -33,7 +18,7 @@ export default function PlayersPage() {
           </div>
       </div>
        
-       <PlayerSearch players={allPlayers} teams={allTeams} />
+       <PlayerSearch allPlayers={allPlayers} allTeams={allTeams} />
     </div>
   );
 }
