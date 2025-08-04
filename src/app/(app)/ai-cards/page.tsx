@@ -48,6 +48,10 @@ export default function AiCardsPage() {
           const cardWrapper = document.getElementById(`player-card-${player.id}`);
           if (!cardWrapper) continue;
           
+          // Make the card visible but off-screen for accurate rendering
+          cardWrapper.style.position = 'absolute';
+          cardWrapper.style.left = '-9999px';
+          cardWrapper.style.top = 'auto';
           cardWrapper.style.display = 'block';
 
           const canvas = await html2canvas(cardWrapper, {
@@ -56,13 +60,17 @@ export default function AiCardsPage() {
               backgroundColor: null, 
           });
           
+          // Hide it again after capture
+          cardWrapper.style.position = 'static';
+          cardWrapper.style.left = 'auto';
           cardWrapper.style.display = 'none';
+
 
           const imgData = canvas.toDataURL('image/png');
 
           const page = Math.floor(cardCount / 9);
           if (page > 0 && cardCount % 9 === 0) {
-              pdf.addPage();
+              // This check was redundant, new page is added at the start of the loop
           }
 
           const row = Math.floor((cardCount % 9) / 3);
@@ -144,12 +152,12 @@ export default function AiCardsPage() {
             </CardContent>
         </Card>
         
-        <div className="absolute -left-[9999px] top-0">
-          {selectedTeamPlayers.map(selectedPlayer => {
+        {/* Container for the cards to be rendered for PDF generation */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 'auto', pointerEvents: 'none' }}>
+          {players.map(selectedPlayer => {
               const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                   `/players/${selectedPlayer.id}`
               )}`;
-              const team = teams.find(t => t.id === selectedPlayer.teamId);
 
               return (
               <div key={selectedPlayer.id} id={`player-card-${selectedPlayer.id}`} style={{ display: 'none', width: '320px'}}>
@@ -172,7 +180,7 @@ export default function AiCardsPage() {
                           </header>
 
                           <main className="w-full mt-3">
-                              <div className="w-40 h-40 rounded-md mx-auto border-4 border-orange-400 overflow-hidden">
+                              <div className="w-40 h-40 rounded-md mx-auto border-4 border-orange-400 overflow-hidden flex items-center justify-center">
                                 <Image
                                     src={selectedPlayer.photoUrl}
                                     alt={`Foto de ${selectedPlayer.name}`}
@@ -194,11 +202,13 @@ export default function AiCardsPage() {
 
                           <footer className="w-full mt-auto border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
                               <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="bg-white p-1 rounded-md" />
+                                <div className="bg-white p-1 rounded-md">
+                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
+                                </div>
                               </div>
                               
                               <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <div className="w-14 h-14 rounded-md overflow-hidden">
+                                <div className="w-14 h-14 rounded-md overflow-hidden flex items-center justify-center">
                                     <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="w-full h-full object-cover" data-ai-hint="league logo" />
                                 </div>
                               </div>
