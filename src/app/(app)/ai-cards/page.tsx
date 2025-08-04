@@ -104,7 +104,7 @@ export default function AiCardsPage() {
 
                         return (
                         <div key={selectedPlayer.id} className="id-card-wrapper">
-                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans">
+                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans p-4">
                                 {/* Background Shapes */}
                                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                                     <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
@@ -113,7 +113,7 @@ export default function AiCardsPage() {
                                      <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
                                 </div>
                                 
-                                <div className="relative z-10 flex flex-col p-4">
+                                <div className="relative z-10 flex flex-col h-full">
                                      {/* Header */}
                                     <header className="flex justify-center items-center text-center">
                                         <div className="font-bold text-md tracking-wider uppercase">
@@ -124,7 +124,7 @@ export default function AiCardsPage() {
                                     </header>
 
                                      {/* Main Content */}
-                                    <main className="flex flex-col items-center text-center mt-3">
+                                    <main className="flex-grow flex flex-col items-center text-center mt-3">
                                         <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md">
                                              <Image
                                                 src={selectedPlayer.photoUrl}
@@ -138,7 +138,7 @@ export default function AiCardsPage() {
                                         
                                         <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
                                         
-                                        <div className="text-center mt-1 text-sm">
+                                        <div className="text-center mt-1 text-base">
                                             <p>{selectedPlayer.category.toUpperCase()}</p>
                                             <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
                                              <div className="flex items-center justify-center gap-2 mt-1">
@@ -146,8 +146,8 @@ export default function AiCardsPage() {
                                                     <Image 
                                                         src={team.logoUrl}
                                                         alt={`Logo de ${team.name}`}
-                                                        width={16}
-                                                        height={16}
+                                                        width={20}
+                                                        height={20}
                                                         className="rounded-full"
                                                         data-ai-hint="team logo"
                                                     />
