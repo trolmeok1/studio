@@ -4,6 +4,16 @@
 
 Como este es un entorno de desarrollo en la nube, no hay un botón de "descarga directa". Sin embargo, puedes replicar el proyecto siguiendo estos pasos.
 
+## Aclaración Importante sobre los Costos
+
+Es fundamental que entiendas la diferencia entre usar esta herramienta de desarrollo (Firebase Studio) y los servicios de Firebase que tu aplicación utiliza.
+
+*   **Desarrollar aquí es GRATIS:** La acción de chatear conmigo, generar código, editar tus archivos y sincronizarlos con tu repositorio de GitHub **no tiene ningún costo**. No hay un límite en la cantidad de cambios que puedes hacer. Puedes usar Firebase Studio como tu entorno de desarrollo sin preocuparte por una factura.
+
+*   **Los servicios de Firebase tienen un costo POTENCIAL:** El costo de Firebase se asocia a los recursos que tu aplicación **consume cuando está en producción** (es decir, cuando los usuarios reales la usan). Servicios como Firebase Hosting, Firestore, Authentication, etc., tienen un **generoso nivel gratuito (plan Spark)**. Solo pagarías si tu aplicación se vuelve muy popular y supera los límites de este nivel gratuito. Siempre puedes revisar los límites y precios en la [página oficial de precios de Firebase](https://firebase.google.com/pricing).
+
+En resumen: **Crear y editar no cuesta. Usar los servicios a gran escala, sí.**
+
 ## Requisitos
 
 - **Node.js:** Asegúrate de tener instalado Node.js (que incluye npm). Puedes descargarlo desde [nodejs.org](https://nodejs.org/).
