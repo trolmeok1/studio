@@ -106,7 +106,7 @@ export default function AiCardsPage() {
         pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, y + 72, { align: 'center' });
 
         // --- Footer Elements ---
-        const footerY = y + 78;
+        const footerY = y + 76;
         
         // QR Code
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
