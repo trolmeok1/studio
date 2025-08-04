@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { players, teams, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
-import { Printer } from 'lucide-react';
+import { Printer, Trophy } from 'lucide-react';
 
 export default function AiCardsPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<Category | null>(null);
@@ -101,61 +101,54 @@ export default function AiCardsPage() {
 
                         return (
                         <div key={selectedPlayer.id} className="id-card-wrapper">
-                            <Card className="p-0 w-full max-w-[300px] aspect-[2.125/3.375] bg-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans border-2 border-gray-200">
-                            {/* Background Pattern */}
-                            <div className="absolute inset-0 bg-repeat bg-center" style={{backgroundImage: `linear-gradient(135deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(225deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(45deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(315deg, rgba(128,0,0,0.1) 25%, #fff 25%)`, backgroundSize: '10px 10px'}}></div>
-                            
-                            {/* Vertical Text */}
-                            <div className="absolute top-0 left-0 h-full flex items-center justify-center" style={{writingMode: 'vertical-rl'}}>
-                                <span className="text-sm font-bold text-gray-500 transform rotate-180 tracking-wider">Ciudad de Quito</span>
-                            </div>
-                                <div className="absolute top-0 right-0 h-full flex items-center justify-center" style={{writingMode: 'vertical-rl'}}>
-                                <span className="text-sm font-bold text-gray-500 tracking-wider">C.D. José Miguel</span>
-                            </div>
-
-                            <div className="relative z-10 flex flex-col flex-grow p-2">
-                                {/* Header */}
-                                <header className="flex justify-between items-start p-2">
-                                    <Image src="https://placehold.co/100x100.png" alt="Logo Ciudad de Quito" width={50} height={50} data-ai-hint="city logo" />
-                                    <div className="text-center bg-red-800 text-white p-2 rounded-lg shadow-md">
-                                        <p className="font-bold text-lg leading-tight">{selectedPlayer.category}</p>
-                                        <p className="text-xs underline">Categoría</p>
-                                    </div>
-                                </header>
-
-                                {/* Main Content */}
-                                <main className="flex-grow flex flex-col items-center justify-center text-center mt-2">
-                                    <p className="font-bold text-3xl">{selectedPlayer.name.split(' ')[0]}</p>
-                                    <p className="font-light text-2xl -mt-1">{selectedPlayer.name.split(' ').slice(1).join(' ')}</p>
-                                    <Image
-                                        src={selectedPlayer.photoUrl}
-                                        alt={`Foto de ${selectedPlayer.name}`}
-                                        width={120}
-                                        height={120}
-                                        className="rounded-lg border-4 border-white shadow-lg mt-2 object-cover aspect-square"
-                                        data-ai-hint="player portrait"
-                                    />
-                                    <div className="text-xs mt-2 text-left bg-white/50 px-2 py-1 rounded">
-                                        <p><strong className="font-semibold">Cédula:</strong> {selectedPlayer.idNumber}</p>
-                                        <p><strong className="font-semibold">F. Nac.:</strong> {new Date(selectedPlayer.birthDate).toLocaleDateString('es-ES', { month: 'long', day: '2-digit', year: 'numeric' })}</p>
-                                    </div>
-                                </main>
+                            <div className="w-full max-w-[320px] aspect-[6/10] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans">
+                                {/* Background Shapes */}
+                                <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                                    <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
+                                    <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-orange-500/10 rounded-full opacity-50"></div>
+                                    <div className="absolute top-[20%] right-[-50px] w-48 h-1 bg-orange-500/30 -rotate-45"></div>
+                                     <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
+                                </div>
                                 
-                                {/* Footer */}
-                                <footer className="bg-red-800 text-white mt-2 p-2 rounded-lg shadow-inner flex items-center justify-around">
-                                    <div className="w-16 h-16 bg-white flex items-center justify-center rounded-md">
-                                        <Image src={qrCodeUrl} alt="QR Code" width={60} height={60} />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-5xl font-bold">{selectedPlayer.jerseyNumber}</p>
-                                        <p className="text-sm -mt-1 underline">No.</p>
-                                    </div>
-                                    <div className="bg-white p-1 rounded-full">
-                                        <Image src={team?.logoUrl || "https://placehold.co/100x100.png"} alt={selectedPlayer.team} width={50} height={50} className="rounded-full" data-ai-hint="team logo" />
-                                    </div>
-                                </footer>
+                                <div className="relative z-10 flex flex-col flex-grow p-4">
+                                     {/* Header */}
+                                    <header className="flex justify-center items-center gap-2 mb-4">
+                                        <Trophy className="h-6 w-6 text-orange-400" />
+                                        <h3 className="font-bold text-lg tracking-wider">LIGA DEPORTIVA BARRIAL LA LUZ</h3>
+                                    </header>
+
+                                     {/* Main Content */}
+                                    <main className="flex-grow flex flex-col items-center text-center">
+                                        <div className="w-40 h-40 md:w-48 md:h-48 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md">
+                                             <Image
+                                                src={selectedPlayer.photoUrl}
+                                                alt={`Foto de ${selectedPlayer.name}`}
+                                                width={200}
+                                                height={200}
+                                                className="rounded-sm object-cover w-full h-full"
+                                                data-ai-hint="player portrait"
+                                            />
+                                        </div>
+                                        
+                                        <h2 className="mt-4 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
+                                        <p className="text-purple-300 text-sm uppercase -mt-1">{selectedPlayer.category}</p>
+                                    </main>
+
+                                    {/* Footer */}
+                                    <footer className="mt-auto pt-4">
+                                         <div className="flex items-center justify-between gap-4">
+                                            <div className="flex-grow text-xs space-y-1 text-left">
+                                                <p><strong className="text-orange-400/80">Equipo:</strong> {selectedPlayer.team}</p>
+                                                <p><strong className="text-orange-400/80">C.I.:</strong> {selectedPlayer.idNumber}</p>
+                                                <p><strong className="text-orange-400/80">No:</strong> {selectedPlayer.jerseyNumber}</p>
+                                            </div>
+                                             <div className="w-20 h-20 bg-white p-1 rounded-md">
+                                                <Image src={qrCodeUrl} alt="QR Code" width={80} height={80} />
+                                            </div>
+                                        </div>
+                                    </footer>
+                                </div>
                             </div>
-                            </Card>
                         </div>
                     )})}
                 </div>
@@ -166,23 +159,20 @@ export default function AiCardsPage() {
 
       <style jsx global>{`
         @media print {
-            body > * {
-                display: none;
-            }
-            body > .flex-1,
-            body > .flex-1 main,
-            body > .flex-1 main > .print\\:shadow-none,
-            body > .flex-1 main > .print\\:shadow-none > .print\\:p-0,
-            body > .flex-1 main > .print\\:shadow-none > .print\\:p-0 > #card-grid {
-                display: block !important;
-            }
-            main {
-              padding: 0 !important;
-              margin: 0 !important;
-              background-color: white !important;
+            body {
+                background: white !important;
             }
             .print\\:hidden {
-              display: none !important;
+                display: none !important;
+            }
+            body > div:not(.flex-1), header, footer {
+                display: none !important;
+            }
+            main, .flex-1, .flex-1 > div, .flex-1 > div > div {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background-color: white !important;
             }
             #card-grid {
                 display: grid !important;
@@ -190,18 +180,20 @@ export default function AiCardsPage() {
                 gap: 10px !important;
                 padding: 1cm !important;
                 margin: 0 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
                 background-color: white !important;
             }
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                display: block;
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }
             .id-card-wrapper > div {
                 box-shadow: none !important;
-                border: 2px solid #ddd !important;
+                border: 1px solid #ccc !important;
+                 -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             @page {
                 size: A4 portrait;
