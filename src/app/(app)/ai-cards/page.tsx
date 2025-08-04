@@ -29,45 +29,55 @@ export default function AiCardsPage() {
   }, [selectedTeamId]);
     
   const handleDownloadPdf = async () => {
-    const grid = document.getElementById('card-grid');
-    if (!grid) return;
+      if (!selectedTeamId) return;
+      setIsGenerating(true);
 
-    setIsGenerating(true);
+      const pdf = new jsPDF('portrait', 'mm', 'a4');
+      const cardWidthMM = 63;
+      const cardHeightMM = 95; 
+      const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
+      const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
-    // Temporarily add a class to scale up for better quality
-    grid.classList.add('high-quality-capture');
+      let cardCount = 0;
 
-    const canvas = await html2canvas(grid, {
-      scale: 3, // Increase scale for higher resolution
-      useCORS: true,
-      backgroundColor: '#ffffff',
-    });
+      for (const player of selectedTeamPlayers) {
+          const page = Math.floor(cardCount / 9);
+          if (page > 0 && cardCount % 9 === 0) {
+              pdf.addPage();
+          }
 
-    // Remove the class after capture
-    grid.classList.remove('high-quality-capture');
+          const cardWrapper = document.getElementById(`player-card-${player.id}`);
+          if (!cardWrapper) continue;
 
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-    });
+          // Make the card visible for capture
+          cardWrapper.style.display = 'block';
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    const ratio = canvasWidth / canvasHeight;
-    const imgWidth = pdfWidth;
-    const imgHeight = imgWidth / ratio;
-    
-    // Check if the image height exceeds pdf height, if so, we might need multiple pages
-    // For this case, we assume 9 cards fit on one A4 page.
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-    pdf.save(`carnets_${selectedTeamId}.pdf`);
-    setIsGenerating(false);
+          const canvas = await html2canvas(cardWrapper, {
+              scale: 3,
+              useCORS: true,
+              backgroundColor: null, 
+          });
+          
+          // Hide it back
+          cardWrapper.style.display = 'none';
+
+          const imgData = canvas.toDataURL('image/png');
+
+          const row = Math.floor((cardCount % 9) / 3);
+          const col = (cardCount % 9) % 3;
+
+          const x = marginX * (col + 1) + col * cardWidthMM;
+          const y = marginY * (row + 1) + row * cardHeightMM;
+
+          pdf.addImage(imgData, 'PNG', x, y, cardWidthMM, cardHeightMM);
+
+          cardCount++;
+      }
+
+      pdf.save(`carnets_${selectedTeamId}.pdf`);
+      setIsGenerating(false);
   };
+
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategoryId(value as Category);
@@ -132,100 +142,90 @@ export default function AiCardsPage() {
             </CardContent>
         </Card>
         
-        <div id="pdf-capture-wrapper" className="absolute -left-[9999px] top-0">
-          {selectedTeamId && (
-                  <div id="card-grid" className="p-4 bg-white grid grid-cols-3 gap-4" style={{ width: '210mm', minHeight: '297mm' }}>
-                      {selectedTeamPlayers.map(selectedPlayer => {
-                          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                              `/players/${selectedPlayer.id}`
-                          )}`;
-                          const team = teams.find(t => t.id === selectedPlayer.teamId);
+        {/* Hidden area for rendering cards for capture */}
+        <div className="absolute -left-[9999px] top-0">
+          {selectedTeamPlayers.map(selectedPlayer => {
+              const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                  `/players/${selectedPlayer.id}`
+              )}`;
+              const team = teams.find(t => t.id === selectedPlayer.teamId);
 
-                          return (
-                          <div key={selectedPlayer.id} className="id-card-wrapper">
-                              <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
-                                  {/* Background Shapes */}
-                                  <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-                                      <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
-                                      <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-orange-500/10 rounded-full opacity-50"></div>
-                                      <div className="absolute top-[20%] right-[-50px] w-48 h-1 bg-orange-500/30 -rotate-45"></div>
-                                      <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
-                                  </div>
-                                  
-                                  <div className="relative z-10 flex flex-col items-center h-full text-center">
-                                      {/* Header */}
-                                      <header className="text-center">
-                                          <div className="font-bold text-md tracking-wider uppercase">
-                                              <span>Liga Deportiva Barrial</span>
-                                              <br/>
-                                              <span>La Luz</span>
-                                          </div>
-                                      </header>
-
-                                      {/* Main Content */}
-                                      <main className="flex-1 w-full mt-3">
-                                          <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md mx-auto">
-                                              <Image
-                                                  src={selectedPlayer.photoUrl}
-                                                  alt={`Foto de ${selectedPlayer.name}`}
-                                                  width={200}
-                                                  height={200}
-                                                  className="rounded-sm object-cover w-full h-full"
-                                                  data-ai-hint="player portrait"
-                                              />
-                                          </div>
-                                          
-                                          <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
-                                          
-                                          <div className="text-center mt-1 text-base space-y-1">
-                                            <p>{selectedPlayer.category.toUpperCase()}</p>
-                                            <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
-                                            <div className="flex items-center justify-center gap-2">
-                                              <span className="font-semibold">{selectedPlayer.team}</span>
-                                                {team?.logoUrl && (
-                                                  <Image 
-                                                      src={team.logoUrl}
-                                                      alt={`Logo de ${team.name}`}
-                                                      width={24}
-                                                      height={24}
-                                                      className="rounded-full"
-                                                      data-ai-hint="team logo"
-                                                  />
-                                              )}
-                                            </div>
-                                          </div>
-                                      </main>
-
-                                      <footer className="w-full mt-4 border-t border-white/20 pt-3">
-                                        <div className="flex items-center justify-between gap-4 w-full">
-                                            {/* QR Code */}
-                                            <div className="w-16 h-16 bg-white p-1 rounded-md">
-                                                <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
-                                            </div>
-                                            
-                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
-                                            
-                                            {/* Jersey Number */}
-                                            <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-                                                <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
-                                            </div>
-                                        </div>
-                                      </footer>
-                                  </div>
+              return (
+              <div key={selectedPlayer.id} id={`player-card-${selectedPlayer.id}`} style={{ display: 'none', width: '320px'}}>
+                  <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
+                      {/* Background Shapes */}
+                      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                          <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
+                          <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-orange-500/10 rounded-full opacity-50"></div>
+                          <div className="absolute top-[20%] right-[-50px] w-48 h-1 bg-orange-500/30 -rotate-45"></div>
+                          <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
+                      </div>
+                      
+                      <div className="relative z-10 flex flex-col items-center h-full text-center">
+                          {/* Header */}
+                          <header className="text-center">
+                              <div className="font-bold text-md tracking-wider uppercase">
+                                  <span>Liga Deportiva Barrial</span>
+                                  <br/>
+                                  <span>La Luz</span>
                               </div>
-                          </div>
-                      )})}
+                          </header>
+
+                          {/* Main Content */}
+                          <main className="flex-1 w-full mt-3">
+                              <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md mx-auto">
+                                  <Image
+                                      src={selectedPlayer.photoUrl}
+                                      alt={`Foto de ${selectedPlayer.name}`}
+                                      width={200}
+                                      height={200}
+                                      className="rounded-sm object-cover w-full h-full"
+                                      data-ai-hint="player portrait"
+                                  />
+                              </div>
+                              
+                              <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
+                              
+                              <div className="text-center mt-1 text-base space-y-1">
+                                <p>{selectedPlayer.category.toUpperCase()}</p>
+                                <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="font-semibold">{selectedPlayer.team}</span>
+                                    {team?.logoUrl && (
+                                      <Image 
+                                          src={team.logoUrl}
+                                          alt={`Logo de ${team.name}`}
+                                          width={24}
+                                          height={24}
+                                          className="rounded-full"
+                                          data-ai-hint="team logo"
+                                      />
+                                  )}
+                                </div>
+                              </div>
+                          </main>
+
+                          <footer className="w-full mt-4 border-t border-white/20 pt-3">
+                            <div className="flex items-center justify-between gap-4 w-full">
+                                {/* QR Code */}
+                                <div className="w-16 h-16 bg-white p-1 rounded-md">
+                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
+                                </div>
+                                
+                                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
+                                
+                                {/* Jersey Number */}
+                                <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                                    <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
+                                </div>
+                            </div>
+                          </footer>
+                      </div>
                   </div>
-              )}
+              </div>
+              )})}
         </div>
       </main>
-
-      <style jsx global>{`
-        .high-quality-capture {
-            transform: scale(1.2); /* Scale up for capture */
-            transform-origin: top left;
-        }
-      `}</style>
     </div>
   );
 }
