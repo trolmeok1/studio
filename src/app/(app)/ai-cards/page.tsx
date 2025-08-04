@@ -172,9 +172,11 @@ export default function AiCardsPage() {
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(10);
             pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 11, { align: 'center' });
+            
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
-            pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
+            pdf.text(`C.I: ${player.idNumber}`, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
+            pdf.text(`F. Nac: ${player.birthDate}`, x + cardWidthMM / 2, infoY + 19, { align: 'center' });
 
             // --- Footer Elements ---
             const footerY = y + cardHeightMM - 20;
