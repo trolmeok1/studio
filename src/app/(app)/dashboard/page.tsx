@@ -75,6 +75,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import Autoplay from 'embla-carousel-autoplay';
 
 const sliderImages = [
     { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1' },
@@ -86,7 +87,7 @@ function TopScorersCard() {
   const topFiveScorers = useMemo(() => initialTopScorers.slice(0, 5), []);
 
   return (
-    <Card>
+    <Card neon="purple">
       <CardHeader>
         <CardTitle className="uppercase">Tabla de Goleadores</CardTitle>
         <CardDescription>
@@ -157,7 +158,7 @@ function SanctionsCard() {
     }, []);
 
   return (
-    <Card>
+    <Card neon="yellow">
       <CardHeader>
         <CardTitle className="uppercase">Sanciones y Suspensiones</CardTitle>
         <CardDescription>
@@ -235,7 +236,7 @@ function BestTeamsCard() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {categories.map(category => (
-                    <Card key={category}>
+                    <Card key={category} neon="purple">
                         <CardHeader>
                             <CardTitle className="text-center text-primary">{category}</CardTitle>
                         </CardHeader>
@@ -264,7 +265,7 @@ export default function DashboardPage() {
             </h2>
         </div>
 
-       <Card className="relative group">
+       <Card className="relative group overflow-hidden rounded-lg">
             {isAdmin && (
                 <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
                     <Button size="sm" asChild>
@@ -280,32 +281,37 @@ export default function DashboardPage() {
                     </Button>
                 </div>
             )}
-            <Carousel className="w-full">
+            <Carousel 
+                className="w-full"
+                plugins={[
+                    Autoplay({
+                      delay: 4000,
+                      stopOnInteraction: true,
+                    }),
+                ]}
+                opts={{
+                    loop: true,
+                }}
+            >
                 <CarouselContent>
                     {sliderImages.map((image, index) => (
                         <CarouselItem key={index}>
-                            <Card>
-                                <CardContent className="p-0">
-                                    <Image
-                                        src={image.src}
-                                        alt={image.alt}
-                                        width={1200}
-                                        height={400}
-                                        className="w-full h-auto object-cover"
-                                        data-ai-hint="stadium lights"
-                                    />
-                                </CardContent>
-                            </Card>
+                            <Image
+                                src={image.src}
+                                alt={image.alt}
+                                width={1200}
+                                height={400}
+                                className="w-full h-auto object-cover"
+                                data-ai-hint="stadium lights"
+                            />
                         </CarouselItem>
                     ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
-                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
             </Carousel>
         </Card>
       
         {isAdmin && pendingRequests.length > 0 && (
-            <Card>
+            <Card neon="yellow">
                 <CardHeader>
                     <CardTitle className="uppercase">Alertas y Notificaciones</CardTitle>
                 </CardHeader>
@@ -329,12 +335,11 @@ export default function DashboardPage() {
         )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-
         <div className="lg:col-span-8 space-y-4">
              <BestTeamsCard />
-             <Card>
+             <Card neon="blue">
                 <CardHeader>
-                    <CardTitle className="uppercase">Resumen del Torneo</CardTitle>
+                    <CardTitle className="uppercase">TORNEO DE LA LIGA</CardTitle>
                 </CardHeader>
                  <CardContent>
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

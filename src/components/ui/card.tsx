@@ -3,19 +3,40 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
+type CardProps = React.HTMLAttributes<HTMLDivElement> & {
+  neon?: 'purple' | 'blue' | 'green' | 'yellow' | 'cyan' | 'none';
+};
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, neon, children, ...props }, ref) => {
+    if (neon && neon !== 'none') {
+      return (
+        <div
+          ref={ref}
+          className={cn("rounded-lg p-0.5 shadow-sm overflow-hidden", `neon-${neon}`, className)}
+          {...props}
+        >
+          <div className="rounded-[7px] bg-card text-card-foreground h-full w-full">
+            {children}
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "rounded-lg border bg-card text-card-foreground shadow-sm",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<

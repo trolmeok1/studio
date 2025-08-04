@@ -78,3 +78,57 @@ body {
     background-color: white !important;
   }
 }
+
+/* Neon Border Keyframes */
+@keyframes neon-purple-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes neon-blue-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes neon-green-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes neon-yellow-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes neon-cyan-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Neon Color Classes */
+.neon-purple {
+  background: linear-gradient(90deg, #8A2BE2, #9400D3, #4B0082, #9400D3, #8A2BE2);
+  background-size: 200% 200%;
+  animation: neon-purple-gradient 10s ease infinite;
+}
+.neon-blue {
+  background: linear-gradient(90deg, #007BFF, #00BFFF, #87CEEB, #00BFFF, #007BFF);
+  background-size: 200% 200%;
+  animation: neon-blue-gradient 10s ease infinite;
+}
+.neon-green {
+  background: linear-gradient(90deg, #32CD32, #00FF00, #7CFC00, #00FF00, #32CD32);
+  background-size: 200% 200%;
+  animation: neon-green-gradient 10s ease infinite;
+}
+.neon-yellow {
+  background: linear-gradient(90deg, #FFD700, #FFFF00, #F0E68C, #FFFF00, #FFD700);
+  background-size: 200% 200%;
+  animation: neon-yellow-gradient 10s ease infinite;
+}
+.neon-cyan {
+  background: linear-gradient(90deg, #00FFFF, #00E5EE, #40E0D0, #00E5EE, #00FFFF);
+  background-size: 200% 200%;
+  animation: neon-cyan-gradient 10s ease infinite;
+}

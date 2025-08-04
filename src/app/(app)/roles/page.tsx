@@ -181,9 +181,13 @@ export default function RolesPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight font-headline">
-          Gestión de Roles y Usuarios
-        </h2>
+        <div className="text-center w-full">
+            <h2 className="text-4xl font-extrabold tracking-tight">
+                <span className="bg-gradient-to-r from-primary via-cyan-500 to-sky-400 text-transparent bg-clip-text">
+                Gestión de Roles y Usuarios
+                </span>
+            </h2>
+        </div>
         {isAdmin && (
             <Button onClick={openAddDialog}>
                 <PlusCircle className='mr-2' />
@@ -192,7 +196,7 @@ export default function RolesPage() {
         )}
       </div>
 
-      <Card>
+      <Card neon="cyan">
         <CardHeader>
           <CardTitle>Lista de Usuarios</CardTitle>
           <CardDescription>Gestiona los roles y permisos de los usuarios del sistema.</CardDescription>

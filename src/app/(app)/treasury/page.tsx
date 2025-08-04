@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -243,7 +244,7 @@ export default function TreasuryPage() {
             <div className="flex items-center justify-between">
                 <div className="text-center w-full">
                     <h2 className="text-4xl font-extrabold tracking-tight">
-                        <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+                        <span className="bg-gradient-to-r from-primary via-yellow-500 to-amber-400 text-transparent bg-clip-text">
                             Tesorería
                         </span>
                     </h2>
@@ -282,7 +283,7 @@ export default function TreasuryPage() {
                 </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+                <Card neon="yellow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
                             Ingresos Totales
@@ -296,7 +297,7 @@ export default function TreasuryPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card neon="yellow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
                             Gastos Totales
@@ -310,7 +311,7 @@ export default function TreasuryPage() {
                         </p>
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card neon="yellow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Balance del Período</CardTitle>
                         <Ban className="h-4 w-4 text-muted-foreground" />
@@ -322,7 +323,7 @@ export default function TreasuryPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card neon="yellow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Pagos Pendientes</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-muted-foreground" />
@@ -336,7 +337,7 @@ export default function TreasuryPage() {
                 </Card>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                 <Card>
+                 <Card neon="yellow">
                     <CardHeader>
                         <CardTitle>Pagos Pendientes de Vocalía</CardTitle>
                          <CardDescription>
@@ -374,7 +375,7 @@ export default function TreasuryPage() {
                         </Table>
                     </CardContent>
                  </Card>
-                 <Card>
+                 <Card neon="yellow">
                     <CardHeader className="flex items-center justify-between">
                          <div>
                             <CardTitle>Registro de Gastos</CardTitle>
@@ -416,7 +417,7 @@ export default function TreasuryPage() {
                     </CardContent>
                  </Card>
             </div>
-             <Card>
+             <Card neon="yellow">
                 <CardHeader>
                     <CardTitle>Registro de Vocalías por Partido</CardTitle>
                     <CardDescription>Desglose de los ingresos por vocalía de cada partido en el período seleccionado.</CardDescription>

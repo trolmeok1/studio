@@ -94,7 +94,7 @@ export default function TeamsPage() {
       <div className="flex items-center justify-between">
         <div className="text-center w-full">
             <h2 className="text-4xl font-extrabold tracking-tight">
-              <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+              <span className="bg-gradient-to-r from-primary via-green-500 to-lime-400 text-transparent bg-clip-text">
                 Equipos
               </span>
             </h2>
@@ -217,7 +217,7 @@ export default function TeamsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team) => (
-          <Card key={team.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:scale-[1.02]">
+          <Card key={team.id} neon="green" className="flex flex-col group transition-all hover:scale-[1.02]">
             <div className="p-0 relative">
                  <Image
                     src={team.logoUrl}

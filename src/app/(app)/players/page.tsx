@@ -48,7 +48,7 @@ export default function PlayersPage() {
       <div className="flex items-center justify-between">
           <div className="text-center w-full">
             <h2 className="text-4xl font-extrabold tracking-tight">
-              <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+              <span className="bg-gradient-to-r from-primary via-blue-500 to-cyan-400 text-transparent bg-clip-text">
                 Lista de Jugadores
               </span>
             </h2>
@@ -87,7 +87,7 @@ export default function PlayersPage() {
                                     <div className="space-y-2 p-4">
                                         {teamPlayers.length > 0 ? teamPlayers.map((player) => (
                                           <Link key={player.id} href={`/players/${player.id}`} className="block">
-                                              <Card className="p-0">
+                                              <Card neon="blue">
                                                   <div className="flex items-center p-3 transition-all hover:bg-muted/50 cursor-pointer">
                                                       <Image
                                                           src={player.photoUrl}
