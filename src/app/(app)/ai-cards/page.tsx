@@ -187,9 +187,13 @@ export default function AiCardsPage() {
                           </main>
 
                           <footer className="w-full mt-auto border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
-                              <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="bg-white p-1 rounded-md mx-auto" />
+                              <div className="w-20 h-20 flex items-center justify-center mx-auto">
+                                <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="bg-white p-1 rounded-md" />
+                              </div>
                               
-                              <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md mx-auto" data-ai-hint="league logo" />
+                              <div className="w-20 h-20 flex items-center justify-center mx-auto">
+                                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
+                              </div>
                               
                               <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto">
                                   <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
