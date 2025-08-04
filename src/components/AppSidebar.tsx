@@ -10,6 +10,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarSeparator,
+  SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import {
   Users,
@@ -48,10 +49,12 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import React from 'react';
+
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, isCopaPublic } = useAuth();
+  const { user, isCopaPublic, isAuthLoading } = useAuth();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
 
@@ -62,6 +65,32 @@ export function AppSidebar() {
   const handleLogout = () => {
     router.push('/login');
   };
+  
+  if (isAuthLoading) {
+    return (
+        <>
+            <SidebarHeader>
+                 <div className="flex items-center gap-2">
+                    <Trophy className="text-primary size-8" />
+                    <h1 className="text-xl font-bold font-headline">Liga Control</h1>
+                </div>
+            </SidebarHeader>
+            <SidebarContent>
+                <div className="flex flex-col gap-2 p-2">
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                </div>
+                 <SidebarSeparator />
+                <div className="flex flex-col gap-2 p-2">
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                </div>
+            </SidebarContent>
+        </>
+    );
+  }
 
   const { permissions } = user;
   const hasAdminPermissions = user.role === 'admin' || user.role === 'secretary';
@@ -69,7 +98,7 @@ export function AppSidebar() {
   const mainNavItems = [
     permissions.dashboard.view && { href: '/dashboard', icon: LayoutDashboard, label: 'Inicio', tooltip: 'Inicio' },
     permissions.teams.view && { href: '/teams', icon: Shield, label: 'Equipos', tooltip: 'Equipos' },
-    (permissions.copa.view && isCopaPublic) && { href: '/copa', icon: Trophy, label: 'Copa', tooltip: 'Copa' }
+    (permissions.copa.view && (isCopaPublic || hasAdminPermissions)) && { href: '/copa', icon: Trophy, label: 'Copa', tooltip: 'Copa' }
   ].filter(Boolean);
   
   const tournamentNavItems = [
@@ -123,7 +152,7 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
         
-        {hasAdminPermissions && (
+        {hasAdminPermissions && tournamentNavItems.length > 0 && (
             <>
                 <SidebarSeparator />
                 <SidebarGroup>
@@ -141,7 +170,11 @@ export function AppSidebar() {
                       ))}
                    </SidebarMenu>
                 </SidebarGroup>
-                
+            </>
+        )}
+        
+        {hasAdminPermissions && adminNavItems.length > 0 && (
+            <>
                 <SidebarSeparator />
                 <SidebarGroup>
                    <SidebarGroupLabel>Admin</SidebarGroupLabel>
@@ -158,9 +191,12 @@ export function AppSidebar() {
                       ))}
                    </SidebarMenu>
                 </SidebarGroup>
+            </>
+        )}
                  
+        {hasAdminPermissions && settingsNavItems.length > 0 && (
+            <>
                 <SidebarSeparator />
-
                 <SidebarGroup>
                    <SidebarGroupLabel>Configuración</SidebarGroupLabel>
                     <SidebarMenu>
@@ -221,14 +257,31 @@ export function AppSidebar() {
 
 export function BottomNavbar() {
     const pathname = usePathname();
-    const { user, isCopaPublic } = useAuth();
+    const { user, isCopaPublic, isAuthLoading } = useAuth();
+    
+    if (isAuthLoading) {
+        return (
+             <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t border-border">
+                <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
+                     {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="inline-flex flex-col items-center justify-center px-5">
+                            <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
+                            <div className="w-10 h-2 mt-1 bg-muted rounded animate-pulse" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
     const { permissions } = user;
+    const hasAdminPermissions = user.role === 'admin' || user.role === 'secretary';
 
     const isActive = (path: string) => {
       return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
     };
 
-    const canViewCopa = permissions.copa.edit || (permissions.copa.view && isCopaPublic);
+    const canViewCopa = permissions.copa.view && (isCopaPublic || hasAdminPermissions);
 
     let navItems = [
       { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },

@@ -87,6 +87,7 @@ interface AuthContextType {
   loginAs: (role: UserRole) => void;
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
+  isAuthLoading: boolean;
 }
 
 const mockUsers: User[] = [
@@ -103,6 +104,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsersState] = useState<User[]>(mockUsers);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
   const [isCopaPublic, setIsCopaPublic] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading user from session/storage
+    const timer = setTimeout(() => {
+        setIsAuthLoading(false);
+    }, 250); // Small delay to simulate async loading
+    return () => clearTimeout(timer);
+  }, []);
+
 
   const loginAs = (role: UserRole) => {
     const userToLogin = users.find(u => u.role === role);
@@ -127,6 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loginAs,
     isCopaPublic,
     setIsCopaPublic,
+    isAuthLoading,
   };
 
   return (
