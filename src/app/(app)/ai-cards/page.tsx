@@ -106,8 +106,8 @@ export default function AiCardsPage() {
         pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, y + 72, { align: 'center' });
 
         // --- Footer Elements ---
-        const footerY = y + 78;
-        const footerItemSize = 18;
+        const footerY = y + 76;
+        const footerItemSize = 16;
         
         // QR Code
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
@@ -128,14 +128,11 @@ export default function AiCardsPage() {
 
         // Jersey Number
         const jerseyX = x + cardWidthMM - 5 - footerItemSize;
-        const jerseyY = footerY;
-        pdf.setFillColor('#6B46C1'); // Purple circle
-        pdf.circle(jerseyX + footerItemSize / 2, jerseyY + footerItemSize / 2, footerItemSize / 2, 'F');
-        
-        pdf.setFontSize(16);
+        const jerseyY = footerY + (footerItemSize / 2);
+        pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor('#FFFFFF');
-        pdf.text(player.jerseyNumber.toString(), jerseyX + footerItemSize / 2, jerseyY + footerItemSize / 2 + 5.5, { align: 'center' });
+        pdf.setTextColor('#9400D3'); // Vivid Violet for a "neon" effect
+        pdf.text(`Nr: ${player.jerseyNumber}`, jerseyX, jerseyY, { align: 'center' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
