@@ -34,6 +34,7 @@ import {
   Sun,
   Moon,
   Home,
+  LogIn,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -236,27 +237,38 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center justify-between gap-3 rounded-md p-2">
-           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user.avatarUrl} data-ai-hint="user avatar" alt={user.name} />
-              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm">{user.name}</span>
-              <span className="text-xs text-muted-foreground">{user.email}</span>
-            </div>
-           </div>
-           <div className="flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0">
-                <LogOut />
-            </Button>
-           </div>
+        <div className="flex flex-col items-stretch gap-3 rounded-md p-2">
+            {user.role === 'guest' ? (
+                <Button asChild>
+                    <Link href="/login">
+                        <LogIn className="mr-2" />
+                        Acceso Administrativo
+                    </Link>
+                </Button>
+            ) : (
+                 <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatarUrl} data-ai-hint="user avatar" alt={user.name} />
+                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                        <span className="font-semibold text-sm">{user.name}</span>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                        </div>
+                    </div>
+                     <div className="flex items-center">
+                        <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+                            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                            <span className="sr-only">Toggle theme</span>
+                        </Button>
+                         <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0">
+                            <LogOut />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
       </SidebarFooter>
     </>
@@ -273,19 +285,27 @@ export function BottomNavbar() {
       return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
     };
 
-    const navItems = [
+    let navItems = [
       { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
       { href: '/players', icon: Users, label: 'Jugadores', permission: permissions.players.view },
       { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
       { href: '/partido', icon: ClipboardList, label: 'Resultados', permission: permissions.partido.view },
-      { href: '/copa', icon: Trophy, label: 'Copa', permission: permissions.copa.view },
-    ].filter(item => item.permission);
+      
+    ];
+
+    if (user.role === 'guest') {
+        navItems.push({ href: '/login', icon: LogIn, label: 'Ingresar', permission: true });
+    } else {
+        navItems.push({ href: '/copa', icon: Trophy, label: 'Copa', permission: permissions.copa.view });
+    }
+    
+    const filteredNavItems = navItems.filter(item => item.permission);
 
 
     return (
         <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t border-border">
             <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
-                {navItems.map(item => (
+                {filteredNavItems.map(item => (
                     <Link key={item.href} href={item.href} className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted group">
                          <item.icon className={cn("w-5 h-5 mb-1 text-muted-foreground group-hover:text-primary", isActive(item.href) && "text-primary")} />
                         <span className={cn("text-xs text-muted-foreground group-hover:text-primary", isActive(item.href) && "text-primary")}>
@@ -297,4 +317,3 @@ export function BottomNavbar() {
         </div>
     );
 }
-
