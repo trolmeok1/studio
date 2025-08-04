@@ -1,4 +1,5 @@
 
+
 import { getPlayerById } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -8,7 +9,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX, Star } from 'lucide-react';
 
-export default function PlayerProfilePage({ params }: { params: { id: string } }) {
+export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
   const player = getPlayerById(params.id);
 
   if (!player) {

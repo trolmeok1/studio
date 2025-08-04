@@ -45,16 +45,17 @@ const CardPreview = ({ player }: { player: Player | null }) => {
 
                     {/* Player Photo */}
                     <div className="flex justify-center mb-4">
-                        <div className="w-32 h-32 border-2 border-[#FFA500] overflow-hidden bg-gray-700">
-                            <Image src={player.photoUrl} alt={player.name} width={128} height={128} className="object-cover w-full h-full" />
+                        <div className="w-28 h-28 border-2 border-[#FFA500] overflow-hidden bg-gray-700">
+                            <Image src={player.photoUrl} alt={player.name} width={112} height={112} className="object-cover w-full h-full" />
                         </div>
                     </div>
 
                     {/* Player Info */}
                     <div className="text-center flex-grow">
+                        <div className="h-4"></div>
                         <p className="font-bold text-2xl text-[#FFA500] uppercase">{player.name}</p>
-                        <p className="font-bold text-lg uppercase mt-2">{player.team}</p>
-                        <p className="font-bold uppercase">{player.category}</p>
+                        <p className="font-bold text-xl uppercase mt-2">{player.team}</p>
+                        <p className="font-bold text-lg uppercase">{player.category}</p>
                         <p className="text-sm">{player.idNumber}</p>
                     </div>
 
@@ -70,7 +71,7 @@ const CardPreview = ({ player }: { player: Player | null }) => {
                         </div>
                         {/* Jersey Number */}
                         <div className="w-16 h-16 flex items-center justify-center">
-                            <span className="font-bold text-4xl" style={{color: '#FFA500'}}>{player.jerseyNumber}</span>
+                            <span className="font-bold text-4xl text-[#FFA500]">{player.jerseyNumber}</span>
                         </div>
                     </div>
                 </div>
@@ -152,7 +153,7 @@ export default function AiCardsPage() {
 
 
         // --- Player Photo ---
-        const photoSize = 30;
+        const photoSize = 25;
         const photoX = x + (cardWidthMM - photoSize) / 2;
         const photoY = y + 18;
         pdf.setDrawColor('#FFA500'); // Orange border
@@ -170,20 +171,21 @@ export default function AiCardsPage() {
 
 
         // --- Player Info ---
-        const infoY = photoY + photoSize + 10;
+        const infoY = photoY + photoSize + 8;
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFA500'); // Orange color for name
         pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
         
-        pdf.setFontSize(10);
+        pdf.setFontSize(11);
         pdf.setTextColor('#FFFFFF');
         pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
         
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
         pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 11, { align: 'center' });
         pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
         pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
 
         // --- Footer Elements ---

@@ -32,12 +32,12 @@ import { cn } from '@/lib/utils';
 
 const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 
-    const teamA = match?.teams.home;
-    const teamB = match?.teams.away;
-    const playersA = teamA ? getPlayersByTeamId(teamA.id) : [];
-    const playersB = teamB ? getPlayersByTeamId(teamB.id) : [];
+    const teamA = useMemo(() => match?.teams.home, [match]);
+    const teamB = useMemo(() => match?.teams.away, [match]);
+    const playersA = useMemo(() => teamA ? getPlayersByTeamId(teamA.id) : [], [teamA]);
+    const playersB = useMemo(() => teamB ? getPlayersByTeamId(teamB.id) : [], [teamB]);
 
-    const calculatePendingValue = (teamId?: string) => {
+    const calculatePendingValue = useMemo(() => (teamId?: string) => {
         if (!teamId || !match) return 0;
         const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
         return pastMatches.reduce((total, pastMatch) => {
@@ -48,10 +48,10 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
             }
             return total;
         }, 0);
-    };
+    }, [match]);
 
-    const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, match]);
-    const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, match]);
+    const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, match, calculatePendingValue]);
+    const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, match, calculatePendingValue]);
     
     const PlayerRow = ({ player, number }: { player?: Player, number: number }) => {
         const getAge = (birthDateString: string) => {
@@ -450,7 +450,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 }
                 return total;
             }, 0);
-        }, [match, teamId]);
+        }, [match.id, teamId]);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
 

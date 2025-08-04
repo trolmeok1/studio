@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -24,12 +23,12 @@ import {
   CarouselPrevious,
   CarouselNext,
 } from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
-  achievements,
   dashboardStats,
   players,
   teams,
@@ -37,51 +36,92 @@ import {
   topScorers as initialTopScorers,
   sanctions,
   getRequalificationRequests,
-  upcomingMatches,
-  getTeamsByCategory,
   type Category,
   type Standing,
+  type RequalificationRequest,
 } from '@/lib/mock-data';
 import {
   Users,
   Shield,
   Trophy,
   Swords,
-  Calendar,
-  List,
-  Flag,
-  UserSquare,
-  Gavel,
-  Check,
-  Plus,
-  Ban,
-  FilePen,
-  BarChart2,
   Goal,
-  RectangleHorizontal,
-  PlusCircle,
-  Pencil,
   ShieldBan,
   ArrowRight,
   AlertCircle,
   Crown,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import Autoplay from 'embla-carousel-autoplay';
+import { useAuth } from '@/hooks/useAuth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { useMemo } from 'react';
+
 
 const sliderImages = [
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3' },
-]
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2', hint: 'soccer ball grass' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3', hint: 'fans cheering' },
+];
+
+function AdminAlerts({ pendingRequests }: { pendingRequests: RequalificationRequest[] }) {
+  const { user } = useAuth();
+  const hasEditPermission = user.permissions.requests.edit;
+
+  if (!hasEditPermission || pendingRequests.length === 0) {
+    return null;
+  }
+
+  return (
+    <Alert>
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Acciones Pendientes</AlertTitle>
+      <AlertDescription>
+        <div className="flex items-center justify-between">
+            <p>
+                Tienes <span className="font-bold">{pendingRequests.length}</span> solicitud(es) de recalificación pendientes de revisión.
+            </p>
+            <Button asChild size="sm">
+                <Link href="/requests/requalification">
+                    Revisar Solicitudes <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function DashboardCarousel({ images }: { images: {src: string, alt: string, hint: string}[]}) {
+    return (
+         <Carousel 
+            className="w-full"
+            plugins={[Autoplay({ delay: 5000, stopOnInteraction: true })]}
+            opts={{ loop: true }}
+        >
+            <CarouselContent>
+                {images.map((image, index) => (
+                    <CarouselItem key={index}>
+                        <Card className="overflow-hidden">
+                            <Image
+                                src={image.src}
+                                alt={image.alt}
+                                width={1200}
+                                height={400}
+                                className="w-full aspect-[3/1] object-cover"
+                                data-ai-hint={image.hint}
+                            />
+                        </Card>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+        </Carousel>
+    );
+}
 
 function TopScorersCard() {
   const topFiveScorers = useMemo(() => initialTopScorers.slice(0, 5), []);
@@ -151,11 +191,6 @@ function TopScorersCard() {
 }
 
 function SanctionsCard() {
-    const [isClient, setIsClient] = useState(false);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
 
   return (
     <Card neon="yellow">
@@ -186,9 +221,9 @@ function SanctionsCard() {
                           <ShieldBan className="mr-2" />
                           {sanction.gamesSuspended} Partido(s)
                       </Badge>
-                      {isClient && <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                           Sancionado el: {new Date(sanction.date).toLocaleDateString()}
-                      </p>}
+                      </p>
                    </div>
                 </div>
               </Card>
@@ -251,8 +286,6 @@ function BestTeamsCard() {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const isAdmin = user.role === 'admin';
   const pendingRequests = useMemo(() => getRequalificationRequests().filter(r => r.status === 'pending'), []);
   
   return (
@@ -265,74 +298,9 @@ export default function DashboardPage() {
             </h2>
         </div>
 
-       <Card className="relative group overflow-hidden rounded-lg">
-            {isAdmin && (
-                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-                    <Button size="sm" asChild>
-                       <label htmlFor="carousel-upload" className="cursor-pointer">
-                           <PlusCircle />
-                           Agregar Imagen
-                           <Input id="carousel-upload" type="file" className="hidden" />
-                       </label>
-                    </Button>
-                     <Button size="sm" variant="secondary">
-                        <Pencil />
-                        Editar Galería
-                    </Button>
-                </div>
-            )}
-            <Carousel 
-                className="w-full"
-                plugins={[
-                    Autoplay({
-                      delay: 4000,
-                      stopOnInteraction: true,
-                    }),
-                ]}
-                opts={{
-                    loop: true,
-                }}
-            >
-                <CarouselContent>
-                    {sliderImages.map((image, index) => (
-                        <CarouselItem key={index}>
-                            <Image
-                                src={image.src}
-                                alt={image.alt}
-                                width={1200}
-                                height={400}
-                                className="w-full h-auto object-cover"
-                                data-ai-hint="stadium lights"
-                            />
-                        </CarouselItem>
-                    ))}
-                </CarouselContent>
-            </Carousel>
-        </Card>
+       <DashboardCarousel images={sliderImages} />
       
-        {isAdmin && pendingRequests.length > 0 && (
-            <Card neon="yellow">
-                <CardHeader>
-                    <CardTitle className="uppercase">Alertas y Notificaciones</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="bg-amber-500/10 border-l-4 border-amber-500 text-amber-700 p-4 rounded-md" role="alert">
-                        <div className="flex items-start">
-                            <AlertCircle className="h-6 w-6 mr-3 mt-1"/>
-                            <div className="flex-grow">
-                                <p className="font-bold">Solicitudes Pendientes</p>
-                                <p className="text-sm">Tienes {pendingRequests.length} nuevas solicitudes de recalificación que requieren tu aprobación.</p>
-                                <Button variant="link" className="p-0 h-auto text-amber-700 font-bold mt-1" asChild>
-                                    <Link href="/requests/requalification">
-                                        Revisar ahora <ArrowRight className="ml-2"/>
-                                    </Link>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        )}
+       <AdminAlerts pendingRequests={pendingRequests} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8 space-y-4">

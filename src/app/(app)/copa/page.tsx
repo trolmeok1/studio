@@ -80,10 +80,10 @@ const CopaBracket = ({ teams }: { teams: Team[] }) => {
        )
     }
 
-    const octavos = Array.from({ length: 8 }).map((_, i) => ({ teamA: teams[i*2] || null, teamB: teams[i*2+1] || null }));
-    const cuartos = Array.from({ length: 4 }).map((_, i) => ({ teamA: octavos[i*2].teamA, teamB: octavos[i*2+1].teamA })); // Dummy winners
-    const semifinal = Array.from({ length: 2 }).map((_, i) => ({ teamA: cuartos[i*2].teamA, teamB: cuartos[i*2+1].teamA })); // Dummy winners
-    const final = { teamA: semifinal[0].teamA, teamB: semifinal[1].teamA }; // Dummy winners
+    const octavos = useMemo(() => Array.from({ length: 8 }).map((_, i) => ({ teamA: teams[i*2] || null, teamB: teams[i*2+1] || null })), [teams]);
+    const cuartos = useMemo(() => Array.from({ length: 4 }).map((_, i) => ({ teamA: octavos[i*2].teamA, teamB: octavos[i*2+1].teamA })), [octavos]); // Dummy winners
+    const semifinal = useMemo(() => Array.from({ length: 2 }).map((_, i) => ({ teamA: cuartos[i*2].teamA, teamB: cuartos[i*2+1].teamA })), [cuartos]); // Dummy winners
+    const final = useMemo(() => ({ teamA: semifinal[0].teamA, teamB: semifinal[1].teamA }), [semifinal]); // Dummy winners
     
     const winner = final.teamA;
 

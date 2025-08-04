@@ -122,18 +122,18 @@ export default function TreasuryPage() {
         });
     }, [dateRange, expenses]);
 
-    const paidMatches = filteredMatches.filter(match => 
+    const paidMatches = useMemo(() => filteredMatches.filter(match => 
         match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' || 
         match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid'
-    );
+    ), [filteredMatches]);
 
-    const totalVocalIncome = paidMatches.reduce((acc, match) => {
+    const totalVocalIncome = useMemo(() => paidMatches.reduce((acc, match) => {
         const homePayment = match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.home.vocalPaymentDetails?.total || 0 : 0;
         const awayPayment = match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.away.vocalPaymentDetails?.total || 0 : 0;
         return acc + homePayment + awayPayment;
-    }, 0);
+    }, 0), [paidMatches]);
     
-    const pendingPayments = filteredMatches.flatMap(match => {
+    const pendingPayments = useMemo(() => filteredMatches.flatMap(match => {
         const pending = [];
         if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
             pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date});
@@ -142,11 +142,11 @@ export default function TreasuryPage() {
             pending.push({team: match.teams.away, amount: match.teams.away.vocalPaymentDetails.total, date: match.date});
         }
         return pending;
-    });
+    }), [filteredMatches]);
 
     const totalSanctionIncome = 550; // Mock data for now
 
-    const absentTeams = filteredMatches.flatMap(match => {
+    const absentTeams = useMemo(() => filteredMatches.flatMap(match => {
         const absentees = [];
         if (!match.teams.home.attended) {
             absentees.push({ ...match.teams.home, date: match.date });
@@ -155,7 +155,7 @@ export default function TreasuryPage() {
             absentees.push({ ...match.teams.away, date: match.date });
         }
         return absentees;
-    });
+    }), [filteredMatches]);
 
     const VocalPaymentDetailRow = ({ label, value }: { label: string, value: number }) => (
         <div className="flex justify-between text-xs py-0.5">
