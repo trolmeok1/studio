@@ -23,9 +23,11 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
     .map(match => {
         const isHome = match.teams.home.id === teamId;
         const details = isHome ? match.teams.home.vocalPaymentDetails : match.teams.away.vocalPaymentDetails;
+        const opponent = isHome ? match.teams.away : match.teams.home;
         return {
             date: match.date,
-            opponent: isHome ? match.teams.away.name : match.teams.home.name,
+            opponent: opponent.name,
+            opponentId: opponent.id,
             amount: details?.total || 0,
             status: details?.paymentStatus || 'pending'
         };

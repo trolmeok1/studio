@@ -167,7 +167,11 @@ const SanctionsTab = ({ sanctions }: { sanctions: Sanction[] }) => (
                 <TableBody>
                     {sanctions.length > 0 ? sanctions.map(sanction => (
                         <TableRow key={sanction.id}>
-                            <TableCell className="font-medium">{sanction.playerName}</TableCell>
+                            <TableCell className="font-medium">
+                                <Link href={`/players/${sanction.playerId}`} className="hover:underline text-primary">
+                                    {sanction.playerName}
+                                </Link>
+                            </TableCell>
                             <TableCell>{sanction.reason}</TableCell>
                             <TableCell className="text-center">{sanction.gamesSuspended}</TableCell>
                             <TableCell>{format(new Date(sanction.date), 'dd/MM/yyyy')}</TableCell>
@@ -204,7 +208,11 @@ const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
                     {vocalPayments.map((payment, i) => (
                         <TableRow key={i}>
                             <TableCell>{format(new Date(payment.date), 'dd/MM/yyyy')}</TableCell>
-                            <TableCell>{payment.opponent}</TableCell>
+                            <TableCell>
+                                <Link href={`/teams/${payment.opponentId}`} className="hover:underline text-primary">
+                                    {payment.opponent}
+                                </Link>
+                            </TableCell>
                             <TableCell className="text-right font-semibold">${payment.amount.toFixed(2)}</TableCell>
                             <TableCell className="text-right">
                                 <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'}>{payment.status}</Badge>
