@@ -103,7 +103,7 @@ export default function AiCardsPage() {
 
                         return (
                         <div key={selectedPlayer.id} className="id-card-wrapper">
-                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative p-4 font-sans">
+                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative p-4 flex flex-col font-sans">
                                 {/* Background Shapes */}
                                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                                     <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
@@ -161,7 +161,7 @@ export default function AiCardsPage() {
                                                 <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
                                             </div>
                                              
-                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={48} height={48} className="rounded-md" data-ai-hint="league logo" />
+                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
                                              
                                              {/* Jersey Number */}
                                              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
@@ -205,7 +205,6 @@ export default function AiCardsPage() {
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                overflow: visible !important;
             }
             .id-card-wrapper > div {
                 height: 10cm !important; /* Forces a fixed height for printing */
@@ -220,3 +219,4 @@ export default function AiCardsPage() {
     </div>
   );
 }
+
