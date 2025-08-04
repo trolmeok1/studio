@@ -7,10 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { players, teams, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
-import { Download, Trophy } from 'lucide-react';
+import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import type { Player } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 // Function to fetch image as Base64 data URI
 const toDataURL = (url: string): Promise<string> => fetch(url)
@@ -132,62 +131,71 @@ export default function AiCardsPage() {
 
 
         // --- Player Photo ---
+        const photoSize = 32;
+        const photoX = x + (cardWidthMM - photoSize) / 2;
+        const photoY = y + 15;
+        pdf.setDrawColor('#FFA500'); // Orange border
+        pdf.setLineWidth(1);
+        // Draw circle border first
+        pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 'S');
+        
         try {
             const playerPhotoBase64 = await toDataURL(player.photoUrl);
-            pdf.addImage(playerPhotoBase64, 'PNG', x + (cardWidthMM - 35) / 2, y + 15, 35, 35);
+            pdf.saveGraphicsState();
+            pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, (photoSize-0.5) / 2);
+            pdf.clip();
+            pdf.addImage(playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
+            pdf.restoreGraphicsState();
         } catch (error) {
             console.error('Error loading player photo:', error);
             pdf.setFillColor('#CCCCCC');
-            pdf.rect(x + (cardWidthMM - 35) / 2, y + 15, 35, 35, 'F');
+            pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 'F');
         }
-        
-        pdf.setDrawColor('#FFA500'); // Orange border
-        pdf.setLineWidth(1);
-        pdf.rect(x + (cardWidthMM - 35) / 2, y + 15, 35, 35, 'S');
 
 
         // --- Player Info ---
+        const infoY = photoY + photoSize + 8;
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFA500'); // Orange color for name
-        pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, y + 58, { align: 'center', maxWidth: cardWidthMM - 10 });
+        pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
         
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor('#FFFFFF');
-        pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, y + 64, { align: 'center' });
-        pdf.text(player.idNumber, x + cardWidthMM / 2, y + 68, { align: 'center' });
+        pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+        pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 10, { align: 'center' });
         pdf.setFont('helvetica', 'bold');
-        pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, y + 72, { align: 'center' });
+        pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 14, { align: 'center' });
 
         // --- Footer Elements ---
-        const footerY = y + 76;
-        const footerItemSize = 16;
+        const footerY = y + cardHeightMM - 22;
+        const itemSize = 16;
         
         // QR Code
+        const qrX = x + 5;
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
         try {
             const qrCodeBase64 = await toDataURL(qrCodeUrl);
             pdf.setFillColor('#FFFFFF');
-            pdf.rect(x + 5, footerY, footerItemSize, footerItemSize, 'F'); // White background for QR
-            pdf.addImage(qrCodeBase64, 'PNG', x + 5.5, footerY + 0.5, footerItemSize - 1, footerItemSize - 1);
+            pdf.roundedRect(qrX, footerY, itemSize, itemSize, 1, 1, 'F');
+            pdf.addImage(qrCodeBase64, 'PNG', qrX + 1, footerY + 1, itemSize - 2, itemSize - 2);
         } catch (error) {
             console.error('Error loading QR code:', error);
         }
 
         // League Logo
         if (leagueLogoBase64) {
-             const logoX = x + (cardWidthMM - footerItemSize) / 2;
-             pdf.addImage(leagueLogoBase64, 'PNG', logoX, footerY, footerItemSize, footerItemSize);
+             const logoX = x + (cardWidthMM - itemSize) / 2;
+             pdf.addImage(leagueLogoBase64, 'PNG', logoX, footerY, itemSize, itemSize);
         }
 
         // Jersey Number
-        const jerseyX = x + cardWidthMM - 10;
-        const jerseyY = footerY + (footerItemSize / 2);
-        pdf.setFontSize(16);
+        const jerseyX = x + cardWidthMM - itemSize - 5;
+        pdf.setFontSize(18);
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor('#9400D3'); // Vivid Violet for a "neon" effect
-        pdf.text(player.jerseyNumber.toString(), jerseyX, jerseyY, { align: 'center', baseline: 'middle' });
+        pdf.setTextColor('#9400D3'); 
+        pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize/2, footerY + itemSize/2, { align: 'center', baseline: 'middle' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
