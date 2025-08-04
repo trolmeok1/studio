@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -37,7 +38,7 @@ export default function TeamsPage() {
   const { user } = useAuth();
   const canEdit = user.role === 'admin';
 
-  const [teams, setTeams] = useState<Team[]>(initialTeams);
+  const [teams, setTeams] = useState<Team[]>(initialTeams.filter(t => t.category !== 'Copa'));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTeam, setNewTeam] = useState<{
     name: string;
@@ -125,7 +126,6 @@ export default function TeamsPage() {
                                 <SelectItem value="Máxima">Máxima</SelectItem>
                                 <SelectItem value="Primera">Primera</SelectItem>
                                 <SelectItem value="Segunda">Segunda</SelectItem>
-                                <SelectItem value="Copa">Copa</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

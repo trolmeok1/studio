@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { cn } from '@/lib/utils';
 
-const categories: Category[] = ['Máxima', 'Primera', 'Segunda', 'Copa'];
+const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
 export default function PlayersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,7 +59,7 @@ export default function PlayersPage() {
       </div>
 
        <Tabs defaultValue={categories[0]} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
             {categories.map(cat => (
                  <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
             ))}
@@ -92,7 +94,9 @@ export default function PlayersPage() {
                                                   />
                                                   <div className="ml-4 flex-grow">
                                                       <p className="font-semibold">{player.name}</p>
-                                                      <p className="text-sm text-muted-foreground">{player.team}</p>
+                                                      <Badge variant={player.status === 'activo' ? 'default' : 'secondary'} className={cn(player.status === 'activo' ? 'bg-green-600' : 'bg-yellow-600')}>
+                                                        {player.status === 'activo' ? 'Aprobado' : 'Inactivo'}
+                                                      </Badge>
                                                   </div>
                                                   <div className="bg-primary text-primary-foreground h-12 w-16 flex items-center justify-center rounded-md">
                                                       <span className="text-2xl font-bold">{player.jerseyNumber}</span>

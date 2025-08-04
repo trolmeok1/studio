@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type PlayerPosition, type Person, type Match } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type PlayerPosition, type Person, type Match, updatePlayerStatus } from '@/lib/mock-data';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer, Pencil, List, LayoutGrid, Hand, Trophy, Check, X } from 'lucide-react';
+import { PlusCircle, Users, Calendar, BarChart2, ShieldAlert, BadgeInfo, Building, CalendarClock, UserSquare, AlertTriangle, DollarSign, Upload, FileText, Phone, User as UserIcon, Printer, Pencil, List, LayoutGrid, Hand, Trophy, Check, X, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -23,12 +23,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 const initialNewPlayerState: Omit<Player, 'id' | 'team' | 'teamId' | 'category' | 'stats'> = {
     name: '',
@@ -42,7 +42,8 @@ const initialNewPlayerState: Omit<Player, 'id' | 'team' | 'teamId' | 'category' 
 };
 
 
-const PlayerCard = ({ player: initialPlayer, onSave }: { player: Player, onSave: (player: Player) => void }) => {
+const PlayerCard = ({ player: initialPlayer, onSave, onStatusChange }: { player: Player, onSave: (player: Player) => void, onStatusChange: (playerId: string, status: 'activo' | 'inactivo') => void }) => {
+    const { toast } = useToast();
     const [player, setPlayer] = useState(initialPlayer);
     const [isEditing, setIsEditing] = useState(false);
     
@@ -51,19 +52,30 @@ const PlayerCard = ({ player: initialPlayer, onSave }: { player: Player, onSave:
     };
 
     const handleNameChange = (part: 'first' | 'last', value: string) => {
-        const currentName = player.name.split(' ');
-        const firstName = part === 'first' ? value : currentName[0];
-        const lastName = part === 'last' ? value : currentName.slice(1).join(' ');
-        setPlayer(prev => ({ ...prev, name: `${firstName} ${lastName}`}));
+        const currentNameParts = player.name.split(' ');
+        const firstName = part === 'first' ? value : currentNameParts[0] || '';
+        const lastName = part === 'last' ? value : currentNameParts.slice(1).join(' ');
+        setPlayer(prev => ({ ...prev, name: `${firstName} ${lastName}`.trim() }));
     }
 
     const handleSave = () => {
         onSave(player);
         setIsEditing(false);
+        toast({ title: 'Jugador Guardado', description: `Los datos de ${player.name} se han actualizado.`});
+    }
+
+    const handleStatusToggle = (checked: boolean) => {
+        const newStatus = checked ? 'activo' : 'inactivo';
+        setPlayer(prev => ({ ...prev, status: newStatus }));
+        onStatusChange(player.id, newStatus);
+        toast({ 
+            title: `Estado de ${player.name} actualizado`,
+            description: `El jugador ahora está ${newStatus}.`,
+        });
     }
     
     const getLastName = (name: string) => name.split(' ').slice(1).join(' ');
-    const getFirstName = (name: string) => name.split(' ')[0];
+    const getFirstName = (name: string) => name.split(' ')[0] || '';
 
     return (
         <Card className="p-4 border-l-4 border-primary bg-background">
@@ -140,12 +152,21 @@ const PlayerCard = ({ player: initialPlayer, onSave }: { player: Player, onSave:
                         </div>
                     </div>
                 </div>
+                 <div className="flex items-center justify-between mt-4 col-span-full">
+                     <div className="flex items-center space-x-2">
+                        <Switch id={`status-${player.id}`} checked={player.status === 'activo'} onCheckedChange={handleStatusToggle} />
+                        <Label htmlFor={`status-${player.id}`} className={cn("font-semibold", player.status === 'activo' ? 'text-green-600' : 'text-red-600')}>
+                            {player.status === 'activo' ? 'Aprobado' : 'No Aprobado'}
+                        </Label>
+                    </div>
+                    {isEditing && (
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => { setPlayer(initialPlayer); setIsEditing(false); }}>Cancelar</Button>
+                            <Button onClick={handleSave} size="sm"><Check className="mr-2"/> Guardar Cambios</Button>
+                        </div>
+                    )}
+                 </div>
             </div>
-            {isEditing && (
-                <div className="mt-4 flex justify-end">
-                    <Button onClick={handleSave} size="sm"><Check className="mr-2"/> Guardar Cambios</Button>
-                </div>
-            )}
         </Card>
     )
 }
@@ -425,6 +446,11 @@ export default function TeamDetailsPage() {
     });
   };
 
+  const handlePlayerStatusChange = (playerId: string, status: 'activo' | 'inactivo') => {
+      updatePlayerStatus(playerId, status);
+      setPlayers(getPlayersByTeamId(teamId));
+  }
+
   if (!team || !isClient) {
     return <div>Cargando...</div>;
   }
@@ -600,7 +626,7 @@ export default function TeamDetailsPage() {
                     ) : (
                         <div className="space-y-4">
                             {players.map(player => (
-                                <PlayerCard key={player.id} player={player} onSave={handleSavePlayer} />
+                                <PlayerCard key={player.id} player={player} onSave={handleSavePlayer} onStatusChange={handlePlayerStatusChange} />
                             ))}
                         </div>
                     )}

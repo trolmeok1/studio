@@ -306,6 +306,13 @@ export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number
     }
 };
 
+export const updatePlayerStatus = (playerId: string, status: 'activo' | 'inactivo') => {
+    const playerIndex = players.findIndex(p => p.id === playerId);
+    if (playerIndex !== -1) {
+        players[playerIndex].status = status;
+    }
+};
+
 export const systemLogs: LogEntry[] = [
     {
         id: 'log1',
