@@ -3,6 +3,7 @@
 
 import { Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export default function LoadingScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -10,7 +11,7 @@ export default function LoadingScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsFadingOut(true);
-    }, 2500); // Start fade out 500ms before removing
+    }, 9500); // Start fade out 500ms before removing
 
     return () => clearTimeout(timer);
   }, []);
@@ -18,9 +19,14 @@ export default function LoadingScreen() {
   return (
     <div className={`fixed inset-0 bg-background z-[200] flex items-center justify-center transition-opacity duration-500 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
       <div className="text-center animate-pulse">
-        <div className="mx-auto h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-          <Trophy className="h-16 w-16 text-primary" />
-        </div>
+        <Image
+            src="https://placehold.co/200x200.png"
+            alt="Logo de la Liga"
+            width={128}
+            height={128}
+            className="mx-auto mb-4 rounded-full"
+            data-ai-hint="league logo"
+        />
         <h1 className="text-4xl font-bold text-primary font-headline">
           Control Liga
         </h1>
