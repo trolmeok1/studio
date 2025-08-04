@@ -148,6 +148,42 @@ const MatchesTab = ({ teamId, matches }: { teamId: string, matches: Match[] }) =
     </Card>
 );
 
+const SanctionsTab = ({ sanctions }: { sanctions: Sanction[] }) => (
+    <Card>
+        <CardHeader>
+            <CardTitle>Sanciones y Suspensiones</CardTitle>
+            <CardDescription>Registro disciplinario de los jugadores del equipo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Jugador</TableHead>
+                        <TableHead>Motivo</TableHead>
+                        <TableHead className="text-center">Partidos Suspendido</TableHead>
+                        <TableHead>Fecha</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sanctions.length > 0 ? sanctions.map(sanction => (
+                        <TableRow key={sanction.id}>
+                            <TableCell className="font-medium">{sanction.playerName}</TableCell>
+                            <TableCell>{sanction.reason}</TableCell>
+                            <TableCell className="text-center">{sanction.gamesSuspended}</TableCell>
+                            <TableCell>{format(new Date(sanction.date), 'dd/MM/yyyy')}</TableCell>
+                        </TableRow>
+                    )) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-center h-24">No hay sanciones registradas para este equipo.</TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </CardContent>
+    </Card>
+);
+
+
 const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
      <Card>
         <CardHeader>
@@ -241,6 +277,7 @@ export function TeamDetailsClient({
         <TabsList>
           <TabsTrigger value="roster"><Users className="mr-2" />Plantilla</TabsTrigger>
           <TabsTrigger value="matches"><Calendar className="mr-2" />Partidos</TabsTrigger>
+          <TabsTrigger value="sanctions"><ShieldAlert className="mr-2" />Sanciones</TabsTrigger>
           <TabsTrigger value="finances"><DollarSign className="mr-2" />Finanzas</TabsTrigger>
         </TabsList>
         <TabsContent value="roster" className="mt-4">
@@ -248,6 +285,9 @@ export function TeamDetailsClient({
         </TabsContent>
         <TabsContent value="matches" className="mt-4">
             <MatchesTab teamId={team.id} matches={matches} />
+        </TabsContent>
+        <TabsContent value="sanctions" className="mt-4">
+          <SanctionsTab sanctions={teamSanctions} />
         </TabsContent>
         <TabsContent value="finances" className="mt-4">
             <FinanceTab vocalPayments={vocalPayments} />
