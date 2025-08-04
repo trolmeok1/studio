@@ -566,7 +566,6 @@ export default function SchedulePage() {
                         const timeParts = time.split(':');
                         const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
                         
-                        // New dressing room logic
                         const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
                         const pairIndex = dressingRoomCounter % numDressingRoomPairs;
                         const homeDressingRoom = pairIndex * 2 + 1;
@@ -586,10 +585,9 @@ export default function SchedulePage() {
                      }
                 }
             }
-            if (roundMatches.length === 0) {
-               break; 
+            if (roundMatches.length > 0) {
+               currentDate = addDays(currentDate, 1);
             }
-            currentDate = addDays(currentDate, 1);
         }
     }
 
@@ -833,5 +831,6 @@ export default function SchedulePage() {
     
 
   
+
 
 

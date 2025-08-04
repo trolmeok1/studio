@@ -1,6 +1,7 @@
 
 
 
+
 export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -87,6 +88,10 @@ export interface Match {
         away: number;
     };
     events: MatchEvent[];
+    refereeName?: string;
+    vocalName?: string;
+    field?: number;
+    vocalTeam?: Team;
 }
 
 export interface GeneratedMatch {
@@ -94,7 +99,7 @@ export interface GeneratedMatch {
     away: string; // teamId
     category: Category;
     group?: 'A' | 'B';
-    leg?: 'Ida' | 'Vuelta';
+    leg?: 'Ida' | 'Vuelta' | 'Semifinal' | 'Final';
     date?: Date;
     time?: string;
     field?: number;

@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle } from 'lucide-react';
+import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User } from 'lucide-react';
 import Image from 'next/image';
 import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
@@ -276,7 +276,6 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
     
-    // Internal state to manage events locally before saving
     const [events, setEvents] = useState<MatchEvent[]>(match?.events || []);
 
     useEffect(() => {
@@ -380,18 +379,9 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         }
     }
 
-    const handleMatchDataChange = (teamKey: 'home' | 'away', field: keyof MatchTeam, value: any) => {
+    const handleMatchDataChange = (field: keyof Match, value: any) => {
         if(!match) return;
-        const updatedMatch = {
-            ...match,
-            teams: {
-                ...match.teams,
-                [teamKey]: {
-                    ...match.teams[teamKey],
-                    [field]: value
-                }
-            }
-        };
+        const updatedMatch = { ...match, [field]: value };
         onUpdateMatch(updatedMatch);
     }
     
@@ -410,7 +400,10 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const handleVocalPaymentChange = (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: string | number) => {
         if (!match) return;
         
-        const currentPayment = match.teams[teamKey].vocalPaymentDetails || initialMatchData.teamA.vocalPaymentDetails;
+        const teamDetails = match.teams[teamKey];
+        if (!teamDetails.vocalPaymentDetails) return;
+        
+        const currentPayment = teamDetails.vocalPaymentDetails;
         const updatedPayment = { ...currentPayment, [field]: value };
         
         const total = 
@@ -419,8 +412,20 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             (typeof updatedPayment.yellowCardFine === 'number' ? updatedPayment.yellowCardFine : 0) + 
             (typeof updatedPayment.redCardFine === 'number' ? updatedPayment.redCardFine : 0) + 
             (typeof updatedPayment.otherFines === 'number' ? updatedPayment.otherFines : 0);
-            
-        handleMatchDataChange(teamKey, 'vocalPaymentDetails', { ...updatedPayment, total });
+        
+        const updatedTeamDetails = {
+            ...teamDetails,
+            vocalPaymentDetails: { ...updatedPayment, total }
+        };
+
+        const updatedMatch = {
+            ...match,
+            teams: {
+                ...match.teams,
+                [teamKey]: updatedTeamDetails
+            }
+        };
+        onUpdateMatch(updatedMatch);
     }
     
     const handleSaveResult = () => {
@@ -516,18 +521,31 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             <CardContent className="p-0 grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left side: Event entry */}
                 <div className="space-y-4">
-                    <h3 className="text-xl font-bold">Registro de Eventos</h3>
+                    <h3 className="text-xl font-bold">Registro de Eventos y Datos</h3>
                     
-                    <div>
-                         <Label>Evidencia de Vocalía Física</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Input type="file" className="flex-grow" disabled={!canEdit} />
-                            <Button variant="outline" disabled={!canEdit}><Upload className="mr-2" /> Subir</Button>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                             <Label>Nombre del Árbitro (Opcional)</Label>
+                             <Input 
+                                placeholder="Ej: Juan Pérez"
+                                value={match.refereeName || ''}
+                                onChange={(e) => handleMatchDataChange('refereeName', e.target.value)}
+                                disabled={!canEdit}
+                            />
+                         </div>
+                          <div>
+                             <Label>Vocal de Turno</Label>
+                             <Input 
+                                placeholder="Ej: Carlos Rivas"
+                                value={match.vocalName || ''}
+                                onChange={(e) => handleMatchDataChange('vocalName', e.target.value)}
+                                disabled={!canEdit}
+                            />
+                         </div>
                     </div>
                     
                     <div>
-                        <Label>Buscar Jugador</Label>
+                        <Label>Buscar Jugador para Evento</Label>
                          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-1">
                              <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''} disabled={!canEdit}>
                                 <SelectTrigger className="md:col-span-2">
@@ -585,7 +603,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.home ?? 0} onChange={(e) => handleScoreChange('home', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamA-attended" checked={match.teams.home.attended} onCheckedChange={(checked) => handleMatchDataChange('home', 'attended', checked)} disabled={!canEdit}/>
+                                 <Switch id="teamA-attended" checked={match.teams.home.attended} onCheckedChange={(checked) => onUpdateMatch({...match, teams: {...match.teams, home: {...match.teams.home, attended: checked}}})} disabled={!canEdit}/>
                                  <Label htmlFor="teamA-attended">Se Presentó</Label>
                                </div>
                                <VocalPaymentDetailsInputs teamKey="home" />
@@ -597,7 +615,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.away ?? 0} onChange={(e) => handleScoreChange('away', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamB-attended" checked={match.teams.away.attended} onCheckedChange={(checked) => handleMatchDataChange('away', 'attended', checked)} disabled={!canEdit}/>
+                                 <Switch id="teamB-attended" checked={match.teams.away.attended} onCheckedChange={(checked) => onUpdateMatch({...match, teams: {...match.teams, away: {...match.teams.away, attended: checked}}})} disabled={!canEdit}/>
                                  <Label htmlFor="teamB-attended">Se Presentó</Label>
                                </div>
                                <VocalPaymentDetailsInputs teamKey="away" />
@@ -668,14 +686,14 @@ export default function CommitteesPage() {
 
   const handleUpdateMatch = (updatedMatch: Match) => {
     updateMatchData(updatedMatch);
-    // Force a re-render by setting the selected match again
-    setSelectedMatchId(updatedMatch.id);
+    setSelectedMatchId(null);
+    setTimeout(() => setSelectedMatchId(updatedMatch.id), 0);
   }
   
   const handleFinishMatch = (matchId: string) => {
     setMatchAsFinished(matchId);
-    // Force a re-render by setting the selected match again
-    setSelectedMatchId(matchId);
+    setSelectedMatchId(null);
+    setTimeout(() => setSelectedMatchId(matchId), 0);
   }
 
   const selectedMatch = useMemo(() => {
@@ -839,3 +857,4 @@ export default function CommitteesPage() {
     </div>
   );
 }
+

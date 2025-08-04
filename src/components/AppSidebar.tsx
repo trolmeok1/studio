@@ -104,10 +104,10 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>}
            {permissions.partido.view && <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/partido')} tooltip="Partido">
+            <SidebarMenuButton asChild isActive={isActive('/partido')} tooltip="Resultados">
                 <Link href="/partido">
-                    <Swords />
-                    <span>Partido</span>
+                    <ClipboardList />
+                    <span>Resultados</span>
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>}
@@ -160,7 +160,7 @@ export function AppSidebar() {
                  <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive('/requests')} tooltip="Solicitudes">
                       <Link href="/requests/requalification">
-                          <ClipboardList />
+                          <UserCheck />
                           <span>Solicitudes</span>
                       </Link>
                   </SidebarMenuButton>
@@ -277,7 +277,7 @@ export function BottomNavbar() {
       { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
       { href: '/players', icon: Users, label: 'Jugadores', permission: permissions.players.view },
       { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
-      { href: '/partido', icon: Swords, label: 'Partidos', permission: permissions.partido.view },
+      { href: '/partido', icon: ClipboardList, label: 'Resultados', permission: permissions.partido.view },
       { href: '/copa', icon: Trophy, label: 'Copa', permission: permissions.copa.view },
     ].filter(item => item.permission);
 
@@ -297,3 +297,4 @@ export function BottomNavbar() {
         </div>
     );
 }
+

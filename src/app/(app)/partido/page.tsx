@@ -1,16 +1,23 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { upcomingMatches as allMatches, type Match, type Team, getTeamsByCategory, type GeneratedMatch } from '@/lib/mock-data';
+import { upcomingMatches as allMatches, type Match, type Team, getTeamsByCategory, standings as mockStandings, type Standing, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Goal } from 'lucide-react';
-
+import { Goal, User, Home, Calendar as CalendarIcon, Users as UsersIcon, Shield } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const MatchCard = ({ match }: { match: Match }) => {
     const [isClient, setIsClient] = useState(false);
@@ -19,102 +26,149 @@ const MatchCard = ({ match }: { match: Match }) => {
         setIsClient(true);
     }, []);
 
-    const getStatusBadge = () => {
-        if (!isClient) return null;
-        switch (match.status) {
-            case 'finished':
-                return <Badge variant="secondary" className="bg-green-600/80 text-white">Finalizado</Badge>;
-            case 'in-progress':
-                return <Badge variant="default" className="bg-blue-500 animate-pulse">Jugando ahora</Badge>;
-            case 'future':
-                 return <Badge variant="outline">{new Date(match.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</Badge>;
-            default:
-                return null;
-        }
-    };
-    
     const goalScorersHome = match.events.filter(e => e.event === 'goal' && e.teamName === match.teams.home.name);
     const goalScorersAway = match.events.filter(e => e.event === 'goal' && e.teamName === match.teams.away.name);
 
-
     return (
-        <Card className="hover:bg-muted/50 transition-colors">
-            <Link href={`/teams/${match.teams.home.id}`}>
-                <CardContent className="p-4 flex items-center justify-between cursor-pointer">
-                    <div className="flex items-center gap-3 w-2/5 justify-end">
-                        <span className="font-bold text-right truncate">{match.teams.home.name}</span>
-                        <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col" neon="blue">
+            <CardHeader className="p-2 bg-muted/50 text-center text-sm font-bold">
+                <div className="flex justify-center items-center gap-2">
+                    <span>{isClient ? new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long'}) : ''}</span>
+                </div>
+            </CardHeader>
+            <CardContent className="p-4 flex-grow">
+                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div className="flex flex-col items-center text-center gap-2">
+                        <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
+                        <h3 className="font-bold text-lg">{match.teams.home.name}</h3>
                     </div>
+                    <div className="flex flex-col items-center">
+                        <p className="text-4xl font-bold">{match.score?.home} - {match.score?.away}</p>
+                        <Badge variant="secondary" className="bg-green-600/80 text-white mt-1">Finalizado</Badge>
+                    </div>
+                    <div className="flex flex-col items-center text-center gap-2">
+                        <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
+                        <h3 className="font-bold text-lg">{match.teams.away.name}</h3>
+                    </div>
+                </div>
 
-                    <div className="text-center w-1/5">
-                        {match.status === 'finished' ? (
-                            <div className="text-2xl font-bold">
-                                <span>{match.score?.home}</span>
-                                <span className="mx-2">-</span>
-                                <span>{match.score?.away}</span>
-                            </div>
-                        ) : (
-                            <span className="text-xl font-light text-muted-foreground">VS</span>
-                        )}
-                        {getStatusBadge()}
-                    </div>
-
-                    <div className="flex items-center gap-3 w-2/5">
-                        <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold truncate">{match.teams.away.name}</span>
-                    </div>
-                </CardContent>
-            </Link>
-             {match.status === 'finished' && (goalScorersHome.length > 0 || goalScorersAway.length > 0) && (
-                <div className="p-4 border-t grid grid-cols-2 gap-4 text-xs">
+                <div className="p-4 mt-4 border-t grid grid-cols-2 gap-4 text-xs">
                     <div>
                         <h4 className="font-semibold mb-2">Goles de {match.teams.home.name}</h4>
                         <ul className="space-y-1">
-                            {goalScorersHome.map(event => (
+                            {goalScorersHome.length > 0 ? goalScorersHome.map(event => (
                                 <li key={event.id} className="flex items-center gap-2">
                                     <Goal className="h-4 w-4 text-primary" />
                                     <span>{event.playerName}</span>
                                 </li>
-                            ))}
+                            )) : <li className="text-muted-foreground">Sin goles</li>}
                         </ul>
                     </div>
                      <div>
                         <h4 className="font-semibold mb-2">Goles de {match.teams.away.name}</h4>
                         <ul className="space-y-1">
-                            {goalScorersAway.map(event => (
+                             {goalScorersAway.length > 0 ? goalScorersAway.map(event => (
                                 <li key={event.id} className="flex items-center gap-2">
                                     <Goal className="h-4 w-4 text-primary" />
                                     <span>{event.playerName}</span>
                                 </li>
-                            ))}
+                            )) : <li className="text-muted-foreground">Sin goles</li>}
                         </ul>
                     </div>
                 </div>
-            )}
+            </CardContent>
+             <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground"><CalendarIcon className="w-4 h-4" /> <span className="font-semibold">Fecha:</span> {isClient ? new Date(match.date).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'}) : ''}</div>
+                <div className="flex items-center gap-2 text-muted-foreground"><User className="w-4 h-4" /> <span className="font-semibold">Vocalía:</span> {match.vocalTeam?.name || 'N/A'}</div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Shield className="w-4 h-4" /> <span className="font-semibold">Cancha:</span> {match.field || 'N/A'}</div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Home className="w-4 h-4" /> <span className="font-semibold">Camerinos:</span> {match.teams.home.vocalPaymentDetails?.otherFinesDescription}/{match.teams.away.vocalPaymentDetails?.otherFinesDescription}</div>
+             </CardFooter>
+        </Card>
+    );
+};
+
+const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B' }) => {
+    const standings = useMemo(() => {
+        const filteredStandings = mockStandings.filter(s => {
+            const team = getTeamsByCategory(category, group).find(t => t.id === s.teamId);
+            return !!team;
+        });
+
+        return filteredStandings
+            .sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                const gdA = a.goalsFor - a.goalsAgainst;
+                const gdB = b.goalsFor - b.goalsAgainst;
+                return gdB - gdA;
+            })
+            .map((s, index) => ({ ...s, rank: index + 1 }));
+    }, [category, group]);
+
+    return (
+        <Card neon="blue">
+            <CardHeader>
+                <CardTitle>
+                    Tabla de Posiciones - {category} {group ? `- Grupo ${group}` : ''}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[40px]">#</TableHead>
+                            <TableHead>Equipo</TableHead>
+                            <TableHead className="text-center">PJ</TableHead>
+                            <TableHead className="text-center">G</TableHead>
+                            <TableHead className="text-center">E</TableHead>
+                            <TableHead className="text-center">P</TableHead>
+                            <TableHead className="text-center">GF</TableHead>
+                            <TableHead className="text-center">GC</TableHead>
+                            <TableHead className="text-center">GD</TableHead>
+                            <TableHead className="text-center font-bold">PTS</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {standings.map((s) => (
+                            <TableRow key={s.teamId}>
+                                <TableCell className="font-bold">{s.rank}</TableCell>
+                                <TableCell>
+                                    <Link href={`/teams/${s.teamId}`} className="flex items-center gap-3 hover:text-primary">
+                                        <Image
+                                            src={getTeamsByCategory(category, group).find(t => t.id === s.teamId)?.logoUrl || ''}
+                                            alt={s.teamName}
+                                            width={24}
+                                            height={24}
+                                            className="rounded-full"
+                                            data-ai-hint="team logo"
+                                        />
+                                        <span className="font-medium">{s.teamName}</span>
+                                    </Link>
+                                </TableCell>
+                                <TableCell className="text-center">{s.played}</TableCell>
+                                <TableCell className="text-center">{s.wins}</TableCell>
+                                <TableCell className="text-center">{s.draws}</TableCell>
+                                <TableCell className="text-center">{s.losses}</TableCell>
+                                <TableCell className="text-center">{s.goalsFor}</TableCell>
+                                <TableCell className="text-center">{s.goalsAgainst}</TableCell>
+                                <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
+                                <TableCell className="text-center font-bold">{s.points}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
         </Card>
     );
 };
 
 
 export default function PartidoPage() {
-    const [groupedFutureMatches, setGroupedFutureMatches] = useState<Record<string, Match[]>>({});
     const [groupedPastMatches, setGroupedPastMatches] = useState<Record<string, Match[]>>({});
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
-        
-        const futureMatches = allMatches.filter(m => m.status === 'future' || m.status === 'in-progress').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         const pastMatches = allMatches.filter(m => m.status === 'finished').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        const groupFuture = futureMatches.reduce((acc, match) => {
-            const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            if (!acc[date]) {
-                acc[date] = [];
-            }
-            acc[date].push(match);
-            return acc;
-        }, {} as Record<string, Match[]>);
         
         const groupPast = pastMatches.reduce((acc, match) => {
             const date = new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -125,12 +179,11 @@ export default function PartidoPage() {
             return acc;
         }, {} as Record<string, Match[]>);
 
-        setGroupedFutureMatches(groupFuture);
         setGroupedPastMatches(groupPast);
     }, []);
 
     if (!isClient) {
-        return null; // or a loading spinner
+        return null;
     }
 
   return (
@@ -138,32 +191,22 @@ export default function PartidoPage() {
         <div className="text-center">
             <h2 className="text-4xl font-extrabold tracking-tight">
               <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
-                Partidos y Resultados
+                Resultados y Posiciones
               </span>
             </h2>
         </div>
-        <Tabs defaultValue="future">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="future">Partidos Futuros</TabsTrigger>
+        <Tabs defaultValue="results">
+            <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="results">Resultados</TabsTrigger>
+                <TabsTrigger value="maxima">Posiciones: Máxima</TabsTrigger>
+                <TabsTrigger value="primera">Posiciones: Primera</TabsTrigger>
+                <TabsTrigger value="segunda">Posiciones: Segunda</TabsTrigger>
             </TabsList>
-            <TabsContent value="future" className="space-y-6 mt-6">
-                {Object.keys(groupedFutureMatches).length > 0 ? Object.entries(groupedFutureMatches).map(([date, matchesOnDate]) => (
-                    <div key={date}>
-                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
-                        <div className="space-y-4">
-                            {matchesOnDate.map(match => <MatchCard key={match.id} match={match} />)}
-                        </div>
-                    </div>
-                )) : (
-                    <p className="text-muted-foreground text-center py-8">No hay partidos futuros programados.</p>
-                )}
-            </TabsContent>
             <TabsContent value="results" className="space-y-6 mt-6">
                  {Object.keys(groupedPastMatches).length > 0 ? Object.entries(groupedPastMatches).map(([date, matchesOnDate]) => (
                     <div key={date}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
-                        <div className="space-y-4">
+                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {matchesOnDate.map(match => <MatchCard key={match.id} match={match} />)}
                         </div>
                     </div>
@@ -171,7 +214,20 @@ export default function PartidoPage() {
                      <p className="text-muted-foreground text-center py-8">Aún no se han registrado resultados.</p>
                 )}
             </TabsContent>
+             <TabsContent value="maxima">
+                <LeagueView category="Máxima" />
+            </TabsContent>
+            <TabsContent value="primera">
+                <LeagueView category="Primera" />
+            </TabsContent>
+            <TabsContent value="segunda" className="space-y-6">
+                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <LeagueView category="Segunda" group="A" />
+                    <LeagueView category="Segunda" group="B" />
+                </div>
+            </TabsContent>
         </Tabs>
     </div>
   );
 }
+
