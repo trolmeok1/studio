@@ -129,65 +129,45 @@ function TopScorersCard() {
   const topFiveScorers = useMemo(() => initialTopScorers.slice(0, 5), []);
 
   return (
-    <Card neon="purple">
-      <CardHeader>
-        <CardTitle className="uppercase">Tabla de Goleadores</CardTitle>
-        <CardDescription>
-          Los 5 máximos anotadores del torneo en todas las categorías.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">#</TableHead>
-              <TableHead>Jugador</TableHead>
-              <TableHead className="text-right">Goles</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+    <Card className="bg-gray-900/70 text-white overflow-hidden" style={{ backgroundImage: `url('/field-bg.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="bg-black/60 backdrop-blur-sm p-6 h-full">
+        <CardHeader className="text-center p-0 mb-4">
+          <CardTitle className="text-4xl font-extrabold tracking-wider uppercase">Goleadores</CardTitle>
+          <CardDescription className="text-white/80">Máximos anotadores del torneo</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="space-y-2">
             {topFiveScorers.map((scorer, index) => (
-              <TableRow key={scorer.playerId}>
-                <TableCell className="font-bold text-lg">
-                  {scorer.rank}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                        <AvatarImage src={scorer.playerPhotoUrl} alt={scorer.playerName} data-ai-hint="player portrait" />
-                        <AvatarFallback>
-                          {scorer.playerName.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <Link href={`/players/${scorer.playerId}`} className="font-medium hover:underline flex items-center gap-2">
-                            <span>{scorer.playerName}</span>
-                            {index === 0 && <Crown className="h-5 w-5 text-amber-400" />}
-                        </Link>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                             <Image
-                                src={teams.find(t => t.id === scorer.teamId)?.logoUrl || `https://placehold.co/100x100.png`}
-                                alt={scorer.teamName}
-                                width={16}
-                                height={16}
-                                className="rounded-full"
-                                data-ai-hint="team logo"
-                            />
-                            <Link href={`/teams/${scorer.teamId}`} className="hover:underline">
-                                <span>{scorer.teamName}</span>
-                            </Link>
-                        </div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-bold text-lg">
+              <div key={scorer.playerId} className="flex items-center bg-white/10 p-2 rounded-md">
+                <div className="w-8 text-center font-bold text-lg">{scorer.rank}</div>
+                <div className="w-10 h-10 flex items-center justify-center">
+                    <Image
+                        src={teams.find(t => t.id === scorer.teamId)?.logoUrl || `https://placehold.co/100x100.png`}
+                        alt={scorer.teamName}
+                        width={28}
+                        height={28}
+                        className="rounded-full"
+                        data-ai-hint="team logo"
+                    />
+                </div>
+                <div className="flex-grow ml-2">
+                  <p className="font-bold flex items-center gap-2">
+                    {scorer.playerName}
+                    {index === 0 && <Crown className="h-5 w-5 text-amber-400" />}
+                  </p>
+                   <p className="text-xs text-white/70">{scorer.teamName}</p>
+                </div>
+                <div className={cn(
+                    "w-16 h-12 flex items-center justify-center rounded-md text-xl font-bold",
+                    index === 0 ? "bg-primary text-primary-foreground" : "bg-white/20"
+                )}>
                   {scorer.goals}
-                </TableCell>
-              </TableRow>
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
-      </CardContent>
+          </div>
+        </CardContent>
+      </div>
     </Card>
   );
 }
@@ -236,7 +216,7 @@ function SanctionsCard() {
                           <ShieldBan className="mr-2" />
                           {sanction.gamesSuspended} Partido(s)
                       </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
+                       <p className="text-xs text-muted-foreground mt-1">
                           Sancionado el: {sanction.formattedDate}
                       </p>
                    </div>
