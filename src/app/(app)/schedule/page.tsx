@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { standings as mockStandings, getTeamsByCategory, Team, Category } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -76,206 +76,6 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
                     <DetailRow icon={UsersIcon} label="Vocalía" value={vocalTeam?.name || 'N/A'} />
                  </div>
             </CardFooter>
-        </Card>
-    );
-};
-
-
-const CategoryMatchCard = ({ match }: { match: GeneratedMatch }) => {
-    const allTeams: Team[] = useMemo(() => [
-        ...getTeamsByCategory('Máxima'),
-        ...getTeamsByCategory('Primera'),
-        ...getTeamsByCategory('Segunda')
-    ], []);
-    const homeTeam = allTeams.find(t => t.id === match.home);
-    const awayTeam = allTeams.find(t => t.id === match.away);
-
-    return (
-        <Link href={`/partido`} className="block group">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer p-0 relative overflow-hidden text-white" neon="blue">
-                <div className="absolute inset-0 flex z-0">
-                    <div className="w-1/2 bg-gray-700"></div>
-                    <div className="w-1/2 bg-red-800 animate-pulse"></div>
-                </div>
-                <CardContent className="p-4 flex items-center justify-between relative z-10">
-                    <div className="flex flex-col items-center gap-2 w-2/5 text-center">
-                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || 'Home'} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm text-center truncate">{homeTeam?.name || match.home}</span>
-                    </div>
-
-                    <div className="text-center w-1/5">
-                        <span className="text-2xl font-bold">VS</span>
-                        <p className="text-xs">{match.time}</p>
-                        <p className="text-xs">{match.date ? format(match.date, 'dd/MM/yy', { locale: es }) : ''}</p>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 w-2/5 text-center">
-                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || 'Away'} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-sm text-center truncate">{awayTeam?.name || 'Away'}</span>
-                    </div>
-                </CardContent>
-            </Card>
-        </Link>
-    );
-};
-
-const CategoryScheduleView = ({ category, generatedMatches }: { category: Category, generatedMatches: GeneratedMatch[] }) => {
-    const [isClient, setIsClient] = useState(false);
-    useEffect(() => { setIsClient(true) }, []);
-
-    const groupedMatchesByRound = useMemo(() => {
-        if (!isClient) return {};
-
-        const categoryMatches = generatedMatches.filter(m => m.category === category && (category !== 'Segunda' || m.group === 'A' || m.group === 'B'));
-        
-        return categoryMatches.reduce((acc, match) => {
-            const roundKey = `Fecha ${match.round || 0}`;
-            if (!acc[roundKey]) {
-                acc[roundKey] = [];
-            }
-            acc[roundKey].push(match);
-            return acc;
-        }, {} as Record<string, GeneratedMatch[]>);
-    }, [generatedMatches, category, isClient]);
-
-    if (generatedMatches.length === 0) {
-        return <p className="text-muted-foreground text-center py-8">Genere el calendario para ver los partidos de esta categoría.</p>
-    }
-
-    return (
-        <div className="space-y-6 mt-4">
-            {Object.entries(groupedMatchesByRound)
-                .sort(([roundA], [roundB]) => parseInt(roundA.split(' ')[1]) - parseInt(roundB.split(' ')[1]))
-                .map(([round, matches]) => (
-                    <div key={round}>
-                        <h3 className="text-xl font-bold mb-3">{round}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {matches
-                                .sort((a,b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0))
-                                .map((match, index) => <CategoryMatchCard key={index} match={match} />)
-                            }
-                        </div>
-                    </div>
-            ))}
-        </div>
-    );
-};
-
-
-const LeagueView = ({ category, generatedMatches }: { category: Category, generatedMatches: GeneratedMatch[] }) => {
-    const [teams, setTeams] = useState<Team[]>([]);
-    
-    useEffect(() => {
-        const categoryTeams = getTeamsByCategory(category);
-        setTeams(categoryTeams);
-    }, [category]);
-    
-    const isGrouped = category === 'Segunda' && teams.length >= 16;
-    const groups: (('A' | 'B') | undefined)[] = isGrouped ? ['A', 'B'] : [undefined];
-
-    const standings = useMemo(() => {
-        if (teams.length === 0) return [];
-        
-        return groups.map(group => {
-            const groupTeams = teams.filter(t => isGrouped ? t.group === group : true);
-            const categoryStandings = [...mockStandings].filter(s => groupTeams.some(t => t.id === s.teamId));
-
-            const teamsWithLogos = categoryStandings.map(s => {
-                const teamData = groupTeams.find(t => t.id === s.teamId);
-                return {
-                    ...s,
-                    teamLogoUrl: teamData?.logoUrl || 'https://placehold.co/100x100.png',
-                    group: teamData?.group
-                };
-            });
-            return {
-                group,
-                standings: teamsWithLogos.sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
-            };
-        });
-        
-    }, [teams, groups, isGrouped]);
-    
-    const [isClient, setIsClient] = useState(false);
-    useEffect(() => { setIsClient(true) }, []);
-
-
-    if(teams.length === 0) {
-         return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Torneo {category}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">No hay equipos registrados en esta categoría.</p>
-                </CardContent>
-             </Card>
-         )
-    }
-
-    return (
-        <Card neon="blue">
-            <CardHeader className="flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Torneo {category}</CardTitle>
-                    <CardDescription>Partidos de ida y vuelta. Los dos primeros de cada grupo (si aplica) o de la tabla general clasifican a la siguiente fase.</CardDescription>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Tabs defaultValue='schedule'>
-                     <TabsList>
-                        <TabsTrigger value="schedule">Calendario de Partidos</TabsTrigger>
-                        <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="schedule">
-                         <CategoryScheduleView category={category} generatedMatches={generatedMatches} />
-                    </TabsContent>
-                    <TabsContent value="standings">
-                        {standings.map(({ group, standings: groupStandings }) => (
-                            <div key={group || 'general'} className="mt-4">
-                                {isGrouped && <h3 className="text-xl font-bold mb-2">Grupo {group}</h3>}
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[50px]">#</TableHead>
-                                            <TableHead>Equipo</TableHead>
-                                            <TableHead className="text-center">PJ</TableHead>
-                                            <TableHead className="text-center">G</TableHead>
-                                            <TableHead className="text-center">E</TableHead>
-                                            <TableHead className="text-center">P</TableHead>
-                                            <TableHead className="text-center">GF</TableHead>
-                                            <TableHead className="text-center">GC</TableHead>
-                                            <TableHead className="text-center">GD</TableHead>
-                                            <TableHead className="text-center">PTS</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {groupStandings.map((s, index) => (
-                                            <TableRow key={s.teamId} className={index < 2 ? 'bg-primary/10' : ''}>
-                                                <TableCell className="font-bold">{index + 1}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-3">
-                                                        <Image src={s.teamLogoUrl} alt={s.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                                        <span>{s.teamName}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">{s.played}</TableCell>
-                                                <TableCell className="text-center">{s.wins}</TableCell>
-                                                <TableCell className="text-center">{s.draws}</TableCell>
-                                                <TableCell className="text-center">{s.losses}</TableCell>
-                                                <TableCell className="text-center">{s.goalsFor}</TableCell>
-                                                <TableCell className="text-center">{s.goalsAgainst}</TableCell>
-                                                <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
-                                                <TableCell className="text-center font-bold">{s.points}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ))}
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
         </Card>
     );
 };
@@ -744,47 +544,50 @@ export default function SchedulePage() {
     const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
+    let dressingRoomCounter = 0;
+
     for (const round of sortedRounds) {
         let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5); // Shuffle to mix categories
-        let roundScheduled = false;
-        let dressingRoomCounter = 0;
-
-        while(!roundScheduled) {
+        
+        while(roundMatches.length > 0) {
             const dayOfWeek = getDay(currentDate);
             if(settings.gameDays.includes(dayOfWeek)) {
                 for (const time of settings.gameTimes) {
                      if (roundMatches.length === 0) break;
                      
-                     const matchesInSlot = roundMatches.splice(0, settings.numFields);
-                     const teamsPlayingInSlot = new Set(matchesInSlot.flatMap(m => [m.home, m.away]));
-    
-                     const eligibleVocalTeams = allTeamIdsForVocal.filter(id => !teamsPlayingInSlot.has(id));
-                     const vocalTeamId = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
+                     for (let fieldIndex = 0; fieldIndex < settings.numFields; fieldIndex++) {
+                        if (roundMatches.length === 0) break;
 
-                     matchesInSlot.forEach((match, fieldIndex) => {
-                         const field = fieldIndex + 1;
-                         const timeParts = time.split(':');
-                         const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                         
-                         const homeDressingRoom = (dressingRoomCounter % 2 === 0) ? (dressingRoomCounter % settings.numDressingRooms) + 1 : (dressingRoomCounter % settings.numDressingRooms) + 2;
-                         const awayDressingRoom = homeDressingRoom + 2 <= settings.numDressingRooms ? homeDressingRoom + 2 : (homeDressingRoom + 2) % settings.numDressingRooms;
+                        const match = roundMatches.shift()!;
+                        const teamsPlayingInSlot = new Set([match.home, match.away]);
+                        const eligibleVocalTeams = allTeamIdsForVocal.filter(id => !teamsPlayingInSlot.has(id));
+                        const vocalTeamId = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
+                        
+                        const timeParts = time.split(':');
+                        const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+                        
+                        // New dressing room logic
+                        const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
+                        const pairIndex = dressingRoomCounter % numDressingRoomPairs;
+                        const homeDressingRoom = pairIndex * 2 + 1;
+                        const awayDressingRoom = pairIndex * 2 + 2;
 
-                         dressingRoomCounter +=1;
-
-                         scheduledMatches.push({
-                            ...match,
-                            date: matchDateTime,
-                            time: format(matchDateTime, 'HH:mm'),
-                            field: field,
-                            homeDressingRoom: homeDressingRoom,
-                            awayDressingRoom: awayDressingRoom,
-                            vocalTeamId: vocalTeamId
+                        scheduledMatches.push({
+                           ...match,
+                           date: matchDateTime,
+                           time: format(matchDateTime, 'HH:mm'),
+                           field: fieldIndex + 1,
+                           homeDressingRoom: homeDressingRoom,
+                           awayDressingRoom: awayDressingRoom,
+                           vocalTeamId: vocalTeamId
                         });
-                     });
+
+                        dressingRoomCounter++;
+                     }
                 }
             }
             if (roundMatches.length === 0) {
-                roundScheduled = true;
+               break; 
             }
             currentDate = addDays(currentDate, 1);
         }
@@ -829,21 +632,24 @@ export default function SchedulePage() {
    const handleGenerateFinals = () => {
         let finals: GeneratedMatch[] = [];
 
+        // This is a mock implementation. In a real app, you'd use standings data.
+        const mockStandings = allTeams.map(t => ({ teamId: t.id, category: t.category, group: t.group, points: Math.random() * 50 }));
+
         // Maxima Final
-        const maximaTeams = mockStandings.filter(s => getTeam(s.teamId)?.category === 'Máxima').sort((a,b) => b.points - a.points).slice(0, 2);
+        const maximaTeams = mockStandings.filter(s => s.category === 'Máxima').sort((a,b) => b.points - a.points).slice(0, 2);
         if (maximaTeams.length === 2) {
             finals.push({ home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
         }
 
         // Primera Final
-        const primeraTeams = mockStandings.filter(s => getTeam(s.teamId)?.category === 'Primera').sort((a,b) => b.points - a.points).slice(0, 2);
+        const primeraTeams = mockStandings.filter(s => s.category === 'Primera').sort((a,b) => b.points - a.points).slice(0, 2);
         if (primeraTeams.length === 2) {
             finals.push({ home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
         }
         
         // Segunda Semifinals & Final
-        const groupATeams = mockStandings.filter(s => getTeam(s.teamId)?.group === 'A').sort((a,b) => b.points - a.points).slice(0, 2);
-        const groupBTeams = mockStandings.filter(s => getTeam(s.teamId)?.group === 'B').sort((a,b) => b.points - a.points).slice(0, 2);
+        const groupATeams = mockStandings.filter(s => s.group === 'A').sort((a,b) => b.points - a.points).slice(0, 2);
+        const groupBTeams = mockStandings.filter(s => s.group === 'B').sort((a,b) => b.points - a.points).slice(0, 2);
         
         if (groupATeams.length === 2 && groupBTeams.length === 2) {
             // Semifinals
@@ -948,10 +754,7 @@ export default function SchedulePage() {
         <Tabs defaultValue="general" className="space-y-4">
             <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="maxima">Máxima</TabsTrigger>
-            <TabsTrigger value="primera">Primera</TabsTrigger>
-            <TabsTrigger value="segunda">Segunda</TabsTrigger>
-            <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
+            {isTournamentGenerated && <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>}
             {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
@@ -972,15 +775,6 @@ export default function SchedulePage() {
                     </div>
                 </div>
                 <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory={selectedCategory} />
-            </TabsContent>
-            <TabsContent value="maxima">
-            <LeagueView category="Máxima" generatedMatches={generatedMatches} />
-            </TabsContent>
-            <TabsContent value="primera">
-            <LeagueView category="Primera" generatedMatches={generatedMatches} />
-            </TabsContent>
-            <TabsContent value="segunda">
-            <LeagueView category="Segunda" generatedMatches={generatedMatches} />
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
@@ -1039,4 +833,5 @@ export default function SchedulePage() {
     
 
   
+
 
