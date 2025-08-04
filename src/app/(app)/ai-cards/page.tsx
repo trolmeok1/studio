@@ -124,7 +124,7 @@ export default function AiCardsPage() {
                                     </header>
 
                                      {/* Main Content */}
-                                    <main className="flex-grow flex flex-col items-center text-center mt-3">
+                                    <main className="flex-1 flex flex-col items-center text-center mt-3">
                                         <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md">
                                              <Image
                                                 src={selectedPlayer.photoUrl}
@@ -141,24 +141,22 @@ export default function AiCardsPage() {
                                         <div className="text-center mt-1 text-base">
                                             <p>{selectedPlayer.category.toUpperCase()}</p>
                                             <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
-                                             <div className="flex items-center justify-center gap-2 mt-1">
-                                                {team?.logoUrl && (
-                                                    <Image 
-                                                        src={team.logoUrl}
-                                                        alt={`Logo de ${team.name}`}
-                                                        width={20}
-                                                        height={20}
-                                                        className="rounded-full"
-                                                        data-ai-hint="team logo"
-                                                    />
-                                                )}
-                                                <p className="font-semibold">{selectedPlayer.team}</p>
-                                            </div>
+                                            {team?.logoUrl && (
+                                                <Image 
+                                                    src={team.logoUrl}
+                                                    alt={`Logo de ${team.name}`}
+                                                    width={24}
+                                                    height={24}
+                                                    className="rounded-full mx-auto mt-2"
+                                                    data-ai-hint="team logo"
+                                                />
+                                            )}
+                                            <p className="font-semibold">{selectedPlayer.team}</p>
                                         </div>
                                     </main>
 
                                     {/* Footer */}
-                                    <footer className="mt-4 pt-4">
+                                    <footer className="mt-4 pt-4 border-t border-white/20">
                                          <div className="flex items-end justify-between gap-4">
                                             {/* QR Code */}
                                             <div className="w-16 h-16 bg-white p-1 rounded-md">
