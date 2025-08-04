@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -104,7 +103,7 @@ export default function AiCardsPage() {
 
                         return (
                         <div key={selectedPlayer.id} className="id-card-wrapper">
-                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans p-4">
+                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative p-4 font-sans">
                                 {/* Background Shapes */}
                                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                                     <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
@@ -113,9 +112,9 @@ export default function AiCardsPage() {
                                      <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
                                 </div>
                                 
-                                <div className="relative z-10 flex flex-col h-full">
+                                <div className="relative z-10 flex flex-col items-center h-full text-center">
                                      {/* Header */}
-                                    <header className="flex justify-center items-center text-center">
+                                    <header className="text-center">
                                         <div className="font-bold text-md tracking-wider uppercase">
                                             <span>Liga Deportiva Barrial</span>
                                             <br/>
@@ -124,8 +123,8 @@ export default function AiCardsPage() {
                                     </header>
 
                                      {/* Main Content */}
-                                    <main className="flex-1 flex flex-col items-center text-center mt-3">
-                                        <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md">
+                                    <main className="flex-1 w-full mt-3">
+                                        <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md mx-auto">
                                              <Image
                                                 src={selectedPlayer.photoUrl}
                                                 alt={`Foto de ${selectedPlayer.name}`}
@@ -141,36 +140,35 @@ export default function AiCardsPage() {
                                         <div className="text-center mt-1 text-base">
                                             <p>{selectedPlayer.category.toUpperCase()}</p>
                                             <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
-                                            <p className="font-semibold">{selectedPlayer.team}</p>
+                                        </div>
+                                         <div className="flex items-center justify-center gap-2 mt-2">
+                                            <span className="font-semibold text-base">{selectedPlayer.team}</span>
                                              {team?.logoUrl && (
                                                 <Image 
                                                     src={team.logoUrl}
                                                     alt={`Logo de ${team.name}`}
                                                     width={24}
                                                     height={24}
-                                                    className="rounded-full mx-auto mt-2"
+                                                    className="rounded-full"
                                                     data-ai-hint="team logo"
                                                 />
                                             )}
                                         </div>
-                                    </main>
 
-                                    {/* Footer */}
-                                    <footer className="mt-4 pt-4 border-t border-white/20">
-                                         <div className="flex items-end justify-between gap-4">
+                                        <div className="flex items-center justify-between gap-4 mt-4 w-full px-2">
                                             {/* QR Code */}
                                             <div className="w-16 h-16 bg-white p-1 rounded-md">
                                                 <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
                                             </div>
                                              
-                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
+                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={48} height={48} className="rounded-md" data-ai-hint="league logo" />
                                              
                                              {/* Jersey Number */}
                                              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                                                 <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
                                             </div>
                                         </div>
-                                    </footer>
+                                    </main>
                                 </div>
                             </div>
                         </div>
@@ -207,9 +205,11 @@ export default function AiCardsPage() {
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
+                overflow: visible !important;
             }
             .id-card-wrapper > div {
-                min-height: 9.5cm !important; /* Forces the card to have a minimum height, ensuring it fits 3 per A4 page */
+                height: 10cm !important; /* Forces a fixed height for printing */
+                overflow: visible !important;
             }
             @page {
                 size: A4 portrait;
