@@ -158,7 +158,7 @@ export default function AiCardsPage() {
                           <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
                       </div>
                       
-                      <div className="relative z-10 flex flex-col items-center h-full text-center">
+                      <div className="relative z-10 flex flex-col h-full text-center">
                           <header className="text-center">
                               <div className="font-bold text-md tracking-wider uppercase">
                                   <span>Liga Deportiva Barrial</span>
@@ -168,42 +168,38 @@ export default function AiCardsPage() {
                           </header>
 
                           <main className="w-full mt-3">
-                              <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md mx-auto">
-                                  <Image
-                                      src={selectedPlayer.photoUrl}
-                                      alt={`Foto de ${selectedPlayer.name}`}
-                                      width={200}
-                                      height={200}
-                                      className="rounded-sm object-cover w-full h-full"
-                                      data-ai-hint="player portrait"
-                                  />
-                              </div>
+                              <Image
+                                  src={selectedPlayer.photoUrl}
+                                  alt={`Foto de ${selectedPlayer.name}`}
+                                  width={200}
+                                  height={200}
+                                  className="w-40 h-40 rounded-md mx-auto object-cover border-4 border-orange-400"
+                                  data-ai-hint="player portrait"
+                              />
                               
                               <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
                               
                               <div className="text-center mt-1 text-base space-y-1">
                                 <p className="text-base">{selectedPlayer.category.toUpperCase()}</p>
                                 <p className="text-muted-foreground text-base">{selectedPlayer.idNumber}</p>
-                                <div className="flex items-center justify-center gap-2">
-                                  <span className="font-semibold text-base">{selectedPlayer.team}</span>
-                                    {team?.logoUrl && (
-                                      <Image 
-                                          src={team.logoUrl}
-                                          alt={`Logo de ${team.name}`}
-                                          width={24}
-                                          height={24}
-                                          className="rounded-full"
-                                          data-ai-hint="team logo"
-                                      />
-                                  )}
-                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-base">{selectedPlayer.team}</span>
+                                      {team?.logoUrl && (
+                                        <Image 
+                                            src={team.logoUrl}
+                                            alt={`Logo de ${team.name}`}
+                                            width={24}
+                                            height={24}
+                                            className="rounded-full mx-auto"
+                                            data-ai-hint="team logo"
+                                        />
+                                    )}
+                                  </div>
                               </div>
                           </main>
 
-                          <footer className="w-full mt-4 border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
-                              <div className="w-16 h-16 bg-white p-1 rounded-md mx-auto">
-                                  <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
-                              </div>
+                          <footer className="w-full mt-auto border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
+                              <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="bg-white p-1 rounded-md mx-auto" />
                               
                               <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md mx-auto" data-ai-hint="league logo" />
                               
@@ -220,3 +216,4 @@ export default function AiCardsPage() {
     </div>
   );
 }
+
