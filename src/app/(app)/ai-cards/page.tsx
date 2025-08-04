@@ -41,8 +41,7 @@ export default function AiCardsPage() {
       let cardCount = 0;
 
       for (const player of selectedTeamPlayers) {
-          const page = Math.floor(cardCount / 9);
-          if (page > 0 && cardCount % 9 === 0) {
+          if (cardCount > 0 && cardCount % 9 === 0) {
               pdf.addPage();
           }
 
@@ -60,6 +59,11 @@ export default function AiCardsPage() {
           cardWrapper.style.display = 'none';
 
           const imgData = canvas.toDataURL('image/png');
+
+          const page = Math.floor(cardCount / 9);
+          if (page > 0 && cardCount % 9 === 0) {
+              pdf.addPage();
+          }
 
           const row = Math.floor((cardCount % 9) / 3);
           const col = (cardCount % 9) % 3;
@@ -190,9 +194,7 @@ export default function AiCardsPage() {
 
                           <footer className="w-full mt-auto border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
                               <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <div className="w-16 h-16 bg-white p-1 rounded-md">
-                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="w-full h-full" />
-                                </div>
+                                <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="bg-white p-1 rounded-md" />
                               </div>
                               
                               <div className="w-20 h-20 flex items-center justify-center mx-auto">
