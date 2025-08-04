@@ -9,7 +9,17 @@ import { players, teams, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+
+// Function to fetch image as Base64 data URI
+const toDataURL = (url: string): Promise<string> => fetch(url)
+  .then(response => response.blob())
+  .then(blob => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  }));
+
 
 export default function AiCardsPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<Category | null>(null);
@@ -29,63 +39,107 @@ export default function AiCardsPage() {
   }, [selectedTeamId]);
     
   const handleDownloadPdf = async () => {
-      if (!selectedTeamId) return;
-      setIsGenerating(true);
+    if (!selectedTeamId) return;
+    setIsGenerating(true);
 
-      const pdf = new jsPDF('portrait', 'mm', 'a4');
-      const cardWidthMM = 63;
-      const cardHeightMM = 95; 
-      const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
-      const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
+    const pdf = new jsPDF('portrait', 'mm', 'a4');
+    const cardWidthMM = 63;
+    const cardHeightMM = 95;
+    const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
+    const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
-      let cardCount = 0;
-
-      for (const player of selectedTeamPlayers) {
-          if (cardCount > 0 && cardCount % 9 === 0) {
-              pdf.addPage();
-          }
-
-          const cardWrapper = document.getElementById(`player-card-${player.id}`);
-          if (!cardWrapper) continue;
-          
-          // Make the card visible but off-screen for accurate rendering
-          cardWrapper.style.position = 'absolute';
-          cardWrapper.style.left = '-9999px';
-          cardWrapper.style.top = 'auto';
-          cardWrapper.style.display = 'block';
-
-          const canvas = await html2canvas(cardWrapper, {
-              scale: 3,
-              useCORS: true,
-              backgroundColor: null, 
-          });
-          
-          // Hide it again after capture
-          cardWrapper.style.position = 'static';
-          cardWrapper.style.left = 'auto';
-          cardWrapper.style.display = 'none';
+    const leagueLogoUrl = 'https://placehold.co/100x100.png';
+    const leagueLogoBase64 = await toDataURL(leagueLogoUrl).catch(() => '');
 
 
-          const imgData = canvas.toDataURL('image/png');
+    for (let i = 0; i < selectedTeamPlayers.length; i++) {
+        const player = selectedTeamPlayers[i];
+        const page = Math.floor(i / 9);
+        if (page > 0 && i % 9 === 0) {
+            pdf.addPage();
+        }
 
-          const page = Math.floor(cardCount / 9);
-          if (page > 0 && cardCount % 9 === 0) {
-              // This check was redundant, new page is added at the start of the loop
-          }
+        const row = Math.floor((i % 9) / 3);
+        const col = (i % 9) % 3;
 
-          const row = Math.floor((cardCount % 9) / 3);
-          const col = (cardCount % 9) % 3;
+        const x = marginX * (col + 1) + col * cardWidthMM;
+        const y = marginY * (row + 1) + row * cardHeightMM;
+        
+        // --- Draw Card Background ---
+        pdf.setFillColor('#1a233c'); // Dark blue background
+        pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
 
-          const x = marginX * (col + 1) + col * cardWidthMM;
-          const y = marginY * (row + 1) + row * cardHeightMM;
+        // --- Header ---
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor('#FFFFFF');
+        pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
+        pdf.text('LA LUZ', x + cardWidthMM / 2, y + 10, { align: 'center' });
 
-          pdf.addImage(imgData, 'PNG', x, y, cardWidthMM, cardHeightMM);
+        // --- Player Photo ---
+        try {
+            const playerPhotoBase64 = await toDataURL(player.photoUrl);
+            pdf.addImage(playerPhotoBase64, 'PNG', x + (cardWidthMM - 35) / 2, y + 15, 35, 35);
+        } catch (error) {
+            console.error('Error loading player photo:', error);
+            pdf.setFillColor('#CCCCCC');
+            pdf.rect(x + (cardWidthMM - 35) / 2, y + 15, 35, 35, 'F');
+        }
+        
+        pdf.setDrawColor('#FFA500'); // Orange border
+        pdf.setLineWidth(1);
+        pdf.rect(x + (cardWidthMM - 35) / 2, y + 15, 35, 35, 'S');
 
-          cardCount++;
-      }
 
-      pdf.save(`carnets_${selectedTeamId}.pdf`);
-      setIsGenerating(false);
+        // --- Player Info ---
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor('#FFA500'); // Orange color for name
+        pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, y + 58, { align: 'center', maxWidth: cardWidthMM - 10 });
+        
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor('#FFFFFF');
+        pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, y + 64, { align: 'center' });
+        pdf.text(player.idNumber, x + cardWidthMM / 2, y + 68, { align: 'center' });
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, y + 72, { align: 'center' });
+
+        // --- Footer Elements ---
+        const footerY = y + 78;
+        
+        // QR Code
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
+        try {
+            const qrCodeBase64 = await toDataURL(qrCodeUrl);
+            pdf.setFillColor('#FFFFFF');
+            pdf.rect(x + 10, footerY, 18, 18, 'F'); // White background for QR
+            pdf.addImage(qrCodeBase64, 'PNG', x + 10.5, footerY + 0.5, 17, 17);
+        } catch (error) {
+            console.error('Error loading QR code:', error);
+        }
+
+        // League Logo
+        if (leagueLogoBase64) {
+             pdf.addImage(leagueLogoBase64, 'PNG', x + cardWidthMM / 2 - 7, footerY + 2, 14, 14);
+        }
+
+        // Jersey Number
+        const jerseyCircleX = x + cardWidthMM - 18;
+        const jerseyCircleY = footerY + 9;
+        pdf.setFillColor('#3b0764'); // Purple circle background
+        pdf.setDrawColor('#8A2BE2'); // Purple border
+        pdf.setLineWidth(0.5);
+        pdf.circle(jerseyCircleX, jerseyCircleY, 7, 'FD');
+
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor('#FFFFFF');
+        pdf.text(player.jerseyNumber.toString(), jerseyCircleX, jerseyCircleY + 6.5, { align: 'center' });
+    }
+
+    pdf.save(`carnets_${selectedTeamId}.pdf`);
+    setIsGenerating(false);
   };
 
 
@@ -151,77 +205,6 @@ export default function AiCardsPage() {
             </div>
             </CardContent>
         </Card>
-        
-        {/* Container for the cards to be rendered for PDF generation */}
-        <div style={{ position: 'absolute', left: '-9999px', top: 'auto', pointerEvents: 'none' }}>
-          {players.map(selectedPlayer => {
-              const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                  `/players/${selectedPlayer.id}`
-              )}`;
-
-              return (
-              <div key={selectedPlayer.id} id={`player-card-${selectedPlayer.id}`} style={{ display: 'none', width: '320px'}}>
-                  <div className="relative w-full max-w-[320px] aspect-[6/9.5] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
-                      
-                      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-                          <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
-                          <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-orange-500/10 rounded-full opacity-50"></div>
-                          <div className="absolute top-[20%] right-[-50px] w-48 h-1 bg-orange-500/30 -rotate-45"></div>
-                          <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
-                      </div>
-                      
-                      <div className="relative z-10 flex flex-col h-full text-center">
-                          <header className="text-center">
-                              <div className="font-bold text-md tracking-wider uppercase">
-                                  <span>Liga Deportiva Barrial</span>
-                                  <br/>
-                                  <span>La Luz</span>
-                              </div>
-                          </header>
-
-                          <main className="w-full mt-3">
-                              <div className="w-40 h-40 rounded-md mx-auto border-4 border-orange-400 overflow-hidden flex items-center justify-center">
-                                <Image
-                                    src={selectedPlayer.photoUrl}
-                                    alt={`Foto de ${selectedPlayer.name}`}
-                                    width={200}
-                                    height={200}
-                                    className="w-full h-full object-cover"
-                                    data-ai-hint="player portrait"
-                                />
-                              </div>
-                              
-                              <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
-                              
-                              <div className="text-center mt-1 text-base space-y-1">
-                                <p className="text-lg">{selectedPlayer.category.toUpperCase()}</p>
-                                <p className="text-muted-foreground text-lg">{selectedPlayer.idNumber}</p>
-                                <p className="font-semibold text-lg">{selectedPlayer.team}</p>
-                              </div>
-                          </main>
-
-                          <footer className="w-full mt-auto border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
-                              <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <div className="bg-white p-1 rounded-md">
-                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
-                                </div>
-                              </div>
-                              
-                              <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <div className="w-14 h-14 rounded-md overflow-hidden flex items-center justify-center">
-                                    <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="w-full h-full object-cover" data-ai-hint="league logo" />
-                                </div>
-                              </div>
-                              
-                              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto">
-                                  <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
-                              </div>
-                          </footer>
-                      </div>
-                  </div>
-              </div>
-              )})}
-        </div>
       </main>
     </div>
   );
