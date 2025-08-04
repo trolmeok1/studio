@@ -113,8 +113,8 @@ export default function AiCardsPage() {
         try {
             const qrCodeBase64 = await toDataURL(qrCodeUrl);
             pdf.setFillColor('#FFFFFF');
-            pdf.rect(x + 10, footerY, 18, 18, 'F'); // White background for QR
-            pdf.addImage(qrCodeBase64, 'PNG', x + 10.5, footerY + 0.5, 17, 17);
+            pdf.rect(x + 5, footerY, 18, 18, 'F'); // White background for QR
+            pdf.addImage(qrCodeBase64, 'PNG', x + 5.5, footerY + 0.5, 17, 17);
         } catch (error) {
             console.error('Error loading QR code:', error);
         }
@@ -125,17 +125,12 @@ export default function AiCardsPage() {
         }
 
         // Jersey Number
-        const jerseyCircleX = x + cardWidthMM - 18;
-        const jerseyCircleY = footerY + 9;
-        pdf.setFillColor('#3b0764'); // Purple circle background
-        pdf.setDrawColor('#8A2BE2'); // Purple border
-        pdf.setLineWidth(0.5);
-        pdf.circle(jerseyCircleX, jerseyCircleY, 7, 'FD');
-
-        pdf.setFontSize(18);
+        const jerseyX = x + cardWidthMM - 5;
+        const jerseyY = footerY + (18 / 2); // Vertically align with QR code center
+        pdf.setFontSize(22);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFFFFF');
-        pdf.text(player.jerseyNumber.toString(), jerseyCircleX, jerseyCircleY + 6.5, { align: 'center' });
+        pdf.text(player.jerseyNumber.toString(), jerseyX, jerseyY + 7, { align: 'right' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
