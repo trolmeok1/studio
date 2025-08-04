@@ -37,9 +37,11 @@ export default function AiCardsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between print:hidden">
-        <h2 className="text-3xl font-bold tracking-tight font-headline">
-          Generador de Carnets AI
+      <div className="text-center print:hidden">
+        <h2 className="text-4xl font-extrabold tracking-tight">
+          <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+            Generador de Carnets
+          </span>
         </h2>
       </div>
 

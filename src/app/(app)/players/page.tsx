@@ -46,16 +46,20 @@ export default function PlayersPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight font-headline">
-            Lista de Jugadores
-          </h2>
-          <div className="w-full max-w-sm">
-             <Input 
-                placeholder="Buscar por jugador o equipo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="text-center w-full">
+            <h2 className="text-4xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+                Lista de Jugadores
+              </span>
+            </h2>
           </div>
+      </div>
+       <div className="w-full max-w-sm mx-auto">
+         <Input 
+            placeholder="Buscar por jugador o equipo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
        <Tabs defaultValue={categories[0]} className="w-full">
