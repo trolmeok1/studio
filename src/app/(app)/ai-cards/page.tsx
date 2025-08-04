@@ -122,21 +122,20 @@ export default function AiCardsPage() {
         pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
 
         // --- Header ---
-        pdf.setFontSize(7);
+        pdf.setFontSize(8);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFFFFF');
         pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
-        pdf.setFontSize(8);
-        pdf.text('LA LUZ', x + cardWidthMM / 2, y + 11, { align: 'center' });
+        pdf.setFontSize(9);
+        pdf.text('LA LUZ', x + cardWidthMM / 2, y + 12, { align: 'center' });
 
 
         // --- Player Photo ---
-        const photoSize = 32;
+        const photoSize = 35;
         const photoX = x + (cardWidthMM - photoSize) / 2;
-        const photoY = y + 15;
+        const photoY = y + 18;
         pdf.setDrawColor('#FFA500'); // Orange border
         pdf.setLineWidth(1);
-        // Draw circle border first
         pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 'S');
         
         try {
@@ -154,7 +153,7 @@ export default function AiCardsPage() {
 
 
         // --- Player Info ---
-        const infoY = photoY + photoSize + 8;
+        const infoY = photoY + photoSize + 12;
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFA500'); // Orange color for name
@@ -169,8 +168,8 @@ export default function AiCardsPage() {
         pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 14, { align: 'center' });
 
         // --- Footer Elements ---
-        const footerY = y + cardHeightMM - 22;
-        const itemSize = 16;
+        const footerY = y + cardHeightMM - 20;
+        const itemSize = 15;
         
         // QR Code
         const qrX = x + 5;
@@ -191,11 +190,11 @@ export default function AiCardsPage() {
         }
 
         // Jersey Number
-        const jerseyX = x + cardWidthMM - itemSize - 5;
-        pdf.setFontSize(18);
+        const jerseyX = x + cardWidthMM - 10;
+        pdf.setFontSize(22);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#9400D3'); 
-        pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize/2, footerY + itemSize/2, { align: 'center', baseline: 'middle' });
+        pdf.text(player.jerseyNumber.toString(), jerseyX, footerY + itemSize / 2 + 4, { align: 'center' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
