@@ -10,16 +10,31 @@ import Image from 'next/image';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import type { Player } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
-// Function to fetch image as Base64 data URI
-const toDataURL = (url: string): Promise<string> => fetch(url)
-  .then(response => response.blob())
-  .then(blob => new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  }));
+// Function to fetch image as Base64 data URI, with error handling
+const toDataURL = (url: string): Promise<string> => {
+    return new Promise((resolve) => {
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = () => resolve(''); // Resolve with empty string on reader error
+                reader.readAsDataURL(blob);
+            })
+            .catch(error => {
+                console.error(`Failed to fetch or convert image from ${url}:`, error);
+                resolve(''); // Resolve with empty string on fetch error
+            });
+    });
+};
+
 
 const CardPreview = ({ player }: { player: Player | null }) => {
     if (!player) return null;
@@ -85,6 +100,7 @@ export default function AiCardsPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<Category | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
   const categories = useMemo(() => [...new Set(teams.map((t) => t.category))], []);
   
@@ -102,122 +118,134 @@ export default function AiCardsPage() {
     if (!selectedTeamId) return;
     setIsGenerating(true);
 
-    const pdf = new jsPDF('portrait', 'mm', 'a4');
-    const cardWidthMM = 63;
-    const cardHeightMM = 95;
-    const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
-    const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
+    try {
+        const pdf = new jsPDF('portrait', 'mm', 'a4');
+        const cardWidthMM = 63;
+        const cardHeightMM = 95;
+        const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
+        const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
-    const leagueLogoUrl = 'https://placehold.co/100x100.png';
-    const backgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
-    
-    const leagueLogoBase64 = await toDataURL(leagueLogoUrl).catch(() => '');
-    const backgroundImageBase64 = await toDataURL(backgroundImageUrl).catch(() => '');
+        // Pre-fetch all assets
+        const leagueLogoUrl = 'https://placehold.co/100x100.png';
+        const backgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
+        
+        const [leagueLogoBase64, backgroundImageBase64] = await Promise.all([
+            toDataURL(leagueLogoUrl),
+            toDataURL(backgroundImageUrl),
+        ]);
 
+        const playersWithImages = await Promise.all(selectedTeamPlayers.map(async (player) => {
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
+            const [playerPhotoBase64, qrCodeBase64] = await Promise.all([
+                toDataURL(player.photoUrl),
+                toDataURL(qrCodeUrl),
+            ]);
+            return { ...player, playerPhotoBase64, qrCodeBase64 };
+        }));
 
-    for (let i = 0; i < selectedTeamPlayers.length; i++) {
-        const player = selectedTeamPlayers[i];
-        const page = Math.floor(i / 9);
-        if (page > 0 && i % 9 === 0) {
-            pdf.addPage();
+        for (let i = 0; i < playersWithImages.length; i++) {
+            const player = playersWithImages[i];
+            const page = Math.floor(i / 9);
+            if (page > 0 && i % 9 === 0) {
+                pdf.addPage();
+            }
+
+            const row = Math.floor((i % 9) / 3);
+            const col = (i % 9) % 3;
+
+            const x = marginX * (col + 1) + col * cardWidthMM;
+            const y = marginY * (row + 1) + row * cardHeightMM;
+            
+            // --- Draw Card Background ---
+            if (backgroundImageBase64) {
+                pdf.addImage(backgroundImageBase64, 'JPEG', x, y, cardWidthMM, cardHeightMM);
+            } else {
+                pdf.setFillColor('#1a233c'); // Dark blue background fallback
+                pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
+            }
+            
+            // Overlay for better text readability
+            pdf.setFillColor(0, 0, 0);
+            pdf.setGState(new (pdf.GState as any)({opacity: 0.5}));
+            pdf.rect(x, y, cardWidthMM, cardHeightMM, 'F');
+            pdf.setGState(new (pdf.GState as any)({opacity: 1}));
+
+            // --- Header ---
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor('#FFFFFF');
+            pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
+            pdf.setFontSize(10);
+            pdf.text('LA LUZ', x + cardWidthMM / 2, y + 12, { align: 'center' });
+
+            // --- Player Photo ---
+            const photoSize = 25;
+            const photoX = x + (cardWidthMM - photoSize) / 2;
+            const photoY = y + 18;
+            pdf.setDrawColor('#FFA500'); // Orange border
+            pdf.setLineWidth(1);
+            pdf.rect(photoX, photoY, photoSize, photoSize, 'S');
+            
+            if (player.playerPhotoBase64) {
+                pdf.addImage(player.playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
+            } else {
+                pdf.setFillColor('#CCCCCC');
+                pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
+            }
+
+            // --- Player Info ---
+            const infoY = photoY + photoSize + 8;
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor('#FFA500'); // Orange color for name
+            pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
+            
+            pdf.setFontSize(11);
+            pdf.setTextColor('#FFFFFF');
+            pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 11, { align: 'center' });
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
+
+            // --- Footer Elements ---
+            const footerY = y + cardHeightMM - 20;
+            const itemSize = 15;
+            
+            // QR Code
+            if (player.qrCodeBase64) {
+                const qrX = x + 5;
+                pdf.addImage(player.qrCodeBase64, 'PNG', qrX, footerY, itemSize, itemSize);
+            }
+
+            // League Logo
+            if (leagueLogoBase64) {
+                const logoX = x + (cardWidthMM - itemSize) / 2;
+                pdf.addImage(leagueLogoBase64, 'PNG', logoX, footerY, itemSize, itemSize);
+            }
+
+            // Jersey Number
+            const jerseyX = x + cardWidthMM - itemSize - 5;
+            pdf.setFontSize(22);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor('#FFA500'); 
+            pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize / 2, footerY + itemSize / 2 + 4, { align: 'center' });
         }
 
-        const row = Math.floor((i % 9) / 3);
-        const col = (i % 9) % 3;
-
-        const x = marginX * (col + 1) + col * cardWidthMM;
-        const y = marginY * (row + 1) + row * cardHeightMM;
-        
-        // --- Draw Card Background ---
-        if (backgroundImageBase64) {
-             pdf.addImage(backgroundImageBase64, 'JPEG', x, y, cardWidthMM, cardHeightMM);
-        } else {
-            pdf.setFillColor('#1a233c'); // Dark blue background fallback
-            pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
-        }
-        
-        // Overlay for better text readability
-        pdf.setFillColor(0, 0, 0);
-        pdf.setGState(new (pdf.GState as any)({opacity: 0.5}));
-        pdf.rect(x, y, cardWidthMM, cardHeightMM, 'F');
-        pdf.setGState(new (pdf.GState as any)({opacity: 1}));
-
-
-        // --- Header ---
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor('#FFFFFF');
-        pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
-        pdf.setFontSize(10);
-        pdf.text('LA LUZ', x + cardWidthMM / 2, y + 12, { align: 'center' });
-
-
-        // --- Player Photo ---
-        const photoSize = 25;
-        const photoX = x + (cardWidthMM - photoSize) / 2;
-        const photoY = y + 18;
-        pdf.setDrawColor('#FFA500'); // Orange border
-        pdf.setLineWidth(1);
-        pdf.rect(photoX, photoY, photoSize, photoSize, 'S');
-        
-        try {
-            const playerPhotoBase64 = await toDataURL(player.photoUrl);
-            pdf.addImage(playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
-        } catch (error) {
-            console.error('Error loading player photo:', error);
-            pdf.setFillColor('#CCCCCC');
-            pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
-        }
-
-
-        // --- Player Info ---
-        const infoY = photoY + photoSize + 8;
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor('#FFA500'); // Orange color for name
-        pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
-        
-        pdf.setFontSize(11);
-        pdf.setTextColor('#FFFFFF');
-        pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
-        
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(10);
-        pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 11, { align: 'center' });
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
-
-        // --- Footer Elements ---
-        const footerY = y + cardHeightMM - 20;
-        const itemSize = 15;
-        
-        // QR Code
-        const qrX = x + 5;
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
-        try {
-            const qrCodeBase64 = await toDataURL(qrCodeUrl);
-            pdf.addImage(qrCodeBase64, 'PNG', qrX, footerY, itemSize, itemSize);
-        } catch (error) {
-            console.error('Error loading QR code:', error);
-        }
-
-        // League Logo
-        if (leagueLogoBase64) {
-             const logoX = x + (cardWidthMM - itemSize) / 2;
-             pdf.addImage(leagueLogoBase64, 'PNG', logoX, footerY, itemSize, itemSize);
-        }
-
-        // Jersey Number
-        const jerseyX = x + cardWidthMM - itemSize - 5;
-        pdf.setFontSize(22);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor('#FFA500'); 
-        pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize / 2, footerY + itemSize / 2 + 4, { align: 'center' });
+        pdf.save(`carnets_${selectedTeamId}.pdf`);
+    } catch (error) {
+        console.error("Failed to generate PDF:", error);
+        toast({
+            title: "Error al generar PDF",
+            description: "No se pudieron cargar todos los recursos para el PDF. Por favor, inténtalo de nuevo.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsGenerating(false);
     }
-
-    pdf.save(`carnets_${selectedTeamId}.pdf`);
-    setIsGenerating(false);
   };
 
 
@@ -292,3 +320,5 @@ export default function AiCardsPage() {
     </div>
   );
 }
+
+    
