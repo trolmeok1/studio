@@ -6,7 +6,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import LoadingScreen from '@/components/LoadingScreen';
 
 /*
 export const metadata: Metadata = {
@@ -31,7 +30,6 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <LoadingScreen />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
