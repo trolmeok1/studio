@@ -10,7 +10,7 @@ import {
 
 export default function AppLayout({ children }: PropsWithChildren) {
   return (
-      <div className="bg-background text-foreground print:hidden">
+      <div className="bg-background text-foreground">
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />

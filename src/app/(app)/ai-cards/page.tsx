@@ -37,7 +37,7 @@ export default function AiCardsPage() {
 
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 print:block">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="text-center print:hidden">
         <h2 className="text-4xl font-extrabold tracking-tight">
           <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
@@ -181,9 +181,6 @@ export default function AiCardsPage() {
             }
             .print\\:hidden {
                 display: none !important;
-            }
-            .print\\:block {
-                display: block !important;
             }
             main, .flex-1 {
                 display: block !important;
