@@ -1,5 +1,4 @@
 
-
 'use client';
 import { teams as initialTeams, type Team, type Category } from '@/lib/mock-data';
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -10,13 +9,22 @@ import { AddTeam } from './_components/AddTeam';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 
 const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
+const getNeonColorForCategory = (category: Category) => {
+    switch (category) {
+        case 'Máxima': return 'purple';
+        case 'Primera': return 'blue';
+        case 'Segunda': return 'green';
+        default: return 'none';
+    }
+}
+
 const TeamCard = ({ team }: { team: Team }) => {
   return (
-    <Card className="flex flex-col group transition-all hover:shadow-lg">
-      <Link href={`/teams/${team.id}`} className="block hover:bg-muted/30">
+    <Card neon={getNeonColorForCategory(team.category)} className="flex flex-col group transition-all hover:shadow-lg">
         <CardContent className="p-4">
           <Image
             src={team.logoUrl}
@@ -27,11 +35,15 @@ const TeamCard = ({ team }: { team: Team }) => {
             data-ai-hint="team logo"
           />
         </CardContent>
-        <CardHeader className="pt-0">
+        <CardHeader className="pt-0 flex-grow">
           <CardTitle className="text-lg font-headline truncate">{team.name}</CardTitle>
           <Badge variant="secondary" className="w-fit">{team.category}</Badge>
         </CardHeader>
-      </Link>
+      <CardFooter>
+         <Button asChild className="w-full">
+            <Link href={`/teams/${team.id}`}>Ver Detalles</Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
