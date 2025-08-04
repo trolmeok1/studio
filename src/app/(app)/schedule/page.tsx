@@ -33,49 +33,36 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
     const awayTeam = getTeam(match.away);
     const vocalTeam = getTeam(match.vocalTeamId || '');
 
-    const TeamDisplay = ({ team, dressingRoom }: { team?: Team, dressingRoom?: number }) => (
-         <div className="flex flex-col items-center text-center gap-1">
-            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt={team?.name || ''} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
-            <p className="text-xs font-semibold leading-tight">{team?.name}</p>
-             {dressingRoom && <Badge variant="secondary" className="text-xs mt-1">Camerino {dressingRoom}</Badge>}
-        </div>
-    );
-
-    const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Icon className="w-3.5 h-3.5" />
-            <span className="font-semibold">{label}:</span>
-            <span className="text-foreground text-right flex-1 truncate">{value}</span>
-        </div>
-    );
-
     return (
-        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col" neon="blue">
-            <CardHeader className="p-2 bg-muted/50 text-center text-sm font-bold">
-                <div className="flex justify-center items-center gap-2">
-                    <span>{match.date ? format(match.date, 'HH:mm', { locale: es }) : 'Por definir'}</span>
-                </div>
-            </CardHeader>
-            <CardContent className="p-0 flex-grow">
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 p-3">
-                    <TeamDisplay team={homeTeam} dressingRoom={match.homeDressingRoom} />
-                    <div className="flex flex-col items-center">
-                        <p className="text-xl font-bold">VS</p>
-                        <Badge variant="outline" className="mt-1">Por Jugar</Badge>
+        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col bg-gradient-to-br from-card to-primary/20 text-card-foreground">
+            <CardContent className="p-4 flex-grow flex flex-col justify-between gap-4">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center text-white">
+                    {/* Team A */}
+                    <div className="flex flex-col items-center gap-2">
+                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={64} height={64} className="rounded-full bg-white/10 p-1" data-ai-hint="team logo" />
+                        <p className="font-bold text-sm leading-tight">{homeTeam?.name}</p>
                     </div>
-                    <TeamDisplay team={awayTeam} dressingRoom={match.awayDressingRoom} />
+
+                    {/* Match Info */}
+                    <div className="flex flex-col items-center">
+                        <p className="text-xl font-bold">{match.date ? format(match.date, 'HH:mm', { locale: es }) : 'VS'}</p>
+                        <p className="text-xs text-slate-300">{match.date ? format(match.date, 'MMM d, yyyy', { locale: es }) : 'Por definir'}</p>
+                        <Badge variant="secondary" className="mt-2 text-xs bg-black/30 text-white">
+                           Por Jugar
+                        </Badge>
+                    </div>
+
+                    {/* Team B */}
+                    <div className="flex flex-col items-center gap-2">
+                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={64} height={64} className="rounded-full bg-white/10 p-1" data-ai-hint="team logo" />
+                        <p className="font-bold text-sm leading-tight">{awayTeam?.name}</p>
+                    </div>
+                </div>
+                 <div className="text-xs text-white/80 border-t border-white/20 pt-2 flex justify-between">
+                    <span>Cancha: {match.field || 'N/A'}</span>
+                    <span>Vocal: {vocalTeam?.name || 'N/A'}</span>
                 </div>
             </CardContent>
-            <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-x-4 gap-y-2">
-                <div className="space-y-1">
-                     <p className="text-xs font-bold">{match.date ? format(match.date, 'PPP', {locale: es}) : 'Por definir'}</p>
-                     <p className="text-xs text-muted-foreground">{match.category}</p>
-                </div>
-                 <div className="flex flex-col items-end gap-1">
-                     <DetailRow icon={Shield} label="Cancha" value={match.field || 'N/A'} />
-                    <DetailRow icon={UsersIcon} label="Vocalía" value={vocalTeam?.name || 'N/A'} />
-                 </div>
-            </CardFooter>
         </Card>
     );
 };
@@ -576,17 +563,33 @@ export default function SchedulePage() {
                     const pairIndex = lastUsedDressingRoomPairIndex % numDressingRoomPairs;
                     
                     const homeDressingRoom = pairIndex * 2 + 1;
-                    const awayDressingRoom = homeDressingRoom + 1;
-                    
-                    scheduledMatches.push({
-                       ...match,
-                       date: matchDateTime,
-                       time: format(matchDateTime, 'HH:mm'),
-                       field: fieldIndex + 1,
-                       homeDressingRoom: homeDressingRoom,
-                       awayDressingRoom: awayDressingRoom,
-                       vocalTeamId: vocalTeamId
-                    });
+                    const awayDressingRoom = homeDressingRoom + 2;
+
+                    if (awayDressingRoom > settings.numDressingRooms) {
+                         lastUsedDressingRoomPairIndex = 0;
+                         const newPairIndex = lastUsedDressingRoomPairIndex % numDressingRoomPairs;
+                         const newHomeDressingRoom = newPairIndex * 2 + 1;
+                         const newAwayDressingRoom = newHomeDressingRoom + 2;
+                         scheduledMatches.push({
+                           ...match,
+                           date: matchDateTime,
+                           time: format(matchDateTime, 'HH:mm'),
+                           field: fieldIndex + 1,
+                           homeDressingRoom: newHomeDressingRoom,
+                           awayDressingRoom: newAwayDressingRoom,
+                           vocalTeamId: vocalTeamId
+                        });
+                    } else {
+                        scheduledMatches.push({
+                           ...match,
+                           date: matchDateTime,
+                           time: format(matchDateTime, 'HH:mm'),
+                           field: fieldIndex + 1,
+                           homeDressingRoom: homeDressingRoom,
+                           awayDressingRoom: awayDressingRoom,
+                           vocalTeamId: vocalTeamId
+                        });
+                    }
 
                     matchesForCurrentDate++;
                     lastUsedDressingRoomPairIndex++;
@@ -837,6 +840,7 @@ export default function SchedulePage() {
     
 
   
+
 
 
 
