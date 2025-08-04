@@ -32,6 +32,15 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
     })
     .map((s, index) => ({ ...s, rank: index + 1 }));
 
+    const getRowClass = (rank: number) => {
+        switch(rank) {
+            case 1: return 'bg-amber-400/20 hover:bg-amber-400/30';
+            case 2: return 'bg-slate-400/20 hover:bg-slate-400/30';
+            case 3: return 'bg-orange-600/20 hover:bg-orange-600/30';
+            default: return '';
+        }
+    }
+
     return (
         <Card neon="blue">
             <CardHeader>
@@ -57,7 +66,7 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                     </TableHeader>
                     <TableBody>
                         {standings.map((s) => (
-                            <TableRow key={s.teamId}>
+                            <TableRow key={s.teamId} className={cn(getRowClass(s.rank))}>
                                 <TableCell className="font-bold">{s.rank}</TableCell>
                                 <TableCell>
                                     <Link href={`/teams/${s.teamId}`} className="flex items-center gap-3 hover:text-primary">
