@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { players, teams, type Category } from '@/lib/mock-data';
 import Image from 'next/image';
-import { Printer, Trophy } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 export default function AiCardsPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<Category | null>(null);
@@ -113,7 +113,6 @@ export default function AiCardsPage() {
                                 <div className="relative z-10 flex flex-col flex-grow p-4">
                                      {/* Header */}
                                     <header className="flex justify-center items-center gap-2 mb-4 text-center">
-                                        <Trophy className="h-6 w-6 text-orange-400" />
                                         <h3 className="font-bold text-lg tracking-wider uppercase">Liga Deportiva Barrial La Luz</h3>
                                     </header>
 
@@ -131,8 +130,14 @@ export default function AiCardsPage() {
                                         </div>
                                         
                                         <h2 className="mt-4 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
-                                        <p className="text-purple-300 text-sm uppercase -mt-1">{selectedPlayer.category}</p>
-                                        <p className="text-white font-semibold text-md mt-1">{selectedPlayer.team}</p>
+                                        <div className="text-center mt-1">
+                                            <p className="text-purple-300 text-sm uppercase">{selectedPlayer.category}</p>
+                                            <p className="text-muted-foreground text-xs">{selectedPlayer.idNumber}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
+                                            <p className="text-white font-semibold text-md">{selectedPlayer.team}</p>
+                                        </div>
                                     </main>
 
                                     {/* Footer */}
@@ -143,7 +148,6 @@ export default function AiCardsPage() {
                                                 <div className="w-16 h-16 bg-white p-1 rounded-md mx-auto">
                                                     <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
                                                 </div>
-                                                <p className="text-[10px] mt-1 text-muted-foreground">{selectedPlayer.idNumber}</p>
                                             </div>
                                              {/* League Logo */}
                                             <div className="flex-shrink-0">
@@ -154,7 +158,6 @@ export default function AiCardsPage() {
                                                  <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                                                     <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
                                                 </div>
-                                                <p className="text-[10px] mt-1 text-muted-foreground">Número</p>
                                             </div>
                                         </div>
                                     </footer>
@@ -172,15 +175,19 @@ export default function AiCardsPage() {
         @media print {
             body {
                 background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             .print\\:hidden {
                 display: none !important;
             }
-            main, .flex-1 {
+            main, .flex-1, .id-card-wrapper {
                 display: block !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                background-color: white !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
             }
              #card-grid {
                 display: grid !important;
@@ -193,15 +200,6 @@ export default function AiCardsPage() {
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-            .id-card-wrapper > div {
-                box-shadow: none !important;
-                border: 1px solid #ccc !important;
-                 -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
             }
             @page {
                 size: A4 portrait;
