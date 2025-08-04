@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -679,7 +678,8 @@ export default function SchedulePage() {
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
     for (const round of sortedRounds) {
-        const roundMatches = matchesByRound[round];
+        // Shuffle matches within the round to mix categories
+        const roundMatches = matchesByRound[round].sort(() => Math.random() - 0.5);
         let roundScheduled = false;
 
         while(!roundScheduled) {
@@ -918,3 +918,5 @@ export default function SchedulePage() {
 
 
     
+
+  
