@@ -87,23 +87,25 @@ export default function PlayersPage() {
                                     <div className="space-y-2 p-4">
                                         {teamPlayers.length > 0 ? teamPlayers.map((player) => (
                                           <Link key={player.id} href={`/players/${player.id}`} className="block">
-                                              <Card className="flex items-center p-3 transition-all hover:bg-muted/50 cursor-pointer">
-                                                  <Image
-                                                      src={player.photoUrl}
-                                                      alt={player.name}
-                                                      width={40}
-                                                      height={40}
-                                                      className="rounded-full object-cover aspect-square"
-                                                      data-ai-hint="player portrait"
-                                                  />
-                                                  <div className="ml-4 flex-grow">
-                                                      <p className="font-semibold">{player.name}</p>
-                                                      <Badge variant={player.status === 'activo' ? 'default' : 'secondary'} className={cn(player.status === 'activo' ? 'bg-green-600' : 'bg-yellow-600')}>
-                                                        {player.status === 'activo' ? 'Aprobado' : 'Inactivo'}
-                                                      </Badge>
-                                                  </div>
-                                                  <div className="bg-primary text-primary-foreground h-12 w-16 flex items-center justify-center rounded-md">
-                                                      <span className="text-2xl font-bold">{player.jerseyNumber}</span>
+                                              <Card className="p-0">
+                                                  <div className="flex items-center p-3 transition-all hover:bg-muted/50 cursor-pointer">
+                                                      <Image
+                                                          src={player.photoUrl}
+                                                          alt={player.name}
+                                                          width={40}
+                                                          height={40}
+                                                          className="rounded-full object-cover aspect-square"
+                                                          data-ai-hint="player portrait"
+                                                      />
+                                                      <div className="ml-4 flex-grow">
+                                                          <p className="font-semibold">{player.name}</p>
+                                                          <Badge variant={player.status === 'activo' ? 'default' : 'secondary'} className={cn(player.status === 'activo' ? 'bg-green-600' : 'bg-yellow-600')}>
+                                                            {player.status === 'activo' ? 'Aprobado' : 'Inactivo'}
+                                                          </Badge>
+                                                      </div>
+                                                      <div className="bg-primary text-primary-foreground h-12 w-16 flex items-center justify-center rounded-md">
+                                                          <span className="text-2xl font-bold">{player.jerseyNumber}</span>
+                                                      </div>
                                                   </div>
                                               </Card>
                                           </Link>

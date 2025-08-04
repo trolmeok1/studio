@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -46,7 +47,7 @@ export default function AiCardsPage() {
       </div>
 
       <Card className="lg:col-span-2 print:shadow-none print:border-none print:bg-transparent">
-        <CardContent className="pt-6 print:p-0">
+        <CardContent className="pt-0 print:p-0">
           <div className="grid gap-4 md:grid-cols-3 print:hidden">
             <div>
               <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
@@ -99,7 +100,7 @@ export default function AiCardsPage() {
 
                     return (
                      <div key={selectedPlayer.id} className="id-card-wrapper">
-                         <Card className="w-full max-w-[300px] aspect-[2.125/3.375] bg-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans border-2 border-gray-200">
+                         <Card className="p-0 w-full max-w-[300px] aspect-[2.125/3.375] bg-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans border-2 border-gray-200">
                            {/* Background Pattern */}
                            <div className="absolute inset-0 bg-repeat bg-center" style={{backgroundImage: `linear-gradient(135deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(225deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(45deg, rgba(128,0,0,0.1) 25%, transparent 25%), linear-gradient(315deg, rgba(128,0,0,0.1) 25%, #fff 25%)`, backgroundSize: '10px 10px'}}></div>
                            

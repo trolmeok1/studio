@@ -78,95 +78,95 @@ const PlayerCard = ({ player: initialPlayer, onSave, onStatusChange }: { player:
     const getFirstName = (name: string) => name.split(' ')[0] || '';
 
     return (
-        <Card className="p-4 border-l-4 border-primary bg-background">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1 space-y-2">
-                    <Label className="text-xs font-semibold text-muted-foreground">CÉDULA COMPLETA</Label>
-                    <Image
-                        src={player.idCardUrl || 'https://placehold.co/856x540.png'}
-                        alt={`Cédula de ${player.name}`}
-                        width={856}
-                        height={540}
-                        className="rounded-md w-full object-contain border bg-muted"
-                        data-ai-hint="id card"
-                    />
-                     <div className="flex items-center gap-2">
-                        <Input id={`idCardUrl-${player.id}`} type="file" className="flex-grow text-xs" />
-                        <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
-                    </div>
-                </div>
-                <div className="md:col-span-2 grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-muted-foreground">FOTO PERFIL</Label>
-                        <Image
-                            src={player.photoUrl}
-                            alt={`Perfil de ${player.name}`}
-                            width={150}
-                            height={150}
-                            className="rounded-md w-full aspect-square object-cover border-2"
-                            data-ai-hint="player portrait"
-                        />
-                         <div className="flex items-center gap-2">
-                            <Input id={`photoUrl-${player.id}`} type="file" className="flex-grow text-xs" />
-                        </div>
-                    </div>
-                    <div className="col-span-2 space-y-2 text-sm">
-                        <div className="grid grid-cols-2 gap-x-2">
-                            <div>
-                                <Label htmlFor={`lastName-${player.id}`} className="text-xs">Apellidos</Label>
-                                <Input id={`lastName-${player.id}`} value={getLastName(player.name)} onChange={e => { handleNameChange('last', e.target.value); setIsEditing(true); }} />
-                            </div>
-                            <div>
-                                <Label htmlFor={`firstName-${player.id}`} className="text-xs">Nombres</Label>
-                                <Input id={`firstName-${player.id}`} value={getFirstName(player.name)} onChange={e => { handleNameChange('first', e.target.value); setIsEditing(true); }} />
-                            </div>
-                        </div>
-                        <div>
-                            <Label className="text-xs">F. Nacimiento</Label>
-                             <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs h-9", !player.birthDate && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {player.birthDate ? format(new Date(player.birthDate), "PPP", { locale: es }) : <span>Selecciona fecha</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <CalendarPicker
-                                        mode="single"
-                                        selected={new Date(player.birthDate)}
-                                        onSelect={(date) => { if(date) { handleInputChange('birthDate', date.toISOString().split('T')[0]); setIsEditing(true); } }}
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-2">
-                            <div>
-                                <Label className="text-xs">Cédula</Label>
-                                <Input value={player.idNumber} onChange={e => { handleInputChange('idNumber', e.target.value); setIsEditing(true); }} />
-                            </div>
-                            <div>
-                                <Label className="text-xs">N°</Label>
-                                <Input type="number" value={player.jerseyNumber} onChange={e => { handleInputChange('jerseyNumber', parseInt(e.target.value, 10)); setIsEditing(true); }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                 <div className="flex items-center justify-between mt-4 col-span-full">
-                     <div className="flex items-center space-x-2">
-                        <Switch id={`status-${player.id}`} checked={player.status === 'activo'} onCheckedChange={handleStatusToggle} />
-                        <Label htmlFor={`status-${player.id}`} className={cn("font-semibold", player.status === 'activo' ? 'text-green-600' : 'text-red-600')}>
-                            {player.status === 'activo' ? 'Aprobado' : 'No Aprobado'}
-                        </Label>
-                    </div>
-                    {isEditing && (
-                        <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => { setPlayer(initialPlayer); setIsEditing(false); }}>Cancelar</Button>
-                            <Button onClick={handleSave} size="sm"><Check className="mr-2"/> Guardar Cambios</Button>
-                        </div>
-                    )}
-                 </div>
-            </div>
+        <Card className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-1 space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground">CÉDULA COMPLETA</Label>
+                  <Image
+                      src={player.idCardUrl || 'https://placehold.co/856x540.png'}
+                      alt={`Cédula de ${player.name}`}
+                      width={856}
+                      height={540}
+                      className="rounded-md w-full object-contain border bg-muted"
+                      data-ai-hint="id card"
+                  />
+                   <div className="flex items-center gap-2">
+                      <Input id={`idCardUrl-${player.id}`} type="file" className="flex-grow text-xs" />
+                      <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
+                  </div>
+              </div>
+              <div className="md:col-span-2 grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground">FOTO PERFIL</Label>
+                      <Image
+                          src={player.photoUrl}
+                          alt={`Perfil de ${player.name}`}
+                          width={150}
+                          height={150}
+                          className="rounded-md w-full aspect-square object-cover border-2"
+                          data-ai-hint="player portrait"
+                      />
+                       <div className="flex items-center gap-2">
+                          <Input id={`photoUrl-${player.id}`} type="file" className="flex-grow text-xs" />
+                      </div>
+                  </div>
+                  <div className="col-span-2 space-y-2 text-sm">
+                      <div className="grid grid-cols-2 gap-x-2">
+                          <div>
+                              <Label htmlFor={`lastName-${player.id}`} className="text-xs">Apellidos</Label>
+                              <Input id={`lastName-${player.id}`} value={getLastName(player.name)} onChange={e => { handleNameChange('last', e.target.value); setIsEditing(true); }} />
+                          </div>
+                          <div>
+                              <Label htmlFor={`firstName-${player.id}`} className="text-xs">Nombres</Label>
+                              <Input id={`firstName-${player.id}`} value={getFirstName(player.name)} onChange={e => { handleNameChange('first', e.target.value); setIsEditing(true); }} />
+                          </div>
+                      </div>
+                      <div>
+                          <Label className="text-xs">F. Nacimiento</Label>
+                           <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs h-9", !player.birthDate && "text-muted-foreground")}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {player.birthDate ? format(new Date(player.birthDate), "PPP", { locale: es }) : <span>Selecciona fecha</span>}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                  <CalendarPicker
+                                      mode="single"
+                                      selected={new Date(player.birthDate)}
+                                      onSelect={(date) => { if(date) { handleInputChange('birthDate', date.toISOString().split('T')[0]); setIsEditing(true); } }}
+                                      initialFocus
+                                  />
+                              </PopoverContent>
+                          </Popover>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2">
+                          <div>
+                              <Label className="text-xs">Cédula</Label>
+                              <Input value={player.idNumber} onChange={e => { handleInputChange('idNumber', e.target.value); setIsEditing(true); }} />
+                          </div>
+                          <div>
+                              <Label className="text-xs">N°</Label>
+                              <Input type="number" value={player.jerseyNumber} onChange={e => { handleInputChange('jerseyNumber', parseInt(e.target.value, 10)); setIsEditing(true); }} />
+                          </div>
+                      </div>
+                  </div>
+              </div>
+               <div className="flex items-center justify-between mt-4 col-span-full">
+                   <div className="flex items-center space-x-2">
+                      <Switch id={`status-${player.id}`} checked={player.status === 'activo'} onCheckedChange={handleStatusToggle} />
+                      <Label htmlFor={`status-${player.id}`} className={cn("font-semibold", player.status === 'activo' ? 'text-green-600' : 'text-red-600')}>
+                          {player.status === 'activo' ? 'Aprobado' : 'No Aprobado'}
+                      </Label>
+                  </div>
+                  {isEditing && (
+                      <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => { setPlayer(initialPlayer); setIsEditing(false); }}>Cancelar</Button>
+                          <Button onClick={handleSave} size="sm"><Check className="mr-2"/> Guardar Cambios</Button>
+                      </div>
+                  )}
+               </div>
+          </div>
         </Card>
     )
 }
@@ -488,7 +488,7 @@ export default function TeamDetailsPage() {
   return (
     <div className="space-y-4 p-4 md:p-8">
       <Card>
-        <CardContent className="p-6">
+        <CardContent>
             <div className="flex flex-col md:flex-row items-center gap-6">
                  <Image
                     src={team.logoUrl}
@@ -531,34 +531,38 @@ export default function TeamDetailsPage() {
         </ScrollArea>
         <TabsContent value="info">
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Información del Club</CardTitle>
-                     {canEdit && (
-                        <Button size="sm" variant="outline" asChild>
-                            <Link href={`/teams/${teamId}/info`}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Imprimir Información
-                            </Link>
-                        </Button>
-                    )}
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <InfoRow icon={UserIcon} label="Presidente" person={team.president} showContact={canEdit} />
-                         <InfoRow icon={UserIcon} label="Vicepresidente" person={team.vicePresident} showContact={canEdit} />
-                         <InfoRow icon={UserIcon} label="Secretario" person={team.secretary} showContact={canEdit} />
-                         <InfoRow icon={UserIcon} label="Tesorero" person={team.treasurer} showContact={canEdit} />
-                         <InfoRow icon={UserIcon} label="Vocal Principal" person={team.vocal} showContact={canEdit} />
+                <CardHeader>
+                    <div className="flex flex-row items-center justify-between">
+                        <CardTitle>Información del Club</CardTitle>
+                         {canEdit && (
+                            <Button size="sm" variant="outline" asChild>
+                                <Link href={`/teams/${teamId}/info`}>
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Imprimir Información
+                                </Link>
+                            </Button>
+                        )}
                     </div>
-                    <div>
-                        <h4 className="font-semibold text-lg mb-2 mt-4">Delegados Autorizados</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {team.delegates?.map((delegate, index) => (
-                                <InfoRow key={index} icon={UserSquare} label={`Delegado ${index + 1}`} person={delegate} showContact={canEdit} />
-                            ))}
-                             {Array.from({ length: Math.max(0, 3 - (team.delegates?.length || 0)) }).map((_, index) => (
-                                <InfoRow key={`empty-${index}`} icon={UserSquare} label={`Delegado ${ (team.delegates?.length || 0) + index + 1}`} showContact={false} />
-                            ))}
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <InfoRow icon={UserIcon} label="Presidente" person={team.president} showContact={canEdit} />
+                             <InfoRow icon={UserIcon} label="Vicepresidente" person={team.vicePresident} showContact={canEdit} />
+                             <InfoRow icon={UserIcon} label="Secretario" person={team.secretary} showContact={canEdit} />
+                             <InfoRow icon={UserIcon} label="Tesorero" person={team.treasurer} showContact={canEdit} />
+                             <InfoRow icon={UserIcon} label="Vocal Principal" person={team.vocal} showContact={canEdit} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-lg mb-2 mt-4">Delegados Autorizados</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {team.delegates?.map((delegate, index) => (
+                                    <InfoRow key={index} icon={UserSquare} label={`Delegado ${index + 1}`} person={delegate} showContact={canEdit} />
+                                ))}
+                                 {Array.from({ length: Math.max(0, 3 - (team.delegates?.length || 0)) }).map((_, index) => (
+                                    <InfoRow key={`empty-${index}`} icon={UserSquare} label={`Delegado ${ (team.delegates?.length || 0) + index + 1}`} showContact={false} />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </CardContent>
@@ -566,38 +570,40 @@ export default function TeamDetailsPage() {
         </TabsContent>
         <TabsContent value="roster">
              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex flex-col">
-                        <CardTitle>Plantilla de Jugadores ({players.length})</CardTitle>
-                         {canEdit && (
-                            <div className="flex items-center gap-2 mt-2">
-                                <Button size="sm" variant={rosterView === 'cards' ? 'default' : 'outline'} onClick={() => setRosterView('cards')}><LayoutGrid className="mr-2"/> Tarjetas</Button>
-                                <Button size="sm" variant={rosterView === 'list' ? 'default' : 'outline'} onClick={() => setRosterView('list')}><List className="mr-2"/> Lista Admin</Button>
-                            </div>
-                        )}
-                    </div>
-                  {canEdit && (
-                    <div className="flex items-center gap-2">
-                         <Button size="sm" variant="outline" asChild>
-                            <Link href={`/teams/${teamId}/roster`}>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Descargar Nómina
-                            </Link>
-                        </Button>
-                        <AddPlayerDialog team={team} onSave={handleSavePlayer}>
-                            <Button size="sm">
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Agregar Jugador
+                <CardHeader>
+                    <div className="flex flex-row items-center justify-between">
+                        <div className="flex flex-col">
+                            <CardTitle>Plantilla de Jugadores ({players.length})</CardTitle>
+                             {canEdit && (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <Button size="sm" variant={rosterView === 'cards' ? 'default' : 'outline'} onClick={() => setRosterView('cards')}><LayoutGrid className="mr-2"/> Tarjetas</Button>
+                                    <Button size="sm" variant={rosterView === 'list' ? 'default' : 'outline'} onClick={() => setRosterView('list')}><List className="mr-2"/> Lista Admin</Button>
+                                </div>
+                            )}
+                        </div>
+                      {canEdit && (
+                        <div className="flex items-center gap-2">
+                             <Button size="sm" variant="outline" asChild>
+                                <Link href={`/teams/${teamId}/roster`}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Descargar Nómina
+                                </Link>
                             </Button>
-                        </AddPlayerDialog>
+                            <AddPlayerDialog team={team} onSave={handleSavePlayer}>
+                                <Button size="sm">
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Agregar Jugador
+                                </Button>
+                            </AddPlayerDialog>
+                        </div>
+                      )}
                     </div>
-                  )}
                 </CardHeader>
                 <CardContent>
                     {rosterView === 'cards' || !canEdit ? (
                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {players.map((player) => (
-                          <Card key={player.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg">
+                          <Card key={player.id} className="p-0 overflow-hidden flex flex-col group transition-all hover:shadow-lg">
                             <CardHeader className="p-0 relative">
                                <Link href={`/players/${player.id}`}>
                                 <Image
@@ -674,14 +680,16 @@ export default function TeamDetailsPage() {
                 <CardContent>
                     <div className="space-y-4">
                         {futureMatches.length > 0 ? futureMatches.map(match => (
-                            <Card key={match.id} className="p-4 flex items-center justify-between">
-                                <span className="text-sm font-medium">{format(new Date(match.date), "eeee, dd 'de' MMMM", { locale: es })}</span>
-                                <div className="flex items-center gap-4">
-                                    <span className={cn("font-bold", match.teams.home.id === teamId && "text-primary")}>{match.teams.home.name}</span>
-                                    <span className="text-muted-foreground">vs</span>
-                                    <span className={cn("font-bold", match.teams.away.id === teamId && "text-primary")}>{match.teams.away.name}</span>
+                            <Card key={match.id} className="p-0">
+                                <div className="flex items-center justify-between p-4">
+                                    <span className="text-sm font-medium">{format(new Date(match.date), "eeee, dd 'de' MMMM", { locale: es })}</span>
+                                    <div className="flex items-center gap-4">
+                                        <span className={cn("font-bold", match.teams.home.id === teamId && "text-primary")}>{match.teams.home.name}</span>
+                                        <span className="text-muted-foreground">vs</span>
+                                        <span className={cn("font-bold", match.teams.away.id === teamId && "text-primary")}>{match.teams.away.name}</span>
+                                    </div>
+                                    <Badge variant="outline">{format(new Date(match.date), 'p', { locale: es })}</Badge>
                                 </div>
-                                <Badge variant="outline">{format(new Date(match.date), 'p', { locale: es })}</Badge>
                             </Card>
                         )) : (
                             <p className="text-muted-foreground text-center">No hay partidos programados para este equipo.</p>
@@ -758,18 +766,20 @@ export default function TeamDetailsPage() {
                     {teamSanctions.length > 0 ? (
                         <div className="space-y-4">
                         {teamSanctions.map(sanction => (
-                            <Card key={sanction.id} className="flex items-center p-4 gap-4 bg-muted/50">
-                                <Avatar className="h-12 w-12">
-                                    <AvatarImage src={sanction.playerPhotoUrl} alt={sanction.playerName} data-ai-hint="player portrait" />
-                                    <AvatarFallback>{sanction.playerName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-grow">
-                                    <p className="font-bold">{sanction.playerName}</p>
-                                    <p className="text-sm">{sanction.reason}</p>
+                            <Card key={sanction.id} className="p-0">
+                                <div className="flex items-center p-4 gap-4 bg-muted/50">
+                                    <Avatar className="h-12 w-12">
+                                        <AvatarImage src={sanction.playerPhotoUrl} alt={sanction.playerName} data-ai-hint="player portrait" />
+                                        <AvatarFallback>{sanction.playerName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-grow">
+                                        <p className="font-bold">{sanction.playerName}</p>
+                                        <p className="text-sm">{sanction.reason}</p>
+                                    </div>
+                                    <Badge variant="destructive">
+                                        {sanction.gamesSuspended} Partido(s)
+                                    </Badge>
                                 </div>
-                                <Badge variant="destructive">
-                                    {sanction.gamesSuspended} Partido(s)
-                                </Badge>
                             </Card>
                         ))}
                         </div>

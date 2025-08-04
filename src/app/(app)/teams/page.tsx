@@ -217,22 +217,22 @@ export default function TeamsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team) => (
-          <Card key={team.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:scale-[1.02]">
-             <CardHeader className="p-4">
+          <Card key={team.id} className="p-0 overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:scale-[1.02]">
+             <CardHeader>
                 <CardTitle className="text-xl font-headline truncate">{team.name}</CardTitle>
                 <Badge variant="secondary" className="w-fit">{team.category}</Badge>
              </CardHeader>
-            <CardContent className="p-4 flex-grow flex items-center justify-center">
+            <CardContent>
                  <Image
                     src={team.logoUrl}
                     alt={`Logo de ${team.name}`}
                     width={150}
                     height={150}
-                    className="rounded-full object-cover aspect-square"
+                    className="rounded-full object-cover aspect-square mx-auto"
                     data-ai-hint="team logo"
                 />
             </CardContent>
-            <CardFooter className="p-4 bg-muted/50">
+            <CardFooter>
                  <Button asChild className="w-full">
                     <Link href={`/teams/${team.id}`}>Ver</Link>
                 </Button>
