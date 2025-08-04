@@ -207,6 +207,7 @@ export default function AiCardsPage() {
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
+                overflow: visible !important;
             }
             @page {
                 size: A4 portrait;
