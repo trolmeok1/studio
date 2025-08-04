@@ -159,7 +159,7 @@ export function AppSidebar() {
                )}
                 {permissions.requests.view && (
                  <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/requests')} tooltip="Solicitudes">
+                  <SidebarMenuButton asChild isActive={isActive('/requests/requalification')} tooltip="Solicitudes">
                       <Link href="/requests/requalification">
                           <UserCheck />
                           <span>Solicitudes</span>
