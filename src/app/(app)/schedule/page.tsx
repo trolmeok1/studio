@@ -28,10 +28,9 @@ import { useToast } from '@/hooks/use-toast';
 
 
 
-const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
+const CategoryMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
     const homeTeam = getTeam(match.home);
     const awayTeam = getTeam(match.away);
-    const vocalTeam = getTeam(match.vocalTeamId || '');
 
     return (
         <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col bg-gradient-to-br from-card to-primary/20 text-card-foreground">
@@ -41,6 +40,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
                     <div className="flex flex-col items-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={64} height={64} className="rounded-full bg-white/10 p-1" data-ai-hint="team logo" />
                         <p className="font-bold text-sm leading-tight">{homeTeam?.name}</p>
+                        <p className="text-xs text-slate-300 -mt-1">Camerino {match.homeDressingRoom || 'N/A'}</p>
                     </div>
 
                     {/* Match Info */}
@@ -56,16 +56,53 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
                     <div className="flex flex-col items-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={64} height={64} className="rounded-full bg-white/10 p-1" data-ai-hint="team logo" />
                         <p className="font-bold text-sm leading-tight">{awayTeam?.name}</p>
+                        <p className="text-xs text-slate-300 -mt-1">Camerino {match.awayDressingRoom || 'N/A'}</p>
                     </div>
                 </div>
                  <div className="text-xs text-white/80 border-t border-white/20 pt-2 flex justify-between">
                     <span>Cancha: {match.field || 'N/A'}</span>
-                    <span>Vocal: {vocalTeam?.name || 'N/A'}</span>
+                    <span>Vocal: {getTeam(match.vocalTeamId || '')?.name || 'N/A'}</span>
                 </div>
             </CardContent>
         </Card>
     );
 };
+
+const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
+    const homeTeam = getTeam(match.home);
+    const awayTeam = getTeam(match.away);
+    const vocalTeam = getTeam(match.vocalTeamId || '');
+
+    return (
+        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between p-3 bg-muted/50">
+                <Badge variant="outline">{match.category} {match.group && `- Grupo ${match.group}`}</Badge>
+                <div className="text-sm font-semibold">
+                    {match.date ? format(match.date, 'HH:mm', { locale: es }) : 'Hora por definir'}
+                </div>
+            </CardHeader>
+            <CardContent className="p-4 flex-grow">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <Link href={`/teams/${homeTeam?.id}`} className="flex flex-col items-center text-center gap-2">
+                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
+                        <p className="font-semibold text-sm">{homeTeam?.name}</p>
+                    </Link>
+                    <span className="font-bold text-muted-foreground">VS</span>
+                    <Link href={`/teams/${awayTeam?.id}`} className="flex flex-col items-center text-center gap-2">
+                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
+                        <p className="font-semibold text-sm">{awayTeam?.name}</p>
+                    </Link>
+                </div>
+            </CardContent>
+            <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground"><Shield className="w-4 h-4" /> <span className="font-semibold">Cancha:</span> {match.field || 'N/A'}</div>
+                <div className="flex items-center gap-2 text-muted-foreground"><UserCheck className="w-4 h-4" /> <span className="font-semibold">Vocal:</span> {vocalTeam?.name || 'N/A'}</div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Home className="w-4 h-4" /> <span className="font-semibold">Camerinos:</span> {match.homeDressingRoom}/{match.awayDressingRoom}</div>
+            </CardFooter>
+        </Card>
+    );
+};
+
 
 const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => void }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2));
@@ -252,7 +289,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { al
 };
 
 
-const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupByDate: boolean }) => {
+const ScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupByDate: boolean }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
     
@@ -274,9 +311,13 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }
         if (filteredMatches.length === 0 || !isClient) return {};
 
         const sortedMatches = [...filteredMatches].sort((a, b) => {
-            const dateA = a.date ? a.date.getTime() : 0;
-            const dateB = b.date ? b.date.getTime() : 0;
+            const dateA = a.date ? a.date.getTime() : Infinity;
+            const dateB = b.date ? b.date.getTime() : Infinity;
             if (dateA !== dateB) return dateA - dateB;
+            
+            const timeA = a.time || '';
+            const timeB = b.time || '';
+            if (timeA !== timeB) return timeA.localeCompare(timeB);
             
             const roundA = a.round || 0;
             const roundB = b.round || 0;
@@ -285,7 +326,8 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }
 
         return sortedMatches
             .reduce((acc, match) => {
-                if (!match.date && !match.round && groupByDate) return acc;
+                 if (!match.date && groupByDate) return acc;
+                 if (!match.round && !groupByDate) return acc;
 
                 const groupKey = groupByDate
                     ? (match.date ? format(match.date, 'PPPP', { locale: es }) : 'Fecha por definir')
@@ -314,6 +356,9 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }
         )
      }
 
+    const CardComponent = groupByDate ? GeneralMatchCard : CategoryMatchCard;
+    const gridColsClass = groupByDate ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3";
+
     return (
         <Card>
             <CardHeader>
@@ -325,13 +370,16 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }
                     .map(([groupKey, matchesInGroup]) => (
                     <div key={groupKey}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{groupKey}</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {matchesInGroup.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => 
-                                <GeneralMatchCard key={`${match.home}-${match.away}-${index}`} match={match} getTeam={getTeam} />
+                         <div className={`grid grid-cols-1 ${gridColsClass} gap-4`}>
+                            {matchesInGroup.map((match, index) => 
+                                <CardComponent key={`${match.home}-${match.away}-${index}`} match={match} getTeam={getTeam} />
                             )}
                         </div>
                     </div>
                 ))}
+                 {Object.keys(groupedMatches).length === 0 && (
+                     <p className="text-muted-foreground text-center py-8">No hay partidos para mostrar en esta vista.</p>
+                )}
             </CardContent>
         </Card>
     );
@@ -535,7 +583,6 @@ export default function SchedulePage() {
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
     let lastUsedDressingRoomPairIndex = 0;
-    const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
 
     for (const round of sortedRounds) {
         let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5);
@@ -560,39 +607,23 @@ export default function SchedulePage() {
                     const timeParts = time.split(':');
                     const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
                     
-                    const pairIndex = lastUsedDressingRoomPairIndex % numDressingRoomPairs;
-                    
+                    const pairIndex = lastUsedDressingRoomPairIndex % Math.floor(settings.numDressingRooms / 2);
                     const homeDressingRoom = pairIndex * 2 + 1;
-                    const awayDressingRoom = homeDressingRoom + 2;
+                    const awayDressingRoom = homeDressingRoom + 1;
+                    
+                    lastUsedDressingRoomPairIndex++;
 
-                    if (awayDressingRoom > settings.numDressingRooms) {
-                         lastUsedDressingRoomPairIndex = 0;
-                         const newPairIndex = lastUsedDressingRoomPairIndex % numDressingRoomPairs;
-                         const newHomeDressingRoom = newPairIndex * 2 + 1;
-                         const newAwayDressingRoom = newHomeDressingRoom + 2;
-                         scheduledMatches.push({
-                           ...match,
-                           date: matchDateTime,
-                           time: format(matchDateTime, 'HH:mm'),
-                           field: fieldIndex + 1,
-                           homeDressingRoom: newHomeDressingRoom,
-                           awayDressingRoom: newAwayDressingRoom,
-                           vocalTeamId: vocalTeamId
-                        });
-                    } else {
-                        scheduledMatches.push({
-                           ...match,
-                           date: matchDateTime,
-                           time: format(matchDateTime, 'HH:mm'),
-                           field: fieldIndex + 1,
-                           homeDressingRoom: homeDressingRoom,
-                           awayDressingRoom: awayDressingRoom,
-                           vocalTeamId: vocalTeamId
-                        });
-                    }
+                    scheduledMatches.push({
+                       ...match,
+                       date: matchDateTime,
+                       time: format(matchDateTime, 'HH:mm'),
+                       field: fieldIndex + 1,
+                       homeDressingRoom: homeDressingRoom,
+                       awayDressingRoom: awayDressingRoom,
+                       vocalTeamId: vocalTeamId
+                    });
 
                     matchesForCurrentDate++;
-                    lastUsedDressingRoomPairIndex++;
                 }
             }
 
@@ -602,6 +633,8 @@ export default function SchedulePage() {
             }
         }
         currentDate = addDays(currentDate, 1);
+        matchesForCurrentDate = 0;
+        lastUsedDressingRoomPairIndex = 0; // Reset for the new round/week
     }
 
     setGeneratedMatches(scheduledMatches);
@@ -772,16 +805,16 @@ export default function SchedulePage() {
                 {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupByDate={true} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupByDate={true} />
             </TabsContent>
              <TabsContent value="maxima">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupByDate={false} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupByDate={false} />
             </TabsContent>
              <TabsContent value="primera">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupByDate={false} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupByDate={false} />
             </TabsContent>
              <TabsContent value="segunda">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupByDate={false} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupByDate={false} />
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
@@ -840,6 +873,7 @@ export default function SchedulePage() {
     
 
   
+
 
 
 
