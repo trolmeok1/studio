@@ -37,7 +37,7 @@ export default function AiCardsPage() {
 
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 print:block">
       <div className="text-center print:hidden">
         <h2 className="text-4xl font-extrabold tracking-tight">
           <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
@@ -47,7 +47,7 @@ export default function AiCardsPage() {
       </div>
 
       <main>
-        <Card className="lg:col-span-2 print:shadow-none print:border-none print:bg-transparent">
+        <Card className="lg:col-span-2 print:shadow-none print:border-none print:bg-transparent print:hidden">
             <CardContent className="pt-6 print:p-0">
             <div className="grid gap-4 md:grid-cols-3 print:hidden">
                 <div>
@@ -91,7 +91,10 @@ export default function AiCardsPage() {
                 )}
             </div>
 
-            {selectedTeamId && (
+            </CardContent>
+        </Card>
+        
+        {selectedTeamId && (
                 <div id="card-grid" className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {selectedTeamPlayers.map(selectedPlayer => {
                         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
@@ -167,8 +170,6 @@ export default function AiCardsPage() {
                     )})}
                 </div>
             )}
-            </CardContent>
-        </Card>
       </main>
 
       <style jsx global>{`
@@ -180,6 +181,9 @@ export default function AiCardsPage() {
             }
             .print\\:hidden {
                 display: none !important;
+            }
+            .print\\:block {
+                display: block !important;
             }
             main, .flex-1 {
                 display: block !important;
