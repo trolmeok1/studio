@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX, Star } from 'lucide-react';
+import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, Shirt, UserCheck, UserX, Star, ShieldAlert } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
   const player = getPlayerById(params.id);
@@ -133,6 +134,32 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                   <p className="text-sm text-muted-foreground">Tarjetas Rojas</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center gap-2">
+                <ShieldAlert /> Comportamiento Disciplinario
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Faltas Totales</TableHead>
+                    <TableHead>Partidos Jugados</TableHead>
+                    <TableHead>Promedio Faltas/Partido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>{player.stats.yellowCards + player.stats.redCards}</TableCell>
+                    <TableCell>20</TableCell> {/* Mock data */}
+                    <TableCell>{((player.stats.yellowCards + player.stats.redCards) / 20).toFixed(2)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
 

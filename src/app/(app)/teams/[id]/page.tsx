@@ -1,5 +1,6 @@
 
-import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type Match } from '@/lib/mock-data';
+
+import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type Match, standings } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { TeamDetailsClient } from './_components/TeamDetailsClient';
 
@@ -14,6 +15,7 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
   const players = getPlayersByTeamId(teamId);
   const matches = getMatchesByTeamId(teamId);
   const teamSanctions = sanctions.filter(s => s.teamId === teamId);
+  const teamStandings = standings.find(s => s.teamId === teamId);
 
   const futureMatches = matches.filter(m => m.status === 'future' || m.status === 'in-progress');
   const finishedMatches = matches.filter(m => m.status === 'finished');
@@ -38,6 +40,7 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
         team={team}
         players={players}
         matches={matches}
+        teamStandings={teamStandings}
         teamSanctions={teamSanctions}
         futureMatches={futureMatches}
         finishedMatches={finishedMatches}

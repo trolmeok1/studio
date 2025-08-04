@@ -22,48 +22,74 @@ import { Calendar as CalendarIcon } from "lucide-react";
 
 // --- Report Components ---
 
-const StandingsReport = ({ category }: { category: Category }) => {
+const StandingsReport = ({ category, group }: { category: Category, group?: 'A' | 'B' }) => {
     const standings = mockStandings.filter(s => {
         const team = teams.find(t => t.id === s.teamId);
-        return team?.category === category;
-    }).map(s => {
+        return team?.category === category && (group ? team.group === group : true);
+    }).map((s, index) => {
         const teamData = teams.find(t => t.id === s.teamId);
         return {
             ...s,
+            rank: index + 1,
             teamLogoUrl: teamData?.logoUrl || 'https://placehold.co/100x100.png'
         };
     }).sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
 
+    const getRowClass = (rank: number) => {
+        if (rank <= 3) return 'bg-red-800/20'; // Using a darker red for better contrast on white
+        return index % 2 === 0 ? 'bg-gray-50' : 'bg-white';
+    };
+
+    const getPositionClass = (rank: number) => {
+        if (rank <= 3) return 'bg-red-600 text-white';
+        return 'bg-gray-200';
+    }
+    
     return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
-            <header className="flex flex-col items-center text-center mb-6">
-                <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" />
-                <h1 className="text-2xl font-bold mt-2">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
-                <p className="text-lg font-semibold">TABLA DE POSICIONES OFICIAL</p>
-                <p className="text-md">Categoría: {category}</p>
+        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none" style={{ backgroundImage: `url('/field-bg-light.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <header className="flex flex-col items-center text-center mb-6 bg-black/50 text-white p-4 rounded-lg">
+                <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={80} height={80} data-ai-hint="league logo" className="bg-white rounded-full p-1" />
+                <h1 className="text-3xl font-bold mt-2 tracking-widest uppercase">Tabla de Posiciones</h1>
+                 <div className="bg-white text-gray-800 font-bold py-1 px-4 rounded-md w-fit mx-auto mt-2 text-lg">
+                    {category} {group ? `- Grupo ${group}` : ''}
+                </div>
             </header>
-            <Table>
+            <Table className="bg-white/90 rounded-lg overflow-hidden">
                 <TableHeader>
-                    <TableRow className="bg-gray-200">
-                        <TableHead className="w-[40px] text-black font-bold">#</TableHead>
-                        <TableHead className="text-black font-bold">Equipo</TableHead>
-                        <TableHead className="text-center text-black font-bold">PJ</TableHead>
+                    <TableRow className="bg-gray-200 hover:bg-gray-200">
+                        <TableHead className="w-[50px] text-center text-black font-bold">POS</TableHead>
+                        <TableHead className="text-black font-bold">EQUIPO</TableHead>
                         <TableHead className="text-center text-black font-bold">PTS</TableHead>
-                        <TableHead className="text-center text-black font-bold">GD</TableHead>
+                        <TableHead className="text-center text-black font-bold">PJ</TableHead>
+                        <TableHead className="text-center text-black font-bold">G</TableHead>
+                        <TableHead className="text-center text-black font-bold">E</TableHead>
+                        <TableHead className="text-center text-black font-bold">P</TableHead>
+                        <TableHead className="text-center text-black font-bold">GF</TableHead>
+                        <TableHead className="text-center text-black font-bold">GC</TableHead>
+                        <TableHead className="text-center text-black font-bold">DG</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {standings.map((s, index) => (
-                        <TableRow key={s.teamId} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
-                            <TableCell className="font-bold">{index + 1}</TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Image src={s.teamLogoUrl} alt={s.teamName} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                    <span>{s.teamName}</span>
+                        <TableRow key={s.teamId} className={cn("border-gray-300", getRowClass(index))}>
+                           <TableCell className="p-0 w-[50px] text-center">
+                                <div className={cn("h-full w-full flex items-center justify-center font-bold text-sm py-3", getPositionClass(s.rank))}>
+                                    {s.rank}
                                 </div>
                             </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-3">
+                                    <Image src={s.teamLogoUrl} alt={s.teamName} width={28} height={28} className="rounded-full bg-gray-200 p-0.5" data-ai-hint="team logo" />
+                                    <span className="font-semibold">{s.teamName}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-lg">{s.points}</TableCell>
                             <TableCell className="text-center">{s.played}</TableCell>
-                            <TableCell className="text-center font-bold">{s.points}</TableCell>
+                            <TableCell className="text-center">{s.wins}</TableCell>
+                            <TableCell className="text-center">{s.draws}</TableCell>
+                            <TableCell className="text-center">{s.losses}</TableCell>
+                            <TableCell className="text-center">{s.goalsFor}</TableCell>
+                            <TableCell className="text-center">{s.goalsAgainst}</TableCell>
                             <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
                         </TableRow>
                     ))}
@@ -288,6 +314,7 @@ type ReportType = 'standings' | 'schedule' | 'sanctions' | 'finance' | null;
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
     const [category, setCategory] = useState<Category>('Máxima');
+    const [group, setGroup] = useState<'A' | 'B' | 'all'>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isClient, setIsClient] = useState(false);
 
@@ -332,7 +359,7 @@ export default function ReportsPage() {
                     </Button>
                 </div>
                 <div className="mt-4">
-                    {reportType === 'standings' && <StandingsReport category={category} />}
+                    {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} />}
                     {reportType === 'schedule' && <ScheduleReport matches={weeklyMatches} />}
                     {reportType === 'sanctions' && <SanctionsReport />}
                     {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
@@ -387,18 +414,33 @@ export default function ReportsPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                         <div className="space-y-2">
-                            <Label htmlFor="category-standings">Seleccionar Categoría</Label>
-                            <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
-                                <SelectTrigger id="category-standings">
-                                    <SelectValue placeholder="Elige una categoría..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Máxima">Máxima</SelectItem>
-                                    <SelectItem value="Primera">Primera</SelectItem>
-                                    <SelectItem value="Segunda">Segunda</SelectItem>
-                                </SelectContent>
-                            </Select>
+                         <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <Label htmlFor="category-standings">Categoría</Label>
+                                <Select value={category} onValueChange={(v) => { setCategory(v as Category); setGroup('all'); }}>
+                                    <SelectTrigger id="category-standings">
+                                        <SelectValue placeholder="Elige una categoría..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Máxima">Máxima</SelectItem>
+                                        <SelectItem value="Primera">Primera</SelectItem>
+                                        <SelectItem value="Segunda">Segunda</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="group-standings">Grupo</Label>
+                                <Select value={group} onValueChange={(v) => setGroup(v as 'A' | 'B' | 'all')} disabled={category !== 'Segunda'}>
+                                    <SelectTrigger id="group-standings">
+                                        <SelectValue placeholder="Elige un grupo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos</SelectItem>
+                                        <SelectItem value="A">Grupo A</SelectItem>
+                                        <SelectItem value="B">Grupo B</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                         <Button className="w-full mt-4" onClick={() => handleGenerate('standings')}>
                             <Printer className="mr-2" />
@@ -420,7 +462,7 @@ export default function ReportsPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                         <div className="space-y-2 h-[56px] flex items-center">
+                         <div className="space-y-2 h-[88px] flex items-center">
                             <p className="text-sm text-muted-foreground">Este reporte generará automáticamente los partidos para los próximos 7 días.</p>
                         </div>
                          <Button className="w-full mt-4" onClick={() => handleGenerate('schedule')}>
@@ -443,7 +485,7 @@ export default function ReportsPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground h-[56px] flex items-center">Este reporte incluirá a todos los jugadores con sanciones activas en todas las categorías.</p>
+                        <p className="text-sm text-muted-foreground h-[88px] flex items-center">Este reporte incluirá a todos los jugadores con sanciones activas en todas las categorías.</p>
                          <Button className="w-full mt-4" onClick={() => handleGenerate('sanctions')}>
                             <Printer className="mr-2" />
                             Generar Reporte

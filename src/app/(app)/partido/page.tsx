@@ -1,8 +1,10 @@
 
 
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { upcomingMatches as allMatches, type Match, getTeamsByCategory, standings as mockStandings, type Category } from '@/lib/mock-data';
+import { getTeamsByCategory, standings as mockStandings, type Category, type Standing } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -33,41 +35,48 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
     .map((s, index) => ({ ...s, rank: index + 1 }));
 
     const getRowClass = (rank: number) => {
-        switch(rank) {
-            case 1: return 'bg-amber-400/20 hover:bg-amber-400/30';
-            case 2: return 'bg-slate-400/20 hover:bg-slate-400/30';
-            case 3: return 'bg-orange-600/20 hover:bg-orange-600/30';
-            default: return '';
-        }
+        if (rank <= 3) return 'bg-red-500/10';
+        return '';
+    };
+
+    const getPositionClass = (rank: number) => {
+        if (rank <= 3) return 'bg-red-500 text-white';
+        return 'bg-muted/50';
     }
 
     return (
-        <Card neon="blue">
-            <CardHeader>
-                <CardTitle>
-                    Tabla de Posiciones - {category} {group ? `- Grupo ${group}` : ''}
-                </CardTitle>
+        <Card className="bg-gray-900/70 backdrop-blur-sm border-white/10" style={{ backgroundImage: `url('/field-bg.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <CardHeader className="text-center">
+                <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} className="mx-auto" data-ai-hint="league logo" />
+                <CardTitle className="text-white text-2xl font-bold tracking-widest uppercase">Tabla de Posiciones</CardTitle>
+                <div className="bg-white/90 text-gray-800 font-bold py-1 px-4 rounded-md w-fit mx-auto">
+                    {category} {group ? `- Grupo ${group}` : ''}
+                </div>
             </CardHeader>
             <CardContent>
-                <Table>
+                <Table className="text-white">
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[40px]">#</TableHead>
-                            <TableHead>Equipo</TableHead>
-                            <TableHead className="text-center">PJ</TableHead>
-                            <TableHead className="text-center">G</TableHead>
-                            <TableHead className="text-center">E</TableHead>
-                            <TableHead className="text-center">P</TableHead>
-                            <TableHead className="text-center">GF</TableHead>
-                            <TableHead className="text-center">GC</TableHead>
-                            <TableHead className="text-center">GD</TableHead>
-                            <TableHead className="text-center font-bold">PTS</TableHead>
+                        <TableRow className="border-white/20 hover:bg-transparent">
+                            <TableHead className="w-[50px] text-center text-muted-foreground">POS</TableHead>
+                            <TableHead className="text-muted-foreground">EQUIPO</TableHead>
+                            <TableHead className="text-center text-muted-foreground">PTS</TableHead>
+                            <TableHead className="text-center text-muted-foreground">PJ</TableHead>
+                            <TableHead className="text-center text-muted-foreground">G</TableHead>
+                            <TableHead className="text-center text-muted-foreground">E</TableHead>
+                            <TableHead className="text-center text-muted-foreground">P</TableHead>
+                            <TableHead className="text-center text-muted-foreground">GF</TableHead>
+                            <TableHead className="text-center text-muted-foreground">GC</TableHead>
+                            <TableHead className="text-center text-muted-foreground">DG</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {standings.map((s) => (
-                            <TableRow key={s.teamId} className={cn(getRowClass(s.rank))}>
-                                <TableCell className="font-bold">{s.rank}</TableCell>
+                            <TableRow key={s.teamId} className={cn("border-white/10", getRowClass(s.rank))}>
+                                <TableCell className="p-0 w-[50px]">
+                                    <div className={cn("h-full w-full flex items-center justify-center font-bold", getPositionClass(s.rank))}>
+                                        {s.rank}
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     <Link href={`/teams/${s.teamId}`} className="flex items-center gap-3 hover:text-primary">
                                         <Image
@@ -75,12 +84,13 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                                             alt={s.teamName}
                                             width={24}
                                             height={24}
-                                            className="rounded-full"
+                                            className="rounded-full bg-white/20 p-0.5"
                                             data-ai-hint="team logo"
                                         />
                                         <span className="font-medium">{s.teamName}</span>
                                     </Link>
                                 </TableCell>
+                                <TableCell className="text-center font-bold text-lg">{s.points}</TableCell>
                                 <TableCell className="text-center">{s.played}</TableCell>
                                 <TableCell className="text-center">{s.wins}</TableCell>
                                 <TableCell className="text-center">{s.draws}</TableCell>
@@ -88,7 +98,6 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                                 <TableCell className="text-center">{s.goalsFor}</TableCell>
                                 <TableCell className="text-center">{s.goalsAgainst}</TableCell>
                                 <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
-                                <TableCell className="text-center font-bold">{s.points}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -120,13 +129,13 @@ export default function PartidoPage() {
             <TabsContent value="results" className="space-y-6 mt-6">
                  <MatchResults />
             </TabsContent>
-             <TabsContent value="maxima">
+             <TabsContent value="maxima" className="mt-4">
                 <LeagueView category="Máxima" />
             </TabsContent>
-            <TabsContent value="primera">
+            <TabsContent value="primera" className="mt-4">
                 <LeagueView category="Primera" />
             </TabsContent>
-            <TabsContent value="segunda" className="space-y-6">
+            <TabsContent value="segunda" className="mt-4 space-y-6">
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <LeagueView category="Segunda" group="A" />
                     <LeagueView category="Segunda" group="B" />

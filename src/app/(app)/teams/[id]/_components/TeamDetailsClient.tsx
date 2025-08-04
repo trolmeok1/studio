@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Player, Team, Sanction, Match } from '@/lib/mock-data';
+import type { Player, Team, Sanction, Match, Standing } from '@/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon } from 'lucide-react';
+import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -223,12 +223,50 @@ const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
             </Table>
         </CardContent>
     </Card>
-)
+);
+
+const PerformanceChart = ({ matches }: { matches: Match[] }) => {
+    const lastFive = matches
+        .filter(m => m.status === 'finished')
+        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5)
+        .reverse();
+
+    return (
+        <div className="flex items-center justify-center gap-2">
+            {lastFive.map((match, index) => {
+                const isWin = (match.score?.home ?? 0) > (match.score?.away ?? 0);
+                const isDraw = (match.score?.home ?? 0) === (match.score?.away ?? 0);
+                
+                let Icon = Minus;
+                let color = 'text-yellow-500';
+
+                if (isWin) {
+                    Icon = TrendingUp;
+                    color = 'text-green-500';
+                } else if (!isDraw) {
+                    Icon = TrendingDown;
+                    color = 'text-red-500';
+                }
+                
+                return (
+                    <div key={index} className={cn("h-8 w-8 flex items-center justify-center rounded-full bg-muted", color)}>
+                        <Icon className="h-5 w-5" />
+                    </div>
+                );
+            })}
+             {lastFive.length === 0 && (
+                 <p className="text-sm text-muted-foreground">No hay partidos finalizados</p>
+            )}
+        </div>
+    )
+}
 
 export function TeamDetailsClient({
   team,
   players,
   matches,
+  teamStandings,
   teamSanctions,
   futureMatches,
   finishedMatches,
@@ -237,6 +275,7 @@ export function TeamDetailsClient({
   team: Team;
   players: Player[];
   matches: Match[];
+  teamStandings?: Standing;
   teamSanctions: Sanction[];
   futureMatches: Match[];
   finishedMatches: Match[];
@@ -280,6 +319,28 @@ export function TeamDetailsClient({
           )}
         </div>
       </header>
+
+      <Card>
+        <CardHeader>
+            <CardTitle>Rendimiento del Equipo</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Posición en la Tabla</p>
+                <p className="text-3xl font-bold mt-2">{teamStandings?.rank || 'N/A'}</p>
+            </div>
+             <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Puntos Totales</p>
+                <p className="text-3xl font-bold mt-2">{teamStandings?.points || 0}</p>
+            </div>
+             <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Rendimiento (Últimos 5)</p>
+                 <div className="mt-2 h-8 flex items-center justify-center">
+                     <PerformanceChart matches={matches} />
+                </div>
+            </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="roster" className="w-full">
         <TabsList>
