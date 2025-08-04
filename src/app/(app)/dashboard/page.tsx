@@ -39,10 +39,13 @@ import {
   players,
   teams,
   standings,
-  topScorers,
+  topScorers as initialTopScorers,
   sanctions,
   getRequalificationRequests,
   upcomingMatches,
+  getTeamsByCategory,
+  type Category,
+  type Standing,
 } from '@/lib/mock-data';
 import {
   Users,
@@ -66,6 +69,7 @@ import {
   ShieldBan,
   ArrowRight,
   AlertCircle,
+  Crown,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,12 +81,6 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
-
-const pieData = [
-  { name: 'Amarillas', value: dashboardStats.yellowCards, color: 'hsl(var(--primary))' },
-  { name: 'Rojas', value: dashboardStats.redCards, color: 'hsl(var(--destructive))' },
-];
-
 const sliderImages = [
     { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights' },
     { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2', hint: 'soccer action' },
@@ -91,12 +89,14 @@ const sliderImages = [
 ]
 
 function TopScorersCard() {
+  const topFiveScorers = useMemo(() => initialTopScorers.slice(0, 5), []);
+
   return (
-    <Card>
+    <Card className="border-primary/20">
       <CardHeader>
         <CardTitle>Tabla de Goleadores</CardTitle>
         <CardDescription>
-          Los máximos anotadores del torneo en todas las categorías.
+          Los 5 máximos anotadores del torneo en todas las categorías.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -110,7 +110,7 @@ function TopScorersCard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {topScorers.map((scorer) => (
+            {topFiveScorers.map((scorer, index) => (
               <TableRow key={scorer.playerId}>
                 <TableCell className="font-bold text-lg">
                   {scorer.rank}
@@ -124,7 +124,10 @@ function TopScorersCard() {
                           {scorer.playerName.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{scorer.playerName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{scorer.playerName}</span>
+                        {index === 0 && <Crown className="h-5 w-5 text-amber-400" />}
+                      </div>
                     </div>
                   </Link>
                 </TableCell>
@@ -203,15 +206,48 @@ function SanctionsCard() {
   );
 }
 
+function TopTeamsCard({ category }: { category: Category }) {
+    const topTeams = useMemo(() => {
+        const categoryTeams = teams.filter(t => t.category === category);
+        const categoryStandings = standings
+            .filter(s => categoryTeams.some(t => t.id === s.teamId))
+            .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
+            .slice(0, 2);
+
+        return categoryStandings.map(s => ({
+            ...s,
+            teamLogoUrl: teams.find(t => t.id === s.teamId)?.logoUrl || 'https://placehold.co/100x100.png'
+        }));
+    }, [category]);
+
+    const renderTeam = (team: Standing, rank: number) => (
+        <div key={team.teamId} className="flex items-center gap-3">
+            <Trophy className={cn("h-6 w-6", rank === 1 ? "text-amber-400" : "text-slate-400")} />
+            <Image src={team.teamLogoUrl || ''} alt={team.teamName} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
+            <div className="flex-grow">
+                <p className="font-bold">{team.teamName}</p>
+                <p className="text-xs text-muted-foreground">{team.points} PTS | {team.played} PJ | {team.goalsFor - team.goalsAgainst} GD</p>
+            </div>
+        </div>
+    );
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Mejores Equipos: {category}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {topTeams.length > 0 ? topTeams.map((team, index) => renderTeam(team, index + 1)) : <p className="text-sm text-muted-foreground">No hay datos suficientes.</p>}
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const isAdmin = user.role === 'admin';
   const pendingRequests = useMemo(() => getRequalificationRequests().filter(r => r.status === 'pending'), []);
   
-  const recentResults = useMemo(() => upcomingMatches.filter(m => m.status === 'finished').sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,3), []);
-  const nextMatches = useMemo(() => upcomingMatches.filter(m => m.status === 'future').sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0,3), []);
-
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
       <div className="flex items-center justify-between">
@@ -294,7 +330,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-primary/10">
                 <CardHeader>
-                    <CardTitle>Resumen del Torneo</CardTitle>
+                    <CardTitle>Resumen del Torneo de Liga</CardTitle>
                 </CardHeader>
                  <CardContent className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                     <div className="flex items-center gap-3">
@@ -327,93 +363,21 @@ export default function DashboardPage() {
                     </div>
                  </CardContent>
             </Card>
-             <Card className="col-span-1 md:col-span-2">
-                <CardHeader>
-                    <CardTitle>Próximos Partidos</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    {nextMatches.map(match => (
-                         <div key={match.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-muted/50">
-                            <div className="flex items-center gap-2">
-                                <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={20} height={20} className="rounded-full"/>
-                                <span className="font-semibold">{match.teams.home.name}</span>
-                            </div>
-                            <Badge variant="outline">vs</Badge>
-                             <div className="flex items-center gap-2">
-                                <span className="font-semibold">{match.teams.away.name}</span>
-                                <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={20} height={20} className="rounded-full"/>
-                            </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-             <Card className="col-span-1 md:col-span-2">
-                <CardHeader>
-                    <CardTitle>Resultados Recientes</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                     {recentResults.map(match => (
-                         <div key={match.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-muted/50">
-                            <div className="flex items-center gap-2">
-                                <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={20} height={20} className="rounded-full"/>
-                                <span className={cn("font-semibold", match.score && match.score.home > match.score.away && "text-primary")}>{match.teams.home.name}</span>
-                            </div>
-                            <Badge variant="secondary" className="text-base">{match.score?.home} - {match.score?.away}</Badge>
-                             <div className="flex items-center gap-2">
-                                <span className={cn("font-semibold", match.score && match.score.away > match.score.home && "text-primary")}>{match.teams.away.name}</span>
-                                <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={20} height={20} className="rounded-full"/>
-                            </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <TopTeamsCard category="Máxima" />
+                <TopTeamsCard category="Primera" />
+                <TopTeamsCard category="Segunda" />
+            </div>
         </div>
 
         <div className="lg:col-span-4 space-y-4">
-             <Card>
-                <CardHeader>
-                    <CardTitle>Disciplina</CardTitle>
-                     <CardDescription>Tarjetas en el torneo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="w-full h-48">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                                {pieData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </CardContent>
-             </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle>Logros del Club</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     {achievements.slice(0, 2).map((achievement, index) => (
-                        <div key={index} className="flex items-center gap-4 mb-4">
-                            <Image src={achievement.teamLogoUrl} alt={achievement.teamName} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
-                            <div>
-                                <p className="font-semibold">{achievement.teamName}</p>
-                                <p className="text-sm text-amber-400 flex items-center gap-1"><Trophy className="w-4 h-4"/> {achievement.achievement} {achievement.year}</p>
-                            </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+             <TopScorersCard />
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopScorersCard />
-        <SanctionsCard />
-      </div>
-
+      <SanctionsCard />
     </div>
   );
 }
+
+    
