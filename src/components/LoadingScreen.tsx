@@ -4,6 +4,7 @@
 import { Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export default function LoadingScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -17,20 +18,20 @@ export default function LoadingScreen() {
   }, []);
 
   return (
-    <div className={`fixed inset-0 bg-background z-[200] flex items-center justify-center transition-opacity duration-500 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
-      <div className="text-center animate-pulse">
+    <div className={cn(
+        "fixed inset-0 bg-black z-[200] flex items-center justify-center transition-opacity duration-500",
+        isFadingOut ? 'opacity-0' : 'opacity-100'
+      )}>
+      <div className="text-center animate-zoom-in-slow">
         <Image
             src="https://placehold.co/200x200.png"
             alt="Logo de la Liga"
-            width={128}
-            height={128}
-            className="mx-auto mb-4 rounded-full"
+            width={150}
+            height={150}
+            className="mx-auto rounded-full"
             data-ai-hint="league logo"
+            priority
         />
-        <h1 className="text-4xl font-bold text-primary font-headline">
-          Control Liga
-        </h1>
-        <p className="text-muted-foreground mt-2">Cargando aplicación...</p>
       </div>
     </div>
   );
