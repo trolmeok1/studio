@@ -21,16 +21,9 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel"
-import {
-    PieChart,
-    Pie,
-    Cell,
-    ResponsiveContainer,
-    Tooltip,
-} from 'recharts';
+import Autoplay from "embla-carousel-autoplay"
+
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -244,11 +237,11 @@ function BestTeamsCard() {
                 {categories.map(category => (
                     <div key={category}>
                         <h3 className="font-bold text-lg mb-2 text-center text-primary">{category}</h3>
-                         <Card className="p-0">
-                           <div className="flex justify-center items-end gap-4 p-3 rounded-lg bg-muted/50">
+                         <div className="relative p-[2px] bg-gradient-to-br from-primary via-purple-500 to-orange-500 rounded-lg">
+                           <div className="flex justify-center items-end gap-4 p-3 rounded-md bg-card">
                                {getTopTeams(category).length > 0 ? getTopTeams(category).map((team, index) => renderTeam(team, index + 1)) : <p className="text-sm text-muted-foreground text-center h-48 flex items-center">No hay datos.</p>}
                            </div>
-                         </Card>
+                         </div>
                     </div>
                 ))}
             </CardContent>
@@ -263,15 +256,15 @@ export default function DashboardPage() {
   
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
-      <div className="text-center">
-        <h2 className="text-4xl font-extrabold tracking-tight">
-          <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
-            Inicio
-          </span>
-        </h2>
-      </div>
+        <div className="text-center">
+            <h2 className="text-4xl font-extrabold tracking-tight">
+                <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+                Inicio
+                </span>
+            </h2>
+        </div>
 
-       <Card className="relative group p-0">
+       <Card className="relative group p-0 overflow-hidden rounded-lg">
             {isAdmin && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                     <Button size="sm" asChild>
@@ -291,12 +284,18 @@ export default function DashboardPage() {
                 className="w-full"
                 opts={{
                     loop: true,
+                    align: "start"
                 }}
+                plugins={[
+                    Autoplay({
+                        delay: 5000,
+                    }),
+                ]}
             >
                 <CarouselContent>
                     {sliderImages.map((image, index) => (
                         <CarouselItem key={index}>
-                            <Card className="p-0 border-0 rounded-lg overflow-hidden">
+                            <Card className="p-0 border-0 overflow-hidden">
                                 <CardContent className="p-0">
                                     <Image
                                         src={image.src}
@@ -311,8 +310,6 @@ export default function DashboardPage() {
                         </CarouselItem>
                     ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-4" />
-                <CarouselNext className="right-4" />
             </Carousel>
         </Card>
       
