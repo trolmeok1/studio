@@ -217,24 +217,24 @@ export default function TeamsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team) => (
-          <Card key={team.id} className="p-0 overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:scale-[1.02]">
+          <Card key={team.id} className="overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:scale-[1.02]">
+            <div className="p-0 relative">
+                 <Image
+                    src={team.logoUrl}
+                    alt={`Logo de ${team.name}`}
+                    width={400}
+                    height={300}
+                    className="w-full h-48 object-cover"
+                    data-ai-hint="team logo"
+                />
+            </div>
              <CardHeader>
                 <CardTitle className="text-xl font-headline truncate">{team.name}</CardTitle>
                 <Badge variant="secondary" className="w-fit">{team.category}</Badge>
              </CardHeader>
-            <CardContent>
-                 <Image
-                    src={team.logoUrl}
-                    alt={`Logo de ${team.name}`}
-                    width={150}
-                    height={150}
-                    className="rounded-full object-cover aspect-square mx-auto"
-                    data-ai-hint="team logo"
-                />
-            </CardContent>
-            <CardFooter>
+            <CardFooter className="mt-auto">
                  <Button asChild className="w-full">
-                    <Link href={`/teams/${team.id}`}>Ver</Link>
+                    <Link href={`/teams/${team.id}`}>Ver Detalles</Link>
                 </Button>
             </CardFooter>
           </Card>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,9 +16,11 @@ export default function AppearancePage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight font-headline">
-          Ajustes de Apariencia
+      <div className="text-center w-full">
+        <h2 className="text-4xl font-extrabold tracking-tight">
+          <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+            Ajustes de Apariencia
+          </span>
         </h2>
       </div>
 

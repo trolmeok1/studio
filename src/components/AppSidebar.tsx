@@ -29,7 +29,7 @@ import {
   ClipboardList,
   UserCheck,
   BarChart2,
-  Image as ImageIcon,
+  ImageIcon,
   Database,
   Sun,
   Moon,

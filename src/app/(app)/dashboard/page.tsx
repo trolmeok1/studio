@@ -21,8 +21,9 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
 } from "@/components/ui/carousel"
-import Autoplay from "embla-carousel-autoplay"
 
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -76,10 +77,9 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
 const sliderImages = [
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2', hint: 'soccer action' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3', hint: 'team celebration' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 4', hint: 'fans cheering' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3' },
 ]
 
 function TopScorersCard() {
@@ -235,14 +235,14 @@ function BestTeamsCard() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {categories.map(category => (
-                    <div key={category}>
-                        <h3 className="font-bold text-lg mb-2 text-center text-primary">{category}</h3>
-                         <div className="relative p-[2px] bg-gradient-to-br from-primary via-purple-500 to-orange-500 rounded-lg">
-                           <div className="flex justify-center items-end gap-4 p-3 rounded-md bg-card">
-                               {getTopTeams(category).length > 0 ? getTopTeams(category).map((team, index) => renderTeam(team, index + 1)) : <p className="text-sm text-muted-foreground text-center h-48 flex items-center">No hay datos.</p>}
-                           </div>
-                         </div>
-                    </div>
+                    <Card key={category}>
+                        <CardHeader>
+                            <CardTitle className="text-center text-primary">{category}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex justify-center items-end gap-4 p-3">
+                            {getTopTeams(category).length > 0 ? getTopTeams(category).map((team, index) => renderTeam(team, index + 1)) : <p className="text-sm text-muted-foreground text-center h-48 flex items-center">No hay datos.</p>}
+                        </CardContent>
+                    </Card>
                 ))}
             </CardContent>
         </Card>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
   const pendingRequests = useMemo(() => getRequalificationRequests().filter(r => r.status === 'pending'), []);
   
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-transparent">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="text-center">
             <h2 className="text-4xl font-extrabold tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
@@ -264,9 +264,9 @@ export default function DashboardPage() {
             </h2>
         </div>
 
-       <Card className="relative group p-0 overflow-hidden rounded-lg">
+       <Card className="relative group">
             {isAdmin && (
-                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
                     <Button size="sm" asChild>
                        <label htmlFor="carousel-upload" className="cursor-pointer">
                            <PlusCircle />
@@ -280,22 +280,11 @@ export default function DashboardPage() {
                     </Button>
                 </div>
             )}
-            <Carousel
-                className="w-full"
-                opts={{
-                    loop: true,
-                    align: "start"
-                }}
-                plugins={[
-                    Autoplay({
-                        delay: 5000,
-                    }),
-                ]}
-            >
+            <Carousel className="w-full">
                 <CarouselContent>
                     {sliderImages.map((image, index) => (
                         <CarouselItem key={index}>
-                            <Card className="p-0 border-0 overflow-hidden">
+                            <Card>
                                 <CardContent className="p-0">
                                     <Image
                                         src={image.src}
@@ -303,13 +292,15 @@ export default function DashboardPage() {
                                         width={1200}
                                         height={400}
                                         className="w-full h-auto object-cover"
-                                        data-ai-hint={image.hint}
+                                        data-ai-hint="stadium lights"
                                     />
                                 </CardContent>
                             </Card>
                         </CarouselItem>
                     ))}
                 </CarouselContent>
+                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
+                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
             </Carousel>
         </Card>
       
@@ -343,7 +334,7 @@ export default function DashboardPage() {
              <BestTeamsCard />
              <Card>
                 <CardHeader>
-                    <CardTitle className="uppercase">Torneo de la Liga</CardTitle>
+                    <CardTitle className="uppercase">Resumen del Torneo</CardTitle>
                 </CardHeader>
                  <CardContent>
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

@@ -55,14 +55,9 @@ export default function LoginPage() {
                     </div>
                     <Input id="password" type="password" required defaultValue="password" />
                 </div>
-                 <button
-                    type="submit"
-                    className="w-full relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-medium text-foreground rounded-full group bg-gradient-to-br from-primary via-purple-600 to-blue-500 group-hover:from-primary group-hover:via-purple-600 group-hover:to-blue-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800"
-                  >
-                    <span className="w-full relative px-5 py-2.5 transition-all ease-in duration-150 bg-card dark:bg-gray-900 rounded-full group-hover:bg-opacity-0">
-                      Ingresar
-                    </span>
-                  </button>
+                <Button type="submit" className="w-full">
+                    Ingresar
+                </Button>
             </form>
 
             <div className="my-6 flex items-center gap-4">

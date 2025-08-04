@@ -798,13 +798,9 @@ export default function SchedulePage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between">
-             <div className="text-center w-full">
-                <h2 className="text-4xl font-extrabold tracking-tight">
-                    <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
-                        Programación de Partidos
-                    </span>
-                </h2>
-            </div>
+            <h2 className="text-3xl font-bold tracking-tight font-headline">
+                Programación de Partidos
+            </h2>
             <Card className="p-2 bg-card/50">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold mr-2">Admin:</span>
@@ -838,12 +834,12 @@ export default function SchedulePage() {
         />
         
         <Tabs defaultValue="general" className="space-y-4">
-             <TabsList>
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="maxima">Máxima</TabsTrigger>
-                <TabsTrigger value="primera">Primera</TabsTrigger>
-                <TabsTrigger value="segunda">Segunda</TabsTrigger>
-                <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
+            <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="maxima">Máxima</TabsTrigger>
+            <TabsTrigger value="primera">Primera</TabsTrigger>
+            <TabsTrigger value="segunda">Segunda</TabsTrigger>
+            <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
                  <div className="flex justify-end mb-4">
@@ -900,4 +896,8 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+
+
+
 
