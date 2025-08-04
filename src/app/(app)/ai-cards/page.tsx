@@ -167,15 +167,6 @@ export default function AiCardsPage() {
                 grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             }
         }
-        .id-card-wrapper {
-            break-inside: avoid;
-            page-break-inside: avoid;
-            padding: 0 !important;
-            margin: 0 !important;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
         @media print {
           @page {
             size: A4 portrait;
@@ -191,38 +182,33 @@ export default function AiCardsPage() {
             margin: 0 !important;
           }
           #card-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 1cm;
-            width: 100%;
-            height: calc(100vh - 2cm);
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            grid-template-rows: repeat(3, auto) !important;
+            gap: 1cm !important;
+            width: 100% !important;
+            height: auto !important;
           }
           .id-card-wrapper {
-             width: 100%; 
-             height: 100%;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             overflow: hidden;
+             break-inside: avoid;
+             page-break-inside: avoid;
+             padding: 0 !important;
+             margin: 0 !important;
+             display: block !important;
+             width: 100% !important; 
+             height: 100% !important;
+             overflow: visible !important;
           }
-          .id-card-wrapper .max-w-\\[300px\\] {
+          .id-card-wrapper > div {
             width: 100% !important;
-            max-width: none !important;
             height: 100% !important;
+            max-width: none !important;
+            display: flex !important;
+            flex-direction: column !important;
           }
           .print\\:hidden {
               display: none !important;
           }
-          .print\\:shadow-none {
-              box-shadow: none !important;
-          }
-           .print\\:border-none {
-              border: none !important;
-           }
-           .print\\:bg-transparent {
-              background-color: transparent !important;
-           }
         }
       `}</style>
     </div>
