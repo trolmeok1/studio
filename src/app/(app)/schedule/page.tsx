@@ -670,7 +670,6 @@ export default function SchedulePage() {
     // 3. Schedule round by round
     let scheduledMatches: GeneratedMatch[] = [];
     let currentDate = startOfDay(settings.startDate);
-    let dressingRoomCounter = 0;
     
     const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
 
@@ -681,6 +680,7 @@ export default function SchedulePage() {
         // Shuffle matches within the round to mix categories
         const roundMatches = matchesByRound[round].sort(() => Math.random() - 0.5);
         let roundScheduled = false;
+        let dressingRoomCounter = 0;
 
         while(!roundScheduled) {
             const dayOfWeek = getDay(currentDate);
@@ -701,7 +701,8 @@ export default function SchedulePage() {
                          
                          const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
                          dressingRoomCounter++;
-                         const awayDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
+                         // Skip a dressing room for the away team
+                         const awayDressingRoom = ((dressingRoomCounter + 1) % settings.numDressingRooms) + 1;
                          dressingRoomCounter++;
 
                          scheduledMatches.push({
