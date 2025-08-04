@@ -32,9 +32,18 @@ const CategoryMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam:
     const homeTeam = getTeam(match.home);
     const awayTeam = getTeam(match.away);
 
+    const getNeonColor = (category: Category) => {
+        switch(category) {
+            case 'Máxima': return 'purple';
+            case 'Primera': return 'blue';
+            case 'Segunda': return 'green';
+            default: return 'none';
+        }
+    }
+
     return (
-        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col bg-gradient-to-br from-card to-primary/20 text-card-foreground">
-            <CardContent className="p-4 flex-grow flex flex-col justify-between gap-4">
+        <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col text-card-foreground" neon={getNeonColor(match.category)}>
+            <CardContent className="p-4 flex-grow flex flex-col justify-between gap-4 bg-gradient-to-br from-card to-primary/20">
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center text-white">
                     {/* Team A */}
                     <div className="flex flex-col items-center gap-2">
@@ -82,12 +91,15 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
                 </div>
             </CardHeader>
             <CardContent className="p-4 flex-grow">
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <Link href={`/teams/${homeTeam?.id}`} className="flex flex-col items-center text-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-semibold text-sm">{homeTeam?.name}</p>
                     </Link>
-                    <span className="font-bold text-muted-foreground">VS</span>
+                    <div className="flex items-center justify-center">
+                        <span className="font-bold text-lg text-muted-foreground">VS</span>
+                        <div className="w-px h-10 bg-border mx-4"></div>
+                    </div>
                     <Link href={`/teams/${awayTeam?.id}`} className="flex flex-col items-center text-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-semibold text-sm">{awayTeam?.name}</p>
@@ -97,7 +109,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
             <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center gap-2 text-muted-foreground"><Shield className="w-4 h-4" /> <span className="font-semibold">Cancha:</span> {match.field || 'N/A'}</div>
                 <div className="flex items-center gap-2 text-muted-foreground"><UserCheck className="w-4 h-4" /> <span className="font-semibold">Vocal:</span> {vocalTeam?.name || 'N/A'}</div>
-                <div className="flex items-center gap-2 text-muted-foreground"><Home className="w-4 h-4" /> <span className="font-semibold">Camerinos:</span> {match.homeDressingRoom}/{match.awayDressingRoom}</div>
+                <div className="flex items-center gap-2 text-muted-foreground col-span-2"><Home className="w-4 h-4" /> <span className="font-semibold">Camerinos:</span> {match.homeDressingRoom}/{match.awayDressingRoom}</div>
             </CardFooter>
         </Card>
     );
@@ -289,7 +301,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { al
 };
 
 
-const ScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupByDate: boolean }) => {
+const ScheduleView = ({ generatedMatches, selectedCategory, groupBy }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupBy: 'date' | 'round' }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
     
@@ -326,10 +338,10 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { gen
 
         return sortedMatches
             .reduce((acc, match) => {
-                 if (!match.date && groupByDate) return acc;
-                 if (!match.round && !groupByDate) return acc;
+                 if (groupBy === 'date' && !match.date) return acc;
+                 if (groupBy === 'round' && !match.round) return acc;
 
-                const groupKey = groupByDate
+                const groupKey = groupBy === 'date'
                     ? (match.date ? format(match.date, 'PPPP', { locale: es }) : 'Fecha por definir')
                     : `Fecha ${match.round || 'N/A'}`;
                 
@@ -339,7 +351,7 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { gen
                 acc[groupKey].push(match);
                 return acc;
             }, {} as Record<string, GeneratedMatch[]>);
-    }, [filteredMatches, isClient, groupByDate]);
+    }, [filteredMatches, isClient, groupBy]);
 
 
      if (generatedMatches.length === 0) {
@@ -356,8 +368,8 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { gen
         )
      }
 
-    const CardComponent = groupByDate ? GeneralMatchCard : CategoryMatchCard;
-    const gridColsClass = groupByDate ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3";
+    const CardComponent = groupBy === 'date' ? GeneralMatchCard : CategoryMatchCard;
+    const gridColsClass = groupBy === 'date' ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3";
 
     return (
         <Card>
@@ -582,7 +594,7 @@ export default function SchedulePage() {
     const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
-    let lastUsedDressingRoomPairIndex = 0;
+    let dressingRoomCursor = 0;
 
     for (const round of sortedRounds) {
         let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5);
@@ -607,11 +619,11 @@ export default function SchedulePage() {
                     const timeParts = time.split(':');
                     const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
                     
-                    const pairIndex = lastUsedDressingRoomPairIndex % Math.floor(settings.numDressingRooms / 2);
-                    const homeDressingRoom = pairIndex * 2 + 1;
-                    const awayDressingRoom = homeDressingRoom + 1;
+                    const numDressingRooms = settings.numDressingRooms;
+                    const homeDressingRoom = (dressingRoomCursor % numDressingRooms) + 1;
+                    const awayDressingRoom = ((dressingRoomCursor + 2) % numDressingRooms) + 1;
+                    dressingRoomCursor = (dressingRoomCursor + 1) % numDressingRooms;
                     
-                    lastUsedDressingRoomPairIndex++;
 
                     scheduledMatches.push({
                        ...match,
@@ -634,7 +646,7 @@ export default function SchedulePage() {
         }
         currentDate = addDays(currentDate, 1);
         matchesForCurrentDate = 0;
-        lastUsedDressingRoomPairIndex = 0; // Reset for the new round/week
+        dressingRoomCursor = 0; // Reset for the new round/week
     }
 
     setGeneratedMatches(scheduledMatches);
@@ -805,16 +817,16 @@ export default function SchedulePage() {
                 {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupByDate={true} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupBy="date" />
             </TabsContent>
              <TabsContent value="maxima">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupByDate={false} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupBy="round" />
             </TabsContent>
              <TabsContent value="primera">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupByDate={false} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupBy="round" />
             </TabsContent>
              <TabsContent value="segunda">
-                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupByDate={false} />
+                <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupBy="round" />
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
@@ -881,3 +893,6 @@ export default function SchedulePage() {
 
 
 
+
+
+    
