@@ -105,7 +105,6 @@ function TopScorersCard() {
             <TableRow>
               <TableHead className="w-[50px]">#</TableHead>
               <TableHead>Jugador</TableHead>
-              <TableHead>Equipo</TableHead>
               <TableHead className="text-right">Goles</TableHead>
             </TableRow>
           </TableHeader>
@@ -116,35 +115,31 @@ function TopScorersCard() {
                   {scorer.rank}
                 </TableCell>
                 <TableCell>
-                  <Link href={`/players/${scorer.playerId}`}>
-                    <div className="flex items-center gap-3 cursor-pointer hover:underline">
-                      <Avatar>
+                  <div className="flex items-center gap-3">
+                    <Avatar>
                         <AvatarImage src={scorer.playerPhotoUrl} alt={scorer.playerName} data-ai-hint="player portrait" />
                         <AvatarFallback>
                           {scorer.playerName.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
-                      </Avatar>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{scorer.playerName}</span>
-                        {index === 0 && <Crown className="h-5 w-5 text-amber-400" />}
-                      </div>
+                    </Avatar>
+                    <div>
+                        <Link href={`/players/${scorer.playerId}`} className="font-medium hover:underline flex items-center gap-2">
+                            <span>{scorer.playerName}</span>
+                            {index === 0 && <Crown className="h-5 w-5 text-amber-400" />}
+                        </Link>
+                        <Link href={`/teams/${scorer.teamId}`} className="text-sm text-muted-foreground hover:underline flex items-center gap-2">
+                             <Image
+                                src={teams.find(t => t.id === scorer.teamId)?.logoUrl || `https://placehold.co/100x100.png`}
+                                alt={scorer.teamName}
+                                width={16}
+                                height={16}
+                                className="rounded-full"
+                                data-ai-hint="team logo"
+                            />
+                            <span>{scorer.teamName}</span>
+                        </Link>
                     </div>
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Link href={`/teams/${scorer.teamId}`}>
-                    <div className="flex items-center gap-2 cursor-pointer hover:underline">
-                      <Image
-                        src={`https://placehold.co/100x100.png`}
-                        alt={scorer.teamName}
-                        width={24}
-                        height={24}
-                        className="rounded-full"
-                        data-ai-hint="team logo"
-                      />
-                      <span className="text-sm">{scorer.teamName}</span>
-                    </div>
-                  </Link>
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-bold text-lg">
                   {scorer.goals}
@@ -206,8 +201,10 @@ function SanctionsCard() {
   );
 }
 
-function TopTeamsCard({ category }: { category: Category }) {
-    const topTeams = useMemo(() => {
+function BestTeamsCard() {
+    const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+
+    const getTopTeams = (category: Category) => {
         const categoryTeams = teams.filter(t => t.category === category);
         const categoryStandings = standings
             .filter(s => categoryTeams.some(t => t.id === s.teamId))
@@ -218,10 +215,10 @@ function TopTeamsCard({ category }: { category: Category }) {
             ...s,
             teamLogoUrl: teams.find(t => t.id === s.teamId)?.logoUrl || 'https://placehold.co/100x100.png'
         }));
-    }, [category]);
-
+    };
+    
     const renderTeam = (team: Standing, rank: number) => (
-        <div key={team.teamId} className="flex items-center gap-3">
+        <div key={team.teamId} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <Trophy className={cn("h-6 w-6", rank === 1 ? "text-amber-400" : "text-slate-400")} />
             <Image src={team.teamLogoUrl || ''} alt={team.teamName} width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
             <div className="flex-grow">
@@ -232,12 +229,19 @@ function TopTeamsCard({ category }: { category: Category }) {
     );
     
     return (
-        <Card>
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4">
             <CardHeader>
-                <CardTitle>Mejores Equipos: {category}</CardTitle>
+                <CardTitle>Mejores Equipos por Categoría</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-                {topTeams.length > 0 ? topTeams.map((team, index) => renderTeam(team, index + 1)) : <p className="text-sm text-muted-foreground">No hay datos suficientes.</p>}
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {categories.map(category => (
+                    <div key={category}>
+                        <h3 className="font-bold text-lg mb-2 text-center text-primary">{category}</h3>
+                        <div className="space-y-3">
+                           {getTopTeams(category).length > 0 ? getTopTeams(category).map((team, index) => renderTeam(team, index + 1)) : <p className="text-sm text-muted-foreground text-center">No hay datos.</p>}
+                        </div>
+                    </div>
+                ))}
             </CardContent>
         </Card>
     );
@@ -363,11 +367,7 @@ export default function DashboardPage() {
                     </div>
                  </CardContent>
             </Card>
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <TopTeamsCard category="Máxima" />
-                <TopTeamsCard category="Primera" />
-                <TopTeamsCard category="Segunda" />
-            </div>
+             <BestTeamsCard />
         </div>
 
         <div className="lg:col-span-4 space-y-4">
