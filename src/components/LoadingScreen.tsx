@@ -1,25 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 export default function LoadingScreen() {
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 2000); // Keep visible for 2 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[200] flex items-center justify-center bg-black transition-opacity duration-1000',
-        isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        'fixed inset-0 z-[200] flex animate-hide-loader items-center justify-center bg-black'
       )}
     >
       <div className="animate-zoom-in-slow text-center">
