@@ -612,59 +612,8 @@ export default function SchedulePage() {
   
   useEffect(() => { setIsClient(true) }, []);
 
-  const scheduleMatches = (matchesToSchedule: GeneratedMatch[], settings: { startDate: Date, gameDays: number[], gameTimes: string[], numFields: number, numDressingRooms: number }) => {
-    let scheduledMatches: GeneratedMatch[] = [];
-    const matchQueue = [...matchesToSchedule];
-    
-    let currentDate = startOfDay(settings.startDate);
-    
-    let dressingRoomCounter = 0;
-
-    const allTeamsForVocal = [...new Set(matchesToSchedule.flatMap(m => [m.home, m.away]))]
-        .map(id => allTeams.find(t => t.id === id))
-        .filter(Boolean) as Team[];
-
-    while(matchQueue.length > 0) {
-        const dayOfWeek = getDay(currentDate);
-        if(settings.gameDays.includes(dayOfWeek)) {
-            for (const time of settings.gameTimes) {
-                 if (matchQueue.length === 0) break;
-                 const matchesInSlot = matchQueue.splice(0, settings.numFields);
-                 const teamsPlayingInSlot = new Set(matchesInSlot.flatMap(m => [m.home, m.away]));
-
-                 const eligibleVocalTeams = allTeamsForVocal.filter(t => !teamsPlayingInSlot.has(t.id));
-                 const vocalTeam = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
-
-                 matchesInSlot.forEach((match, fieldIndex) => {
-                     const field = fieldIndex + 1;
-                     const timeParts = time.split(':');
-                     const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                     
-                     const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
-                     dressingRoomCounter++;
-                     const awayDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
-                     dressingRoomCounter++;
-
-
-                     scheduledMatches.push({
-                        ...match,
-                        date: matchDateTime,
-                        time: format(matchDateTime, 'HH:mm'),
-                        field: field,
-                        homeDressingRoom: homeDressingRoom,
-                        awayDressingRoom: awayDressingRoom,
-                        vocalTeamId: vocalTeam?.id
-                    });
-                 });
-            }
-        }
-        currentDate = addDays(currentDate, 1);
-    }
-    return scheduledMatches;
-  };
-
   const generateLeagueSchedule = (settings: any) => {
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): { ida: GeneratedMatch[], vuelta: GeneratedMatch[] } => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -690,9 +639,11 @@ export default function SchedulePage() {
         }
         const vueltaMatches = idaMatches.map(m => ({...m, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta', round: m.round ? m.round + numRounds : undefined }));
         
-        return { ida: idaMatches, vuelta: vueltaMatches };
+        return [...idaMatches, ...vueltaMatches];
     };
     
+    // 1. Generate all matches for all categories
+    let allMatches: GeneratedMatch[] = [];
     const categoriesConfig: {category: Category, group?: 'A' | 'B'}[] = [
         { category: 'Máxima' },
         { category: 'Primera' },
@@ -700,20 +651,79 @@ export default function SchedulePage() {
         { category: 'Segunda', group: 'B' }
     ];
 
-    let allMatches: GeneratedMatch[] = [];
-
     categoriesConfig.forEach(cat => {
         const teams = getTeamsByCategory(cat.category, cat.group);
         if (teams.length > 1) {
-            const { ida, vuelta } = generateRoundRobinMatches(teams, cat.category, cat.group);
-            allMatches.push(...ida, ...vuelta);
+            allMatches.push(...generateRoundRobinMatches(teams, cat.category, cat.group));
         }
     });
+
+    // 2. Group matches by round
+    const matchesByRound = allMatches.reduce((acc, match) => {
+        const round = match.round || 0;
+        if (!acc[round]) {
+            acc[round] = [];
+        }
+        acc[round].push(match);
+        return acc;
+    }, {} as Record<number, GeneratedMatch[]>);
     
-    allMatches.sort(() => 0.5 - Math.random());
+    // 3. Schedule round by round
+    let scheduledMatches: GeneratedMatch[] = [];
+    let currentDate = startOfDay(settings.startDate);
+    let dressingRoomCounter = 0;
     
-    const scheduled = scheduleMatches(allMatches, settings);
-    setGeneratedMatches(scheduled);
+    const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
+
+
+    const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
+    
+    for (const round of sortedRounds) {
+        const roundMatches = matchesByRound[round];
+        let roundScheduled = false;
+
+        while(!roundScheduled) {
+            const dayOfWeek = getDay(currentDate);
+            if(settings.gameDays.includes(dayOfWeek)) {
+                for (const time of settings.gameTimes) {
+                     if (roundMatches.length === 0) break;
+                     
+                     const matchesInSlot = roundMatches.splice(0, settings.numFields);
+                     const teamsPlayingInSlot = new Set(matchesInSlot.flatMap(m => [m.home, m.away]));
+    
+                     const eligibleVocalTeams = allTeamIdsForVocal.filter(id => !teamsPlayingInSlot.has(id));
+                     const vocalTeamId = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
+
+                     matchesInSlot.forEach((match, fieldIndex) => {
+                         const field = fieldIndex + 1;
+                         const timeParts = time.split(':');
+                         const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+                         
+                         const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
+                         dressingRoomCounter++;
+                         const awayDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
+                         dressingRoomCounter++;
+
+                         scheduledMatches.push({
+                            ...match,
+                            date: matchDateTime,
+                            time: format(matchDateTime, 'HH:mm'),
+                            field: field,
+                            homeDressingRoom: homeDressingRoom,
+                            awayDressingRoom: awayDressingRoom,
+                            vocalTeamId: vocalTeamId
+                        });
+                     });
+                }
+            }
+            if (roundMatches.length === 0) {
+                roundScheduled = true;
+            }
+            currentDate = addDays(currentDate, 1);
+        }
+    }
+
+    setGeneratedMatches(scheduledMatches);
     setIsSuccessDialogOpen(true);
 };
 
