@@ -121,16 +121,18 @@ export default function AiCardsPage() {
 
         // League Logo
         if (leagueLogoBase64) {
-             pdf.addImage(leagueLogoBase64, 'PNG', x + cardWidthMM / 2 - 7, footerY + 2, 14, 14);
+             const logoSize = 14;
+             pdf.addImage(leagueLogoBase64, 'PNG', x + (cardWidthMM - logoSize) / 2, footerY + 2, logoSize, logoSize);
         }
 
         // Jersey Number
         const jerseyX = x + cardWidthMM - 5;
         const jerseyY = footerY + (18 / 2); // Vertically align with QR code center
-        pdf.setFontSize(22);
+        pdf.setFontSize(18);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFFFFF');
-        pdf.text(player.jerseyNumber.toString(), jerseyX, jerseyY + 7, { align: 'right' });
+        const jerseyText = `N° ${player.jerseyNumber}`;
+        pdf.text(jerseyText, jerseyX, jerseyY + 4, { align: 'right' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
