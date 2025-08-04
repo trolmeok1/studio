@@ -32,6 +32,8 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
 
   const age = getAge(player.birthDate);
   const ageCategory = age < 19 ? 'Juvenil' : 'Mayor';
+  const averageFoulsPerGame = ((player.stats.yellowCards + player.stats.redCards) / 20).toFixed(2);
+
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -155,8 +157,8 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                 <TableBody>
                   <TableRow>
                     <TableCell>{player.stats.yellowCards + player.stats.redCards}</TableCell>
-                    <TableCell>20</TableCell> {/* Mock data */}
-                    <TableCell>{((player.stats.yellowCards + player.stats.redCards) / 20).toFixed(2)}</TableCell>
+                    <TableCell>20</TableCell>
+                    <TableCell>{averageFoulsPerGame}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
