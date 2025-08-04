@@ -168,14 +168,16 @@ export default function AiCardsPage() {
                           </header>
 
                           <main className="w-full mt-3">
-                              <Image
-                                  src={selectedPlayer.photoUrl}
-                                  alt={`Foto de ${selectedPlayer.name}`}
-                                  width={200}
-                                  height={200}
-                                  className="w-40 h-40 rounded-md mx-auto object-cover border-4 border-orange-400"
-                                  data-ai-hint="player portrait"
-                              />
+                              <div className="w-40 h-40 rounded-md mx-auto border-4 border-orange-400 overflow-hidden">
+                                <Image
+                                    src={selectedPlayer.photoUrl}
+                                    alt={`Foto de ${selectedPlayer.name}`}
+                                    width={200}
+                                    height={200}
+                                    className="w-full h-full object-cover"
+                                    data-ai-hint="player portrait"
+                                />
+                              </div>
                               
                               <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
                               
@@ -188,11 +190,15 @@ export default function AiCardsPage() {
 
                           <footer className="w-full mt-auto border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
                               <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="bg-white p-1 rounded-md" />
+                                <div className="w-16 h-16 bg-white p-1 rounded-md">
+                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} className="w-full h-full" />
+                                </div>
                               </div>
                               
                               <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
+                                <div className="w-14 h-14 rounded-md overflow-hidden">
+                                    <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="w-full h-full object-cover" data-ai-hint="league logo" />
+                                </div>
                               </div>
                               
                               <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto">
