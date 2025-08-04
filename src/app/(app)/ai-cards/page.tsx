@@ -104,7 +104,7 @@ export default function AiCardsPage() {
 
                         return (
                         <div key={selectedPlayer.id} className="id-card-wrapper">
-                             <div className="w-full max-w-[320px] aspect-[6/9.5] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans">
+                             <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col font-sans">
                                 {/* Background Shapes */}
                                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                                     <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
@@ -113,7 +113,7 @@ export default function AiCardsPage() {
                                      <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
                                 </div>
                                 
-                                <div className="relative z-10 flex flex-col p-4 flex-grow">
+                                <div className="relative z-10 flex flex-col p-4">
                                      {/* Header */}
                                     <header className="flex justify-center items-center text-center">
                                         <h3 className="font-bold text-md tracking-wider uppercase">Liga Deportiva Barrial La Luz</h3>
@@ -154,7 +154,7 @@ export default function AiCardsPage() {
                                     </main>
 
                                     {/* Footer */}
-                                    <footer className="mt-auto pt-4">
+                                    <footer className="mt-4 pt-4">
                                          <div className="flex items-end justify-between gap-4">
                                             {/* QR Code */}
                                             <div className="w-16 h-16 bg-white p-1 rounded-md">
