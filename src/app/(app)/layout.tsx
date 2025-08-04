@@ -10,12 +10,12 @@ import {
 
 export default function AppLayout({ children }: PropsWithChildren) {
   return (
-      <div className="bg-background text-foreground" style={{ backgroundImage: "url('/soccer-field-bg.jpg')", backgroundSize: 'cover', backgroundAttachment: 'fixed', backgroundPosition: 'center' }}>
+      <div className="bg-background text-foreground">
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />
           </Sidebar>
-          <SidebarInset className="bg-background/80 backdrop-blur-sm flex flex-col">
+          <SidebarInset className="bg-background/95 backdrop-blur-sm flex flex-col">
               <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
                   <SidebarTrigger />
               </header>

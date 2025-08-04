@@ -226,7 +226,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center justify-between gap-3 rounded-md p-2 bg-muted/50">
+        <div className="flex items-center justify-between gap-3 rounded-md p-2">
            <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={user.avatarUrl} data-ai-hint="user avatar" alt={user.name} />
