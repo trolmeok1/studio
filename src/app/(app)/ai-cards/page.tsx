@@ -26,45 +26,52 @@ const CardPreview = ({ player }: { player: Player | null }) => {
 
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
     const leagueLogoUrl = 'https://placehold.co/100x100.png';
+    const backgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
 
     return (
         <div className="mt-8 flex flex-col items-center">
             <h3 className="text-xl font-bold mb-4">Vista Previa del Carnet</h3>
-            <div className="w-80 h-[480px] bg-[#1a233c] text-white rounded-2xl p-6 flex flex-col shadow-lg">
-                {/* Header */}
-                <div className="text-center mb-4">
-                    <p className="font-bold text-sm">LIGA DEPORTIVA BARRIAL</p>
-                    <p className="font-bold text-lg">LA LUZ</p>
-                </div>
-
-                {/* Player Photo */}
-                <div className="flex justify-center mb-4">
-                     <div className="w-32 h-32 rounded-full border-2 border-[#FFA500] overflow-hidden">
-                        <Image src={player.photoUrl} alt={player.name} width={128} height={128} className="object-cover w-full h-full" />
+            <div 
+                className="w-80 h-[480px] text-white rounded-2xl p-6 flex flex-col shadow-lg bg-cover bg-center"
+                style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+            >
+                 <div className="absolute inset-0 bg-black/50 rounded-2xl"></div>
+                 <div className="relative z-10 flex flex-col h-full">
+                    {/* Header */}
+                    <div className="text-center mb-4">
+                        <p className="font-bold text-sm">LIGA DEPORTIVA BARRIAL</p>
+                        <p className="font-bold text-lg">LA LUZ</p>
                     </div>
-                </div>
 
-                {/* Player Info */}
-                <div className="text-center flex-grow">
-                    <p className="font-bold text-2xl text-[#FFA500] uppercase">{player.name}</p>
-                    <p className="text-sm uppercase">{player.category}</p>
-                    <p className="text-sm">{player.idNumber}</p>
-                    <p className="font-bold uppercase">{player.team}</p>
-                </div>
+                    {/* Player Photo */}
+                    <div className="flex justify-center mb-4">
+                        <div className="w-32 h-32 border-2 border-[#FFA500] overflow-hidden bg-gray-700">
+                            <Image src={player.photoUrl} alt={player.name} width={128} height={128} className="object-cover w-full h-full" />
+                        </div>
+                    </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-auto">
-                    {/* QR Code */}
-                    <div className="w-16 h-16 bg-white p-1 rounded-md">
-                        <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
+                    {/* Player Info */}
+                    <div className="text-center flex-grow">
+                        <p className="font-bold text-2xl text-[#FFA500] uppercase">{player.name}</p>
+                        <p className="font-bold text-lg uppercase mt-2">{player.team}</p>
+                        <p className="font-bold uppercase">{player.category}</p>
+                        <p className="text-sm">{player.idNumber}</p>
                     </div>
-                    {/* League Logo */}
-                    <div className="w-16 h-16">
-                         <Image src={leagueLogoUrl} alt="League Logo" width={64} height={64} className="object-contain" />
-                    </div>
-                    {/* Jersey Number */}
-                    <div className="w-16 h-16 flex items-center justify-center">
-                        <span className="font-bold text-4xl" style={{color: '#9400D3'}}>{player.jerseyNumber}</span>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-auto">
+                        {/* QR Code */}
+                        <div className="w-16 h-16 bg-white p-1 rounded-md">
+                            <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
+                        </div>
+                        {/* League Logo */}
+                        <div className="w-16 h-16">
+                            <Image src={leagueLogoUrl} alt="League Logo" width={64} height={64} className="object-contain" />
+                        </div>
+                        {/* Jersey Number */}
+                        <div className="w-16 h-16 flex items-center justify-center">
+                            <span className="font-bold text-4xl" style={{color: '#FFA500'}}>{player.jerseyNumber}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -101,7 +108,10 @@ export default function AiCardsPage() {
     const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
     const leagueLogoUrl = 'https://placehold.co/100x100.png';
+    const backgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
+    
     const leagueLogoBase64 = await toDataURL(leagueLogoUrl).catch(() => '');
+    const backgroundImageBase64 = await toDataURL(backgroundImageUrl).catch(() => '');
 
 
     for (let i = 0; i < selectedTeamPlayers.length; i++) {
@@ -118,20 +128,31 @@ export default function AiCardsPage() {
         const y = marginY * (row + 1) + row * cardHeightMM;
         
         // --- Draw Card Background ---
-        pdf.setFillColor('#1a233c'); // Dark blue background
-        pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
+        if (backgroundImageBase64) {
+             pdf.addImage(backgroundImageBase64, 'JPEG', x, y, cardWidthMM, cardHeightMM);
+        } else {
+            pdf.setFillColor('#1a233c'); // Dark blue background fallback
+            pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
+        }
+        
+        // Overlay for better text readability
+        pdf.setFillColor(0, 0, 0);
+        pdf.setGState(new (pdf.GState as any)({opacity: 0.5}));
+        pdf.rect(x, y, cardWidthMM, cardHeightMM, 'F');
+        pdf.setGState(new (pdf.GState as any)({opacity: 1}));
+
 
         // --- Header ---
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFFFFF');
         pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
-        pdf.setFontSize(9);
+        pdf.setFontSize(10);
         pdf.text('LA LUZ', x + cardWidthMM / 2, y + 12, { align: 'center' });
 
 
         // --- Player Photo ---
-        const photoSize = 30; // Further reduced photo size
+        const photoSize = 30;
         const photoX = x + (cardWidthMM - photoSize) / 2;
         const photoY = y + 18;
         pdf.setDrawColor('#FFA500'); // Orange border
@@ -149,22 +170,21 @@ export default function AiCardsPage() {
 
 
         // --- Player Info ---
-        const infoY = photoY + photoSize + 10; // Adjusted info position
-        pdf.setFontSize(14);
+        const infoY = photoY + photoSize + 10;
+        pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFA500'); // Orange color for name
         pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
         
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'bold'); // Bold font for category and team
+        pdf.setFontSize(10);
         pdf.setTextColor('#FFFFFF');
-        pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+        pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+        
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 10, { align: 'center' });
-        pdf.setFont('helvetica', 'bold'); // Bold font for category and team
         pdf.setFontSize(9);
-        pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 14, { align: 'center' });
+        pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 11, { align: 'center' });
+        pdf.setFontSize(8);
+        pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
 
         // --- Footer Elements ---
         const footerY = y + cardHeightMM - 20;
