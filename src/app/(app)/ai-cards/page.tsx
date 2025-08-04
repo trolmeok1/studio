@@ -127,12 +127,12 @@ export default function AiCardsPage() {
         }
 
         // Jersey Number
-        const jerseyX = x + cardWidthMM - 5 - footerItemSize;
+        const jerseyX = x + cardWidthMM - 10;
         const jerseyY = footerY + (footerItemSize / 2);
-        pdf.setFontSize(12);
+        pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#9400D3'); // Vivid Violet for a "neon" effect
-        pdf.text(`Nr: ${player.jerseyNumber}`, jerseyX, jerseyY, { align: 'center' });
+        pdf.text(player.jerseyNumber.toString(), jerseyX, jerseyY, { align: 'center', baseline: 'middle' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
