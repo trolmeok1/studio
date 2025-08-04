@@ -116,7 +116,11 @@ export default function AiCardsPage() {
                                 <div className="relative z-10 flex flex-col p-4">
                                      {/* Header */}
                                     <header className="flex justify-center items-center text-center">
-                                        <h3 className="font-bold text-md tracking-wider uppercase">Liga Deportiva Barrial La Luz</h3>
+                                        <div className="font-bold text-md tracking-wider uppercase">
+                                            <span>Liga Deportiva Barrial</span>
+                                            <br/>
+                                            <span>La Luz</span>
+                                        </div>
                                     </header>
 
                                      {/* Main Content */}
