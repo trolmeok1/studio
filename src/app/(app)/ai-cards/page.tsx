@@ -48,8 +48,7 @@ export default function AiCardsPage() {
 
           const cardWrapper = document.getElementById(`player-card-${player.id}`);
           if (!cardWrapper) continue;
-
-          // Make the card visible for capture
+          
           cardWrapper.style.display = 'block';
 
           const canvas = await html2canvas(cardWrapper, {
@@ -58,7 +57,6 @@ export default function AiCardsPage() {
               backgroundColor: null, 
           });
           
-          // Hide it back
           cardWrapper.style.display = 'none';
 
           const imgData = canvas.toDataURL('image/png');
@@ -81,7 +79,7 @@ export default function AiCardsPage() {
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategoryId(value as Category);
-    setSelectedTeamId(null); // Reset team selection when category changes
+    setSelectedTeamId(null); 
   };
 
 
@@ -142,7 +140,6 @@ export default function AiCardsPage() {
             </CardContent>
         </Card>
         
-        {/* Hidden area for rendering cards for capture */}
         <div className="absolute -left-[9999px] top-0">
           {selectedTeamPlayers.map(selectedPlayer => {
               const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
@@ -152,8 +149,8 @@ export default function AiCardsPage() {
 
               return (
               <div key={selectedPlayer.id} id={`player-card-${selectedPlayer.id}`} style={{ display: 'none', width: '320px'}}>
-                  <div className="w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
-                      {/* Background Shapes */}
+                  <div className="relative w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
+                      
                       <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                           <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
                           <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-orange-500/10 rounded-full opacity-50"></div>
@@ -162,7 +159,6 @@ export default function AiCardsPage() {
                       </div>
                       
                       <div className="relative z-10 flex flex-col items-center h-full text-center">
-                          {/* Header */}
                           <header className="text-center">
                               <div className="font-bold text-md tracking-wider uppercase">
                                   <span>Liga Deportiva Barrial</span>
@@ -171,8 +167,7 @@ export default function AiCardsPage() {
                               </div>
                           </header>
 
-                          {/* Main Content */}
-                          <main className="flex-1 w-full mt-3">
+                          <main className="w-full mt-3">
                               <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md mx-auto">
                                   <Image
                                       src={selectedPlayer.photoUrl}
@@ -187,10 +182,10 @@ export default function AiCardsPage() {
                               <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
                               
                               <div className="text-center mt-1 text-base space-y-1">
-                                <p>{selectedPlayer.category.toUpperCase()}</p>
-                                <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
+                                <p className="text-base">{selectedPlayer.category.toUpperCase()}</p>
+                                <p className="text-muted-foreground text-base">{selectedPlayer.idNumber}</p>
                                 <div className="flex items-center justify-center gap-2">
-                                  <span className="font-semibold">{selectedPlayer.team}</span>
+                                  <span className="font-semibold text-base">{selectedPlayer.team}</span>
                                     {team?.logoUrl && (
                                       <Image 
                                           src={team.logoUrl}
@@ -205,20 +200,16 @@ export default function AiCardsPage() {
                               </div>
                           </main>
 
-                          <footer className="w-full mt-4 border-t border-white/20 pt-3">
-                            <div className="flex items-center justify-between gap-4 w-full">
-                                {/* QR Code */}
-                                <div className="w-16 h-16 bg-white p-1 rounded-md">
-                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
-                                </div>
-                                
-                                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
-                                
-                                {/* Jersey Number */}
-                                <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-                                    <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
-                                </div>
-                            </div>
+                          <footer className="w-full mt-4 border-t border-white/20 pt-3 grid grid-cols-3 items-center gap-4">
+                              <div className="w-16 h-16 bg-white p-1 rounded-md mx-auto">
+                                  <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
+                              </div>
+                              
+                              <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md mx-auto" data-ai-hint="league logo" />
+                              
+                              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto">
+                                  <span className="text-4xl font-bold text-primary">{selectedPlayer.jerseyNumber}</span>
+                              </div>
                           </footer>
                       </div>
                   </div>
