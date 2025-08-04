@@ -136,7 +136,7 @@ export default function AiCardsPage() {
                                         </div>
                                         <div className="flex flex-col items-center gap-2 mt-2">
                                             <p className="text-white font-semibold text-md">{selectedPlayer.team}</p>
-                                            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={32} height={32} className="rounded-full" data-ai-hint="team logo" />
+                                            <Image src={team?.logoUrl || 'https://placehold.co/100x100.png'} alt="Logo del Equipo" width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
                                         </div>
                                     </main>
 
@@ -200,7 +200,6 @@ export default function AiCardsPage() {
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                height: 533.33px; /* Corresponds to the aspect-[6/10] of the card with width 320px */
             }
             @page {
                 size: A4 portrait;
