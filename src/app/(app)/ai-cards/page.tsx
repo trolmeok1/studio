@@ -106,33 +106,36 @@ export default function AiCardsPage() {
         pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, y + 72, { align: 'center' });
 
         // --- Footer Elements ---
-        const footerY = y + 76;
+        const footerY = y + 78;
+        const footerItemSize = 18;
         
         // QR Code
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
         try {
             const qrCodeBase64 = await toDataURL(qrCodeUrl);
             pdf.setFillColor('#FFFFFF');
-            pdf.rect(x + 5, footerY, 18, 18, 'F'); // White background for QR
-            pdf.addImage(qrCodeBase64, 'PNG', x + 5.5, footerY + 0.5, 17, 17);
+            pdf.rect(x + 5, footerY, footerItemSize, footerItemSize, 'F'); // White background for QR
+            pdf.addImage(qrCodeBase64, 'PNG', x + 5.5, footerY + 0.5, footerItemSize - 1, footerItemSize - 1);
         } catch (error) {
             console.error('Error loading QR code:', error);
         }
 
         // League Logo
         if (leagueLogoBase64) {
-             const logoSize = 14;
-             pdf.addImage(leagueLogoBase64, 'PNG', x + (cardWidthMM - logoSize) / 2, footerY + 2, logoSize, logoSize);
+             const logoX = x + (cardWidthMM - footerItemSize) / 2;
+             pdf.addImage(leagueLogoBase64, 'PNG', logoX, footerY, footerItemSize, footerItemSize);
         }
 
         // Jersey Number
-        const jerseyX = x + cardWidthMM - 5;
-        const jerseyY = footerY + (18 / 2); // Vertically align with QR code center
-        pdf.setFontSize(18);
+        const jerseyX = x + cardWidthMM - 5 - footerItemSize;
+        const jerseyY = footerY;
+        pdf.setFillColor('#6B46C1'); // Purple circle
+        pdf.circle(jerseyX + footerItemSize / 2, jerseyY + footerItemSize / 2, footerItemSize / 2, 'F');
+        
+        pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFFFFF');
-        const jerseyText = `N° ${player.jerseyNumber}`;
-        pdf.text(jerseyText, jerseyX, jerseyY + 4, { align: 'right' });
+        pdf.text(player.jerseyNumber.toString(), jerseyX + footerItemSize / 2, jerseyY + footerItemSize / 2 + 5.5, { align: 'center' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
