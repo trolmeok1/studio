@@ -57,7 +57,9 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 
 const sliderImages = [
@@ -191,6 +193,19 @@ function TopScorersCard() {
 }
 
 function SanctionsCard() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    const formattedSanctions = useMemo(() => {
+        if (!isClient) return sanctions;
+        return sanctions.map(s => ({
+            ...s,
+            formattedDate: format(new Date(s.date), 'dd/MM/yyyy', { locale: es })
+        }));
+    }, [isClient]);
 
   return (
     <Card neon="yellow">
@@ -202,7 +217,7 @@ function SanctionsCard() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-            {sanctions.map((sanction) => (
+            {formattedSanctions.map((sanction) => (
               <Card key={sanction.id} className="p-0">
                 <div className="flex items-center p-4 gap-4 bg-muted/50">
                    <Avatar className="h-16 w-16">
@@ -222,7 +237,7 @@ function SanctionsCard() {
                           {sanction.gamesSuspended} Partido(s)
                       </Badge>
                       <p className="text-xs text-muted-foreground mt-1">
-                          Sancionado el: {new Date(sanction.date).toLocaleDateString()}
+                          Sancionado el: {sanction.formattedDate}
                       </p>
                    </div>
                 </div>
@@ -353,3 +368,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
