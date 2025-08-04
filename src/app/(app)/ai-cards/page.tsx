@@ -149,7 +149,7 @@ export default function AiCardsPage() {
 
               return (
               <div key={selectedPlayer.id} id={`player-card-${selectedPlayer.id}`} style={{ display: 'none', width: '320px'}}>
-                  <div className="relative w-full max-w-[320px] aspect-[6/9] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
+                  <div className="relative w-full max-w-[320px] aspect-[6/9.5] bg-[#1a233c] text-white rounded-2xl shadow-lg overflow-hidden p-4 flex flex-col font-sans">
                       
                       <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                           <div className="absolute -top-10 -left-10 w-48 h-48 bg-purple-500/20 rounded-full opacity-50"></div>
