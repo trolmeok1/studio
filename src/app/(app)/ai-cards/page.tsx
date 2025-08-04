@@ -13,12 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 // Function to fetch image as Base64 data URI, with error handling
 const toDataURL = (url: string): Promise<string> => {
     return new Promise((resolve) => {
-        // Use a placeholder for QR codes as they are dynamically generated and can cause issues.
-        if (url.includes('api.qrserver.com')) {
-             const qrPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAIJJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACfdAAnAAAF2sI8PAAAAAElFTkSuQmCC';
-             resolve(qrPlaceholder);
-             return;
-        }
         fetch(url)
             .then(response => {
                 if (!response.ok) {
