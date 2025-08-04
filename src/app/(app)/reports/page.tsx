@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense, getReferees } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -73,9 +73,16 @@ const StandingsReport = ({ category }: { category: Category }) => {
     );
 };
 
-const ScheduleReport = ({ week }: { week: string }) => {
-    const matches = upcomingMatches.slice(0, 4); 
+const ScheduleReport = ({ matches }: { matches: Match[] }) => {
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
+    if (!isClient) {
+        return null;
+    }
+    
     return (
         <div id="printable-report" className="bg-gray-800 text-white font-headline relative print:border-none aspect-[1/1.414] max-w-2xl mx-auto">
             <div className="absolute inset-0 z-0">
@@ -85,7 +92,12 @@ const ScheduleReport = ({ week }: { week: string }) => {
                 <header className="text-center mb-8">
                     <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" className="mx-auto" />
                     <h1 className="text-3xl font-bold tracking-tight uppercase mt-2">Campeonato Barrial</h1>
-                    <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">PROGRAMACIÓN</h2>
+                    <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">PROGRAMACIÓN SEMANAL</h2>
+                     <p className="text-md mt-2">
+                        {matches.length > 0 &&
+                            `${format(new Date(matches[0].date), "dd 'de' MMMM", { locale: es })} - ${format(new Date(matches[matches.length - 1].date), "dd 'de' MMMM 'del' yyyy", { locale: es })}`
+                        }
+                    </p>
                 </header>
 
                 <main className="flex-grow space-y-4">
@@ -117,6 +129,11 @@ const ScheduleReport = ({ week }: { week: string }) => {
                             </div>
                         )
                     })}
+                     {matches.length === 0 && (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-center text-xl">No hay partidos programados para la próxima semana.</p>
+                        </div>
+                    )}
                 </main>
 
                 <footer className="text-center text-xs text-gray-400 mt-8">
@@ -271,7 +288,6 @@ type ReportType = 'standings' | 'schedule' | 'sanctions' | 'finance' | null;
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
     const [category, setCategory] = useState<Category>('Máxima');
-    const [week, setWeek] = useState('Fecha 1');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isClient, setIsClient] = useState(false);
 
@@ -281,6 +297,18 @@ export default function ReportsPage() {
             setDateRange({ from: new Date(), to: new Date() });
         }
     }, []);
+
+    const weeklyMatches = useMemo(() => {
+        if (!isClient) return [];
+        const today = new Date();
+        const nextWeek = addDays(today, 7);
+        return upcomingMatches
+            .filter(match => {
+                const matchDate = new Date(match.date);
+                return matchDate >= today && matchDate <= nextWeek;
+            })
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [isClient]);
 
     const handleGenerate = (type: ReportType) => {
         setReportType(type);
@@ -305,7 +333,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="mt-4">
                     {reportType === 'standings' && <StandingsReport category={category} />}
-                    {reportType === 'schedule' && <ScheduleReport week={week} />}
+                    {reportType === 'schedule' && <ScheduleReport matches={weeklyMatches} />}
                     {reportType === 'sanctions' && <SanctionsReport />}
                     {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
                 </div>
@@ -387,23 +415,13 @@ export default function ReportsPage() {
                             </div>
                             <div>
                                 <CardTitle>Programación Semanal</CardTitle>
-                                <CardDescription>Cree un reporte con todos los partidos de la próxima fecha, incluyendo horarios y canchas.</CardDescription>
+                                <CardDescription>Cree un reporte con todos los partidos de la próxima semana, incluyendo horarios y canchas.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                         <div className="space-y-2">
-                            <Label htmlFor="week-schedule">Seleccionar Fecha</Label>
-                            <Select value={week} onValueChange={setWeek}>
-                                <SelectTrigger id="week-schedule">
-                                    <SelectValue placeholder="Elige una fecha..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Array.from({ length: 22 }, (_, i) => (
-                                         <SelectItem key={i + 1} value={`Fecha ${i + 1}`}>Fecha {i + 1}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                         <div className="space-y-2 h-[56px] flex items-center">
+                            <p className="text-sm text-muted-foreground">Este reporte generará automáticamente los partidos para los próximos 7 días.</p>
                         </div>
                          <Button className="w-full mt-4" onClick={() => handleGenerate('schedule')}>
                             <Printer className="mr-2" />

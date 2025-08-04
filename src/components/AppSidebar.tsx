@@ -35,6 +35,9 @@ import {
   Moon,
   Home,
   LogIn,
+  Users2,
+  ListOrdered,
+  ScrollText
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -63,21 +66,24 @@ export function AppSidebar() {
   const { permissions } = user;
   const hasAdminPermissions = user.role === 'admin' || user.role === 'secretary';
 
-  const navItems = [
+  const mainNavItems = [
     permissions.dashboard.view && { href: '/dashboard', icon: LayoutDashboard, label: 'Inicio', tooltip: 'Inicio' },
-    permissions.players.view && { href: '/players', icon: Users, label: 'Jugadores', tooltip: 'Jugadores' },
-    permissions.schedule.view && { href: '/schedule', icon: CalendarDays, label: 'Programación', tooltip: 'Programación' },
-    permissions.partido.view && { href: '/partido', icon: ClipboardList, label: 'Resultados', tooltip: 'Resultados' },
     permissions.teams.view && { href: '/teams', icon: Shield, label: 'Equipos', tooltip: 'Equipos' },
     (permissions.copa.view && isCopaPublic) && { href: '/copa', icon: Trophy, label: 'Copa', tooltip: 'Copa' }
+  ].filter(Boolean);
+  
+  const tournamentNavItems = [
+      permissions.players.view && { href: '/players', icon: Users, label: 'Jugadores', tooltip: 'Jugadores' },
+      permissions.schedule.view && { href: '/schedule', icon: CalendarDays, label: 'Programación', tooltip: 'Programación' },
+      permissions.partido.view && { href: '/partido', icon: ClipboardList, label: 'Resultados', tooltip: 'Resultados' },
+      permissions.committees.view && { href: '/committees', icon: FilePen, label: 'Vocalías', tooltip: 'Vocalías' },
+      permissions.reports.view && { href: '/reports', icon: BarChart2, label: 'Reportes', tooltip: 'Reportes' },
   ].filter(Boolean);
 
   const adminNavItems = [
       permissions.aiCards.view && { href: '/ai-cards', icon: CreditCard, label: 'Carnets AI', tooltip: 'Carnets AI' },
-      permissions.committees.view && { href: '/committees', icon: FilePen, label: 'Vocalías', tooltip: 'Vocalías' },
       permissions.treasury.view && { href: '/treasury', icon: Landmark, label: 'Tesorería', tooltip: 'Tesorería' },
       permissions.requests.view && { href: '/requests/requalification', icon: UserCheck, label: 'Solicitudes', tooltip: 'Solicitudes' },
-      permissions.reports.view && { href: '/reports', icon: BarChart2, label: 'Reportes', tooltip: 'Reportes' },
   ].filter(Boolean);
 
   const settingsNavItems = [
@@ -101,7 +107,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="flex-grow">
         <SidebarMenu>
-          {navItems.map(item => item && (
+          {mainNavItems.map(item => item && (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
@@ -119,6 +125,23 @@ export function AppSidebar() {
         
         {hasAdminPermissions && (
             <>
+                <SidebarSeparator />
+                <SidebarGroup>
+                   <SidebarGroupLabel>Torneo</SidebarGroupLabel>
+                   <SidebarMenu>
+                     {tournamentNavItems.map(item => item && (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.tooltip}>
+                              <Link href={item.href}>
+                                  <item.icon />
+                                  <span>{item.label}</span>
+                              </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                   </SidebarMenu>
+                </SidebarGroup>
+                
                 <SidebarSeparator />
                 <SidebarGroup>
                    <SidebarGroupLabel>Admin</SidebarGroupLabel>
@@ -209,7 +232,7 @@ export function BottomNavbar() {
 
     let navItems = [
       { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
-      { href: '/players', icon: Users, label: 'Jugadores', permission: permissions.players.view },
+      { href: '/teams', icon: Shield, label: 'Equipos', permission: permissions.teams.view },
       { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
       { href: '/partido', icon: ClipboardList, label: 'Resultados', permission: permissions.partido.view },
     ];
