@@ -180,21 +180,9 @@ export default function AiCardsPage() {
                               <h2 className="mt-3 text-2xl font-bold text-orange-400 uppercase tracking-wide">{selectedPlayer.name}</h2>
                               
                               <div className="text-center mt-1 text-base space-y-1">
-                                <p className="text-base">{selectedPlayer.category.toUpperCase()}</p>
-                                <p className="text-muted-foreground text-base">{selectedPlayer.idNumber}</p>
-                                <div className="space-y-1">
-                                    <span className="font-semibold text-base">{selectedPlayer.team}</span>
-                                      {team?.logoUrl && (
-                                        <Image 
-                                            src={team.logoUrl}
-                                            alt={`Logo de ${team.name}`}
-                                            width={24}
-                                            height={24}
-                                            className="rounded-full mx-auto"
-                                            data-ai-hint="team logo"
-                                        />
-                                    )}
-                                  </div>
+                                <p className="text-lg">{selectedPlayer.category.toUpperCase()}</p>
+                                <p className="text-muted-foreground text-lg">{selectedPlayer.idNumber}</p>
+                                <p className="font-semibold text-lg">{selectedPlayer.team}</p>
                               </div>
                           </main>
 
