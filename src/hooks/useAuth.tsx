@@ -10,6 +10,7 @@ export interface Permissions {
     players: { view: boolean; edit: boolean };
     schedule: { view: boolean; edit: boolean };
     partido: { view: boolean; edit: boolean };
+    copa: { view: boolean; edit: boolean };
     aiCards: { view: boolean; edit: boolean };
     committees: { view: boolean; edit: boolean };
     treasury: { view: boolean; edit: boolean };
@@ -25,6 +26,7 @@ const allPermissionsTrue: Permissions = {
     players: { view: true, edit: true },
     schedule: { view: true, edit: true },
     partido: { view: true, edit: true },
+    copa: { view: true, edit: true },
     aiCards: { view: true, edit: true },
     committees: { view: true, edit: true },
     treasury: { view: true, edit: true },
@@ -40,6 +42,7 @@ const secretaryPermissions: Permissions = {
     players: { view: true, edit: true },
     schedule: { view: true, edit: true },
     partido: { view: true, edit: true },
+    copa: { view: true, edit: true },
     aiCards: { view: false, edit: false },
     committees: { view: true, edit: true },
     treasury: { view: true, edit: true },
@@ -55,6 +58,7 @@ const guestPermissions: Permissions = {
     players: { view: true, edit: false },
     schedule: { view: true, edit: false },
     partido: { view: true, edit: false },
+    copa: { view: true, edit: false },
     aiCards: { view: false, edit: false },
     committees: { view: false, edit: false },
     treasury: { view: false, edit: false },

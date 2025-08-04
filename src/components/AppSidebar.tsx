@@ -109,6 +109,14 @@ export function AppSidebar() {
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>}
+          {permissions.copa.view && <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive('/copa')} tooltip="Copa">
+                <Link href="/copa">
+                    <Trophy />
+                    <span>Copa</span>
+                </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>}
         </SidebarMenu>
         
         <SidebarSeparator />
