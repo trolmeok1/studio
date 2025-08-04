@@ -37,7 +37,7 @@ export default function AiCardsPage() {
 
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 print:bg-white">
       <div className="text-center print:hidden">
         <h2 className="text-4xl font-extrabold tracking-tight">
           <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
@@ -47,7 +47,7 @@ export default function AiCardsPage() {
       </div>
 
       <main>
-        <Card className="lg:col-span-2 print:shadow-none print:border-none print:bg-transparent print:hidden">
+        <Card className="lg:col-span-2 print:hidden">
             <CardContent className="pt-6 print:p-0">
             <div className="grid gap-4 md:grid-cols-3 print:hidden">
                 <div>
@@ -113,14 +113,14 @@ export default function AiCardsPage() {
                                      <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
                                 </div>
                                 
-                                <div className="relative z-10 flex flex-col flex-grow p-4">
+                                <div className="relative z-10 flex flex-col p-4">
                                      {/* Header */}
                                     <header className="flex justify-center items-center text-center">
                                         <h3 className="font-bold text-md tracking-wider uppercase">Liga Deportiva Barrial La Luz</h3>
                                     </header>
 
                                      {/* Main Content */}
-                                    <main className="flex-grow flex flex-col items-center text-center mt-3">
+                                    <main className="flex flex-col items-center text-center mt-3">
                                         <div className="w-32 h-32 md:w-40 md:h-40 p-1.5 bg-gradient-to-tr from-orange-500 to-purple-600 rounded-md">
                                              <Image
                                                 src={selectedPlayer.photoUrl}
@@ -137,7 +137,19 @@ export default function AiCardsPage() {
                                         <div className="text-center mt-1 text-sm">
                                             <p>{selectedPlayer.category.toUpperCase()}</p>
                                             <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
-                                            <p className="font-semibold">{selectedPlayer.team}</p>
+                                             <div className="flex items-center justify-center gap-2 mt-1">
+                                                {team?.logoUrl && (
+                                                    <Image 
+                                                        src={team.logoUrl}
+                                                        alt={`Logo de ${team.name}`}
+                                                        width={16}
+                                                        height={16}
+                                                        className="rounded-full"
+                                                        data-ai-hint="team logo"
+                                                    />
+                                                )}
+                                                <p className="font-semibold">{selectedPlayer.team}</p>
+                                            </div>
                                         </div>
                                     </main>
 
@@ -176,7 +188,6 @@ export default function AiCardsPage() {
                 display: none !important;
             }
             main, .flex-1 {
-                display: block !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 background: transparent !important;
