@@ -68,7 +68,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
             </CardContent>
             <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-x-4 gap-y-2">
                 <div className="space-y-1">
-                     <p className="text-xs font-bold">{match.leg} - Fecha {match.round}</p>
+                     <p className="text-xs font-bold">{match.date ? format(match.date, 'PPP', {locale: es}) : 'Por definir'}</p>
                      <p className="text-xs text-muted-foreground">{match.category}</p>
                 </div>
                  <div className="flex flex-col items-end gap-1">
@@ -265,7 +265,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { al
 };
 
 
-const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all' }) => {
+const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupByDate: boolean }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
     
@@ -298,8 +298,10 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
 
         return sortedMatches
             .reduce((acc, match) => {
-                if (!match.date) return acc;
-                const dateKey = format(match.date, 'PPPP', {locale: es});
+                if (!match.date && !match.round) return acc;
+                const dateKey = groupByDate 
+                    ? match.date ? format(match.date, 'PPPP', {locale: es}) : 'Fecha por definir'
+                    : `Fecha ${match.round || 'N/A'}`;
                 
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
@@ -307,7 +309,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
                 acc[dateKey].push(match);
                 return acc;
             }, {} as Record<string, GeneratedMatch[]>);
-    }, [filteredMatches, isClient]);
+    }, [filteredMatches, isClient, groupByDate]);
 
 
      if (generatedMatches.length === 0) {
@@ -318,7 +320,7 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
                     <CardDescription>Vista de todos los partidos programados.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Equipos".</p>
+                    <p className="text-muted-foreground text-center py-8">Genere el calendario usando el botón "Sorteo de Liga".</p>
                 </CardContent>
              </Card>
         )
@@ -332,11 +334,11 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory }: { generated
             </CardHeader>
             <CardContent className="space-y-6 mt-6">
                  {Object.entries(groupedMatches)
-                    .map(([date, matchesOnDate]) => (
-                    <div key={date}>
-                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{date}</h3>
+                    .map(([groupKey, matchesInGroup]) => (
+                    <div key={groupKey}>
+                        <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{groupKey}</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {matchesOnDate.sort((a,b) => (a.time || "").localeCompare(b.time || "")).map((match, index) => 
+                            {matchesInGroup.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, index) => 
                                 <GeneralMatchCard key={`${match.home}-${match.away}-${index}`} match={match} getTeam={getTeam} />
                             )}
                         </div>
@@ -544,11 +546,10 @@ export default function SchedulePage() {
     const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
-    let dressingRoomCounter = 0;
+    let lastUsedDressingRoomPair = 0;
 
     for (const round of sortedRounds) {
         let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5);
-        let weekMatchesScheduled = 0;
         
         while(roundMatches.length > 0) {
             const dayOfWeek = getDay(currentDate);
@@ -568,10 +569,11 @@ export default function SchedulePage() {
                         const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
                         
                         const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
-                        const pairIndex = dressingRoomCounter % numDressingRoomPairs;
-                        const homeDressingRoom = pairIndex * 2 + 1;
-                        const awayDressingRoom = homeDressingRoom + 2 > settings.numDressingRooms ? 2 : homeDressingRoom + 2;
+                        const currentPairIndex = lastUsedDressingRoomPair % numDressingRoomPairs;
+                        lastUsedDressingRoomPair++;
 
+                        const homeDressingRoom = currentPairIndex * 2 + 1;
+                        const awayDressingRoom = homeDressingRoom + 1;
 
                         scheduledMatches.push({
                            ...match,
@@ -582,15 +584,11 @@ export default function SchedulePage() {
                            awayDressingRoom: awayDressingRoom,
                            vocalTeamId: vocalTeamId
                         });
-
-                        dressingRoomCounter++;
-                        weekMatchesScheduled++;
                      }
                 }
             }
-             if (roundMatches.length > 0 || weekMatchesScheduled > 0) {
+             if (roundMatches.length > 0) {
                currentDate = addDays(currentDate, 1);
-               weekMatchesScheduled = 0; 
             }
         }
     }
@@ -755,7 +753,7 @@ export default function SchedulePage() {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
-                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="general">General (por Jornada)</TabsTrigger>
                 <TabsTrigger value="maxima">Máxima</TabsTrigger>
                 <TabsTrigger value="primera">Primera</TabsTrigger>
                 <TabsTrigger value="segunda">Segunda</TabsTrigger>
@@ -763,16 +761,16 @@ export default function SchedulePage() {
                 {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="all" />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupByDate={false} />
             </TabsContent>
              <TabsContent value="maxima">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupByDate={true} />
             </TabsContent>
              <TabsContent value="primera">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupByDate={true} />
             </TabsContent>
              <TabsContent value="segunda">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupByDate={true} />
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
@@ -831,6 +829,7 @@ export default function SchedulePage() {
     
 
   
+
 
 
 
