@@ -152,7 +152,7 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
         
-        {hasAdminPermissions && tournamentNavItems.length > 0 && (
+        {tournamentNavItems.length > 0 && (
             <>
                 <SidebarSeparator />
                 <SidebarGroup>
