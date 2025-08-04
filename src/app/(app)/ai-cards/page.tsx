@@ -6,10 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { players, teams, type Category } from '@/lib/mock-data';
-import Image from 'next/image';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
-import type { Player } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 // Function to fetch image as Base64 data URI, with error handling
@@ -17,7 +15,8 @@ const toDataURL = (url: string): Promise<string> => {
     return new Promise((resolve) => {
         // Use a placeholder for QR codes as they are dynamically generated and can cause issues.
         if (url.includes('api.qrserver.com')) {
-             resolve(''); // Resolve with empty for QR codes for now
+             const qrPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAIJJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACfdAAnAAAF2sI8PAAAAAElFTkSuQmCC';
+             resolve(qrPlaceholder);
              return;
         }
         fetch(url)
@@ -38,66 +37,6 @@ const toDataURL = (url: string): Promise<string> => {
                 resolve(''); // Resolve with empty string on fetch error
             });
     });
-};
-
-
-const CardPreview = ({ player }: { player: Player | null }) => {
-    if (!player) return null;
-
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
-    const leagueLogoUrl = 'https://placehold.co/100x100.png';
-    const backgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
-
-    return (
-        <div className="mt-8 flex flex-col items-center">
-            <h3 className="text-xl font-bold mb-4">Vista Previa del Carnet</h3>
-            <div 
-                className="w-80 h-[480px] text-white rounded-2xl p-6 flex flex-col shadow-lg bg-cover bg-center"
-                style={{ backgroundImage: `url(${backgroundImageUrl})` }}
-            >
-                 <div className="absolute inset-0 bg-black/50 rounded-2xl"></div>
-                 <div className="relative z-10 flex flex-col h-full">
-                    {/* Header */}
-                    <div className="text-center mb-4">
-                        <p className="font-bold text-sm">LIGA DEPORTIVA BARRIAL</p>
-                        <p className="font-bold text-lg">LA LUZ</p>
-                    </div>
-
-                    {/* Player Photo */}
-                    <div className="flex justify-center mb-4">
-                        <div className="w-28 h-28 border-2 border-[#FFA500] overflow-hidden bg-gray-700">
-                             <Image src={player.photoUrl} alt={player.name} width={112} height={112} className="object-cover w-full h-full" data-ai-hint="player portrait" />
-                        </div>
-                    </div>
-
-                    {/* Player Info */}
-                    <div className="text-center flex-grow">
-                        <div className="h-4"></div>
-                        <p className="font-bold text-2xl text-[#FFA500] uppercase">{player.name}</p>
-                        <p className="font-bold text-xl uppercase mt-2">{player.team}</p>
-                        <p className="font-bold text-lg uppercase">{player.category}</p>
-                        <p className="text-sm">{player.idNumber}</p>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-auto">
-                        {/* QR Code */}
-                        <div className="w-16 h-16 bg-white p-1 rounded-md">
-                            <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
-                        </div>
-                        {/* League Logo */}
-                        <div className="w-16 h-16">
-                            <Image src={leagueLogoUrl} alt="League Logo" width={64} height={64} className="object-contain" data-ai-hint="league logo" />
-                        </div>
-                        {/* Jersey Number */}
-                        <div className="w-16 h-16 flex items-center justify-center">
-                            <span className="font-bold text-4xl text-[#FFA500]">{player.jerseyNumber}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
 };
 
 
@@ -198,7 +137,8 @@ export default function AiCardsPage() {
             
             if (player.playerPhotoBase64) {
                 try {
-                    pdf.addImage(player.playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
+                    const imgProps = pdf.getImageProperties(player.playerPhotoBase64);
+                    pdf.addImage(player.playerPhotoBase64, imgProps.format, photoX, photoY, photoSize, photoSize);
                 } catch (e) {
                      console.error("Error adding player photo to PDF:", e);
                      pdf.setFillColor('#CCCCCC');
@@ -234,7 +174,8 @@ export default function AiCardsPage() {
             // QR Code
             if (player.qrCodeBase64) {
                  try {
-                    pdf.addImage(player.qrCodeBase64, 'PNG', x + 5, footerY, itemSize, itemSize);
+                    const qrProps = pdf.getImageProperties(player.qrCodeBase64);
+                    pdf.addImage(player.qrCodeBase64, qrProps.format, x + 5, footerY, itemSize, itemSize);
                 } catch(e) {
                     console.error("Error adding QR code to PDF:", e);
                 }
@@ -242,19 +183,21 @@ export default function AiCardsPage() {
 
             // League Logo
             if (leagueLogoBase64) {
-                const logoX = x + (cardWidthMM - itemSize) / 2;
-                pdf.addImage(leagueLogoBase64, 'PNG', logoX, footerY, itemSize, itemSize);
+                const logoX = x + cardWidthMM - itemSize - 5;
+                const logoProps = pdf.getImageProperties(leagueLogoBase64);
+                pdf.addImage(leagueLogoBase64, logoProps.format, logoX, footerY, itemSize, itemSize);
             }
 
             // Jersey Number
-            const jerseyX = x + cardWidthMM - itemSize - 5;
+            const jerseyX = x + (cardWidthMM / 2);
             pdf.setFontSize(22);
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor('#FFA500'); 
-            pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize / 2, footerY + itemSize / 2 + 4, { align: 'center' });
+            pdf.text(player.jerseyNumber.toString(), jerseyX, footerY + itemSize / 2 + 4, { align: 'center' });
         }
 
-        pdf.save(`carnets_${selection.teamId}.pdf`);
+        const selectedTeamName = teams.find(t => t.id === selection.teamId)?.name || 'equipo';
+        pdf.save(`carnets_${selectedTeamName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
         console.error("Failed to generate PDF:", error);
         toast({
@@ -333,11 +276,6 @@ export default function AiCardsPage() {
             </div>
             </CardContent>
         </Card>
-        
-        {selection.teamId && (
-            <CardPreview player={selectedTeamPlayers[0] || null} />
-        )}
-
       </main>
     </div>
   );
