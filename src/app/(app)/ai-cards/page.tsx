@@ -74,7 +74,9 @@ export default function AiCardsPage() {
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFFFFF');
         pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
-        pdf.text('LA LUZ', x + cardWidthMM / 2, y + 10, { align: 'center' });
+        pdf.setFontSize(8);
+        pdf.text('LA LUZ', x + cardWidthMM / 2, y + 11, { align: 'center' });
+
 
         // --- Player Photo ---
         try {
