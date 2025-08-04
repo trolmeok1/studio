@@ -838,12 +838,12 @@ export default function SchedulePage() {
         />
         
         <Tabs defaultValue="general" className="space-y-4">
-            <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="maxima">Máxima</TabsTrigger>
-            <TabsTrigger value="primera">Primera</TabsTrigger>
-            <TabsTrigger value="segunda">Segunda</TabsTrigger>
-            <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
+             <TabsList>
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="maxima">Máxima</TabsTrigger>
+                <TabsTrigger value="primera">Primera</TabsTrigger>
+                <TabsTrigger value="segunda">Segunda</TabsTrigger>
+                <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
                  <div className="flex justify-end mb-4">
@@ -900,3 +900,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
