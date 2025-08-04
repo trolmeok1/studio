@@ -270,44 +270,46 @@ export default function AiCardsPage() {
             <CardContent className="pt-6">
             <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
-                <Select onValueChange={handleCategoryChange}>
-                    <SelectTrigger>
-                    <SelectValue placeholder="Elige una categoría..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                        {category}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
+                    <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
+                    <Select onValueChange={handleCategoryChange}>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Elige una categoría..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                            {category}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div>
-                <h3 className="text-lg font-medium mb-2">2. Seleccionar Equipo</h3>
-                <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''} disabled={!selectedCategoryId}>
-                    <SelectTrigger>
-                    <SelectValue placeholder={selectedCategoryId ? "Elige un equipo..." : "Primero elige categoría"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {filteredTeams.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                        {team.name}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
+                    <h3 className="text-lg font-medium mb-2">2. Seleccionar Equipo</h3>
+                    <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''} disabled={!selectedCategoryId}>
+                        <SelectTrigger>
+                        <SelectValue placeholder={selectedCategoryId ? "Elige un equipo..." : "Primero elige categoría"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {filteredTeams.map((team) => (
+                            <SelectItem key={team.id} value={team.id}>
+                            {team.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
                 </div>
-                {selectedTeamId && (
-                    <div>
-                        <h3 className="text-lg font-medium mb-2 invisible">3. Descargar</h3>
-                        <Button onClick={handleDownloadPdf} className="w-full md:w-auto" disabled={isGenerating}>
-                            <Download className="mr-2 h-4 w-4" />
-                            {isGenerating ? 'Generando PDF...' : `Descargar PDF (${selectedTeamPlayers.length})`}
-                        </Button>
-                    </div>
-                )}
+                <div>
+                    {selectedTeamId && (
+                        <>
+                            <h3 className="text-lg font-medium mb-2 invisible">3. Descargar</h3>
+                            <Button onClick={handleDownloadPdf} className="w-full md:w-auto" disabled={isGenerating}>
+                                <Download className="mr-2 h-4 w-4" />
+                                {isGenerating ? 'Generando PDF...' : `Descargar PDF (${selectedTeamPlayers.length})`}
+                            </Button>
+                        </>
+                    )}
+                </div>
             </div>
             </CardContent>
         </Card>
@@ -320,5 +322,3 @@ export default function AiCardsPage() {
     </div>
   );
 }
-
-    
