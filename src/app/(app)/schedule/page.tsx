@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 
 
@@ -510,6 +511,7 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
 
 export default function SchedulePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [isDrawLeagueDialogOpen, setIsDrawLeagueDialogOpen] = useState(false);
@@ -524,7 +526,6 @@ export default function SchedulePage() {
 
 
   const isTournamentGenerated = generatedMatches.length > 0;
-  // This is a mock check. In a real app, you'd check match statuses.
   const areAllMatchesFinished = isTournamentGenerated; 
   
   useEffect(() => { setIsClient(true) }, []);
@@ -688,30 +689,24 @@ export default function SchedulePage() {
    const handleGenerateFinals = () => {
         let finals: GeneratedMatch[] = [];
 
-        // This is a mock implementation. In a real app, you'd use standings data.
         const mockStandings = allTeams.map(t => ({ teamId: t.id, category: t.category, group: t.group, points: Math.random() * 50 }));
 
-        // Maxima Final
         const maximaTeams = mockStandings.filter(s => s.category === 'Máxima').sort((a,b) => b.points - a.points).slice(0, 2);
         if (maximaTeams.length === 2) {
             finals.push({ home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
         }
 
-        // Primera Final
         const primeraTeams = mockStandings.filter(s => s.category === 'Primera').sort((a,b) => b.points - a.points).slice(0, 2);
         if (primeraTeams.length === 2) {
             finals.push({ home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
         }
         
-        // Segunda Semifinals & Final
         const groupATeams = mockStandings.filter(s => s.group === 'A').sort((a,b) => b.points - a.points).slice(0, 2);
         const groupBTeams = mockStandings.filter(s => s.group === 'B').sort((a,b) => b.points - a.points).slice(0, 2);
         
         if (groupATeams.length === 2 && groupBTeams.length === 2) {
-            // Semifinals
             finals.push({ home: groupATeams[0].teamId, away: groupBTeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
             finals.push({ home: groupBTeams[0].teamId, away: groupATeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
-            // Dummy final
             finals.push({ home: groupATeams[0].teamId, away: groupBTeams[0].teamId, category: 'Segunda', leg: 'Final' });
         }
         
@@ -775,24 +770,26 @@ export default function SchedulePage() {
                   </span>
                 </h2>
             </div>
-            <Card className="p-2 bg-card/50">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold mr-2">Admin:</span>
-                     <Button 
-                        variant={isTournamentGenerated ? "outline" : "default"}
-                        onClick={handleDrawButtonClick}
-                        >
-                         {isTournamentGenerated ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
-                         {isTournamentGenerated ? "Reagendar Partido" : "Sorteo de Liga"}
-                     </Button>
-                     {isTournamentGenerated && (
-                        <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
-                            <Trophy className="mr-2" />
-                            Finalizar Torneo
+            {user.permissions.schedule.edit && (
+                <Card className="p-2 bg-card/50">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold mr-2">Admin:</span>
+                        <Button 
+                            variant={isTournamentGenerated ? "outline" : "default"}
+                            onClick={handleDrawButtonClick}
+                            >
+                            {isTournamentGenerated ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
+                            {isTournamentGenerated ? "Reagendar Partido" : "Sorteo de Liga"}
                         </Button>
-                    )}
-                </div>
-            </Card>
+                        {isTournamentGenerated && (
+                            <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
+                                <Trophy className="mr-2" />
+                                Finalizar Torneo
+                            </Button>
+                        )}
+                    </div>
+                </Card>
+            )}
         </div>
 
         <Dialog open={isDrawLeagueDialogOpen} onOpenChange={setIsDrawLeagueDialogOpen}>

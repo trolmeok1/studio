@@ -14,7 +14,7 @@ import type { GeneratedMatch } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Users, Trophy, CalendarPlus } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Trophy, CalendarPlus, EyeOff, Eye } from 'lucide-react';
 import { format, addDays, setHours, setMinutes, getDay, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,6 +24,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAuth } from '@/hooks/useAuth';
+import { Switch } from '@/components/ui/switch';
+import { useRouter } from 'next/navigation';
 
 const BracketNode = ({ team, isWinner }: { team: Team | null; isWinner?: boolean }) => {
     return (
@@ -267,10 +270,20 @@ const DrawCopaSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) =>
 
 export default function CopaPage() {
     const { toast } = useToast();
+    const { user, isCopaPublic, setIsCopaPublic } = useAuth();
+    const router = useRouter();
+
     const [copaTeams, setCopaTeams] = useState<Team[]>([]);
     const [copaMatches, setCopaMatches] = useState<GeneratedMatch[]>([]);
     const [isCopaSettingsDialogOpen, setIsCopaSettingsDialogOpen] = useState(false);
     const [isDrawCopaDialogOpen, setIsDrawCopaDialogOpen] = useState(false);
+
+    // Redirect guests if the cup is not public
+    useEffect(() => {
+        if (!user.permissions.copa.edit && !isCopaPublic) {
+            router.push('/dashboard');
+        }
+    }, [user, isCopaPublic, router]);
 
     const getTeamName = useCallback((teamId: string) => {
         const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
@@ -324,6 +337,9 @@ export default function CopaPage() {
     
     const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
 
+    if (!user.permissions.copa.edit && !isCopaPublic) {
+        return null; // Or a loading/access denied component
+    }
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -335,31 +351,42 @@ export default function CopaPage() {
                 </h2>
             </div>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
                         <CardTitle>Bracket del Torneo - Copa La Luz</CardTitle>
                         <CardDescription>Torneo de eliminación directa con los equipos seleccionados.</CardDescription>
                     </div>
-                    <div className="flex gap-2">
-                        <Dialog open={isCopaSettingsDialogOpen} onOpenChange={setIsCopaSettingsDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline">
-                                    <Trophy className="mr-2" />
-                                    Configurar Copa
-                                </Button>
-                            </DialogTrigger>
-                            <CopaSettingsDialog onGenerate={handleCopaSettings} />
-                        </Dialog>
-                        {copaTeams.length > 0 && unscheduledCopaMatches > 0 && (
-                             <Dialog open={isDrawCopaDialogOpen} onOpenChange={setIsDrawCopaDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button>
-                                        <CalendarPlus className="mr-2" />
-                                        Programar Partidos ({unscheduledCopaMatches})
-                                    </Button>
-                                </DialogTrigger>
-                                <DrawCopaSettingsDialog onGenerate={scheduleCopaMatches} />
-                            </Dialog>
+                    <div className="flex items-center gap-2">
+                        {user.permissions.copa.edit && (
+                            <>
+                                <div className="flex items-center space-x-2">
+                                    <Switch id="copa-public" checked={isCopaPublic} onCheckedChange={setIsCopaPublic} />
+                                    <Label htmlFor="copa-public" className="flex items-center gap-2 text-sm">
+                                        {isCopaPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                        Copa Pública
+                                    </Label>
+                                </div>
+                                <Dialog open={isCopaSettingsDialogOpen} onOpenChange={setIsCopaSettingsDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline">
+                                            <Trophy className="mr-2" />
+                                            Configurar Copa
+                                        </Button>
+                                    </DialogTrigger>
+                                    <CopaSettingsDialog onGenerate={handleCopaSettings} />
+                                </Dialog>
+                                {copaTeams.length > 0 && unscheduledCopaMatches > 0 && (
+                                    <Dialog open={isDrawCopaDialogOpen} onOpenChange={setIsDrawCopaDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button>
+                                                <CalendarPlus className="mr-2" />
+                                                Programar Partidos ({unscheduledCopaMatches})
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DrawCopaSettingsDialog onGenerate={scheduleCopaMatches} />
+                                    </Dialog>
+                                )}
+                            </>
                         )}
                     </div>
                 </CardHeader>

@@ -48,7 +48,7 @@ import { cn } from '@/lib/utils';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isCopaPublic } = useAuth();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
 
@@ -57,11 +57,12 @@ export function AppSidebar() {
   };
 
   const handleLogout = () => {
-    // In a real app, you'd clear the session here
     router.push('/login');
   };
 
   const { permissions } = user;
+
+  const canViewCopa = permissions.copa.edit || (permissions.copa.view && isCopaPublic);
 
   return (
     <>
@@ -112,7 +113,7 @@ export function AppSidebar() {
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>}
-          {permissions.copa.view && <SidebarMenuItem>
+          {canViewCopa && <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive('/copa')} tooltip="Copa">
                 <Link href="/copa">
                     <Trophy />
@@ -278,28 +279,31 @@ export function AppSidebar() {
 
 export function BottomNavbar() {
     const pathname = usePathname();
-    const { user } = useAuth();
+    const { user, isCopaPublic } = useAuth();
     const { permissions } = user;
 
     const isActive = (path: string) => {
       return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
     };
 
+    const canViewCopa = permissions.copa.edit || (permissions.copa.view && isCopaPublic);
+
     let navItems = [
       { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
       { href: '/players', icon: Users, label: 'Jugadores', permission: permissions.players.view },
       { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
       { href: '/partido', icon: ClipboardList, label: 'Resultados', permission: permissions.partido.view },
-      
     ];
 
-    if (user.role === 'guest') {
-        navItems.push({ href: '/login', icon: LogIn, label: 'Ingresar', permission: true });
-    } else {
-        navItems.push({ href: '/copa', icon: Trophy, label: 'Copa', permission: permissions.copa.view });
+    if (canViewCopa) {
+        navItems.push({ href: '/copa', icon: Trophy, label: 'Copa', permission: true });
     }
     
-    const filteredNavItems = navItems.filter(item => item.permission);
+    if (user.role === 'guest' && navItems.length < 5) {
+        navItems.push({ href: '/login', icon: LogIn, label: 'Ingresar', permission: true });
+    }
+    
+    const filteredNavItems = navItems.filter(item => item.permission).slice(0, 5);
 
 
     return (

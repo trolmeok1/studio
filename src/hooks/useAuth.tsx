@@ -58,7 +58,7 @@ const guestPermissions: Permissions = {
     players: { view: true, edit: false },
     schedule: { view: true, edit: false },
     partido: { view: true, edit: false },
-    copa: { view: true, edit: false },
+    copa: { view: true, edit: false }, // Guests can view, but visibility is controlled by isCopaPublic
     aiCards: { view: false, edit: false },
     committees: { view: false, edit: false },
     treasury: { view: false, edit: false },
@@ -85,6 +85,8 @@ interface AuthContextType {
   users: User[];
   setUsers: (users: User[]) => void;
   loginAs: (role: UserRole) => void;
+  isCopaPublic: boolean;
+  setIsCopaPublic: (isPublic: boolean) => void;
 }
 
 const mockUsers: User[] = [
@@ -100,6 +102,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsersState] = useState<User[]>(mockUsers);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
+  const [isCopaPublic, setIsCopaPublic] = useState(true);
 
   const loginAs = (role: UserRole) => {
     const userToLogin = users.find(u => u.role === role);
@@ -110,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const setUsers = (updatedUsers: User[]) => {
       setUsersState(updatedUsers);
-      // If the current user was updated, update the currentUser state as well
       const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
       if (updatedCurrentUser) {
           setCurrentUser(updatedCurrentUser);
@@ -123,6 +125,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     users,
     setUsers,
     loginAs,
+    isCopaPublic,
+    setIsCopaPublic,
   };
 
   return (
