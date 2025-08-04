@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 type ViewMode = 'list' | 'grid';
 
@@ -198,6 +199,7 @@ export function TeamDetailsClient({
   vocalPayments: any[];
 }) {
 
+  const { user } = useAuth();
   const activePlayers = useMemo(() => players.filter(p => p.status === 'activo'), [players]);
 
   return (
@@ -229,7 +231,9 @@ export function TeamDetailsClient({
                 <BadgeInfo className="mr-2 h-4 w-4" /> Directiva
             </Link>
           </Button>
-          <Button><PlusCircle className="mr-2 h-4 w-4" /> Agregar Jugador</Button>
+          {user.permissions.teams.edit && (
+            <Button><PlusCircle className="mr-2 h-4 w-4" /> Agregar Jugador</Button>
+          )}
         </div>
       </header>
 

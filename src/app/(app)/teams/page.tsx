@@ -1,14 +1,51 @@
 
 
-import { teams as initialTeams, type Team } from '@/lib/mock-data';
-import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
+import { teams as initialTeams, type Team, type Category } from '@/lib/mock-data';
+import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { AddTeam } from './_components/AddTeam';
+import { useAuth } from '@/hooks/useAuth';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useState, useMemo } from 'react';
+
+const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+
+const TeamCard = ({ team }: { team: Team }) => {
+  return (
+    <Card className="flex flex-col group transition-all hover:shadow-lg">
+      <Link href={`/teams/${team.id}`} className="block hover:bg-muted/30">
+        <CardContent className="p-4">
+          <Image
+            src={team.logoUrl}
+            alt={`Logo de ${team.name}`}
+            width={400}
+            height={300}
+            className="w-full h-40 object-cover rounded-md"
+            data-ai-hint="team logo"
+          />
+        </CardContent>
+        <CardHeader className="pt-0">
+          <CardTitle className="text-lg font-headline truncate">{team.name}</CardTitle>
+          <Badge variant="secondary" className="w-fit">{team.category}</Badge>
+        </CardHeader>
+      </Link>
+    </Card>
+  );
+};
+
 
 export default function TeamsPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<Category>('Máxima');
   const teams = initialTeams.filter(t => t.category !== 'Copa');
+
+  const filteredTeams = useMemo(() => {
+    return teams.filter(team => team.category === activeTab);
+  }, [activeTab, teams]);
+
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -20,34 +57,31 @@ export default function TeamsPage() {
               </span>
             </h2>
         </div>
-        <AddTeam />
+        {user.permissions.teams.edit && <AddTeam />}
       </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {teams.map((team) => (
-          <Card key={team.id} neon="green" className="flex flex-col group transition-all hover:scale-[1.02]">
-            <div className="p-0 relative">
-                 <Image
-                    src={team.logoUrl}
-                    alt={`Logo de ${team.name}`}
-                    width={400}
-                    height={300}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint="team logo"
-                />
-            </div>
-             <CardHeader>
-                <CardTitle className="text-xl font-headline truncate">{team.name}</CardTitle>
-                <Badge variant="secondary" className="w-fit">{team.category}</Badge>
-             </CardHeader>
-            <CardFooter className="mt-auto">
-                 <Link href={`/teams/${team.id}`} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2">
-                    Ver Detalles
-                </Link>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+       
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Category)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                {categories.map(category => (
+                    <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
+                ))}
+            </TabsList>
+            
+            {categories.map(category => (
+                <TabsContent key={category} value={category}>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
+                        {filteredTeams.map((team) => (
+                           <TeamCard key={team.id} team={team} />
+                        ))}
+                    </div>
+                     {filteredTeams.length === 0 && (
+                        <div className="text-center p-8 text-muted-foreground">
+                            No hay equipos en esta categoría.
+                        </div>
+                    )}
+                </TabsContent>
+            ))}
+        </Tabs>
     </div>
   );
 }
