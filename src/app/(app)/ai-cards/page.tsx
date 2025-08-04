@@ -131,40 +131,39 @@ export default function AiCardsPage() {
 
 
         // --- Player Photo ---
-        const photoSize = 35;
+        const photoSize = 35; // Reduced photo size
         const photoX = x + (cardWidthMM - photoSize) / 2;
         const photoY = y + 18;
         pdf.setDrawColor('#FFA500'); // Orange border
         pdf.setLineWidth(1);
-        pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 'S');
+        pdf.rect(photoX, photoY, photoSize, photoSize, 'S');
         
         try {
             const playerPhotoBase64 = await toDataURL(player.photoUrl);
-            pdf.saveGraphicsState();
-            pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, (photoSize-0.5) / 2);
-            pdf.clip();
             pdf.addImage(playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
-            pdf.restoreGraphicsState();
         } catch (error) {
             console.error('Error loading player photo:', error);
             pdf.setFillColor('#CCCCCC');
-            pdf.circle(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 'F');
+            pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
         }
 
 
         // --- Player Info ---
-        const infoY = photoY + photoSize + 12;
+        const infoY = photoY + photoSize + 10; // Adjusted info position
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor('#FFA500'); // Orange color for name
         pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
         
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold'); // Bold font for category and team
         pdf.setTextColor('#FFFFFF');
         pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
         pdf.text(player.idNumber, x + cardWidthMM / 2, infoY + 10, { align: 'center' });
-        pdf.setFont('helvetica', 'bold');
+        pdf.setFont('helvetica', 'bold'); // Bold font for category and team
+        pdf.setFontSize(9);
         pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 14, { align: 'center' });
 
         // --- Footer Elements ---
@@ -176,9 +175,7 @@ export default function AiCardsPage() {
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`/players/${player.id}`)}`;
         try {
             const qrCodeBase64 = await toDataURL(qrCodeUrl);
-            pdf.setFillColor('#FFFFFF');
-            pdf.roundedRect(qrX, footerY, itemSize, itemSize, 1, 1, 'F');
-            pdf.addImage(qrCodeBase64, 'PNG', qrX + 1, footerY + 1, itemSize - 2, itemSize - 2);
+            pdf.addImage(qrCodeBase64, 'PNG', qrX, footerY, itemSize, itemSize);
         } catch (error) {
             console.error('Error loading QR code:', error);
         }
@@ -190,11 +187,11 @@ export default function AiCardsPage() {
         }
 
         // Jersey Number
-        const jerseyX = x + cardWidthMM - 10;
+        const jerseyX = x + cardWidthMM - itemSize - 5;
         pdf.setFontSize(22);
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor('#9400D3'); 
-        pdf.text(player.jerseyNumber.toString(), jerseyX, footerY + itemSize / 2 + 4, { align: 'center' });
+        pdf.setTextColor('#FFA500'); 
+        pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize / 2, footerY + itemSize / 2 + 4, { align: 'center' });
     }
 
     pdf.save(`carnets_${selectedTeamId}.pdf`);
