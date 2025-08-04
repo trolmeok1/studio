@@ -113,7 +113,7 @@ export default function AiCardsPage() {
                                      <div className="absolute top-[10%] left-[-50px] w-48 h-1 bg-purple-500/30 rotate-45"></div>
                                 </div>
                                 
-                                <div className="relative z-10 flex flex-col p-4">
+                                <div className="relative z-10 flex flex-col p-4 flex-grow">
                                      {/* Header */}
                                     <header className="flex justify-center items-center text-center">
                                         <h3 className="font-bold text-md tracking-wider uppercase">Liga Deportiva Barrial La Luz</h3>
@@ -154,14 +154,14 @@ export default function AiCardsPage() {
                                     </main>
 
                                     {/* Footer */}
-                                    <footer className="mt-auto pt-3">
+                                    <footer className="mt-auto pt-4">
                                          <div className="flex items-end justify-between gap-4">
                                             {/* QR Code */}
                                             <div className="w-16 h-16 bg-white p-1 rounded-md">
                                                 <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
                                             </div>
                                              
-                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={40} height={40} className="rounded-full" data-ai-hint="league logo" />
+                                            <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={56} height={56} className="rounded-md" data-ai-hint="league logo" />
                                              
                                              {/* Jersey Number */}
                                              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
@@ -215,4 +215,3 @@ export default function AiCardsPage() {
     </div>
   );
 }
-
