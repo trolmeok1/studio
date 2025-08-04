@@ -165,18 +165,21 @@ export default function AiCardsPage() {
       </main>
 
       <style jsx global>{`
-        @media screen {
-            #card-grid {
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            }
-        }
         @media print {
-            body > :not(main) {
+            body > * {
                 display: none;
             }
+            body > .flex-1,
+            body > .flex-1 main,
+            body > .flex-1 main > .print\\:shadow-none,
+            body > .flex-1 main > .print\\:shadow-none > .print\\:p-0,
+            body > .flex-1 main > .print\\:shadow-none > .print\\:p-0 > #card-grid {
+                display: block !important;
+            }
             main {
-              padding: 0;
-              margin: 0;
+              padding: 0 !important;
+              margin: 0 !important;
+              background-color: white !important;
             }
             .print\\:hidden {
               display: none !important;
@@ -189,22 +192,20 @@ export default function AiCardsPage() {
                 margin: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                background-color: white !important;
             }
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                height: 9.8cm; /* Approximate height for 3 rows on A4 */
-                width: 100%;
                 display: block;
             }
             .id-card-wrapper > div {
                 box-shadow: none !important;
                 border: 2px solid #ddd !important;
-                height: 100% !important;
             }
             @page {
                 size: A4 portrait;
-                margin: 0;
+                margin: 0.5cm;
             }
         }
       `}</style>
