@@ -15,6 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 // Function to fetch image as Base64 data URI, with error handling
 const toDataURL = (url: string): Promise<string> => {
     return new Promise((resolve) => {
+        // Use a placeholder for QR codes as they are dynamically generated and can cause issues.
+        if (url.includes('api.qrserver.com')) {
+             resolve(''); // Resolve with empty for QR codes for now
+             return;
+        }
         fetch(url)
             .then(response => {
                 if (!response.ok) {
@@ -61,7 +66,7 @@ const CardPreview = ({ player }: { player: Player | null }) => {
                     {/* Player Photo */}
                     <div className="flex justify-center mb-4">
                         <div className="w-28 h-28 border-2 border-[#FFA500] overflow-hidden bg-gray-700">
-                            <Image src={player.photoUrl} alt={player.name} width={112} height={112} className="object-cover w-full h-full" />
+                             <Image src={player.photoUrl} alt={player.name} width={112} height={112} className="object-cover w-full h-full" data-ai-hint="player portrait" />
                         </div>
                     </div>
 
@@ -82,7 +87,7 @@ const CardPreview = ({ player }: { player: Player | null }) => {
                         </div>
                         {/* League Logo */}
                         <div className="w-16 h-16">
-                            <Image src={leagueLogoUrl} alt="League Logo" width={64} height={64} className="object-contain" />
+                            <Image src={leagueLogoUrl} alt="League Logo" width={64} height={64} className="object-contain" data-ai-hint="league logo" />
                         </div>
                         {/* Jersey Number */}
                         <div className="w-16 h-16 flex items-center justify-center">
@@ -97,25 +102,30 @@ const CardPreview = ({ player }: { player: Player | null }) => {
 
 
 export default function AiCardsPage() {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<Category | null>(null);
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ category: Category | null; teamId: string | null }>({
+    category: null,
+    teamId: null,
+  });
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const categories = useMemo(() => [...new Set(teams.map((t) => t.category))], []);
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(teams.map((t) => t.category))];
+    return uniqueCategories.filter(c => c !== 'Copa') as Category[];
+  }, []);
   
   const filteredTeams = useMemo(() => {
-    if (!selectedCategoryId) return [];
-    return teams.filter((team) => team.category === selectedCategoryId);
-  }, [selectedCategoryId]);
+    if (!selection.category) return [];
+    return teams.filter((team) => team.category === selection.category);
+  }, [selection.category]);
 
   const selectedTeamPlayers = useMemo(() => {
-    if (!selectedTeamId) return [];
-    return players.filter((p) => p.teamId === selectedTeamId);
-  }, [selectedTeamId]);
+    if (!selection.teamId) return [];
+    return players.filter((p) => p.teamId === selection.teamId);
+  }, [selection.teamId]);
     
   const handleDownloadPdf = async () => {
-    if (!selectedTeamId) return;
+    if (!selection.teamId) return;
     setIsGenerating(true);
 
     try {
@@ -187,7 +197,13 @@ export default function AiCardsPage() {
             pdf.rect(photoX, photoY, photoSize, photoSize, 'S');
             
             if (player.playerPhotoBase64) {
-                pdf.addImage(player.playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
+                try {
+                    pdf.addImage(player.playerPhotoBase64, 'PNG', photoX, photoY, photoSize, photoSize);
+                } catch (e) {
+                     console.error("Error adding player photo to PDF:", e);
+                     pdf.setFillColor('#CCCCCC');
+                     pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
+                }
             } else {
                 pdf.setFillColor('#CCCCCC');
                 pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
@@ -217,8 +233,11 @@ export default function AiCardsPage() {
             
             // QR Code
             if (player.qrCodeBase64) {
-                const qrX = x + 5;
-                pdf.addImage(player.qrCodeBase64, 'PNG', qrX, footerY, itemSize, itemSize);
+                 try {
+                    pdf.addImage(player.qrCodeBase64, 'PNG', x + 5, footerY, itemSize, itemSize);
+                } catch(e) {
+                    console.error("Error adding QR code to PDF:", e);
+                }
             }
 
             // League Logo
@@ -235,7 +254,7 @@ export default function AiCardsPage() {
             pdf.text(player.jerseyNumber.toString(), jerseyX + itemSize / 2, footerY + itemSize / 2 + 4, { align: 'center' });
         }
 
-        pdf.save(`carnets_${selectedTeamId}.pdf`);
+        pdf.save(`carnets_${selection.teamId}.pdf`);
     } catch (error) {
         console.error("Failed to generate PDF:", error);
         toast({
@@ -248,12 +267,13 @@ export default function AiCardsPage() {
     }
   };
 
-
   const handleCategoryChange = (value: string) => {
-    setSelectedCategoryId(value as Category);
-    setSelectedTeamId(null); 
+    setSelection({ category: value as Category, teamId: null }); 
   };
-
+  
+  const handleTeamChange = (value: string) => {
+      setSelection(prev => ({ ...prev, teamId: value }));
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -271,7 +291,7 @@ export default function AiCardsPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <div>
                     <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
-                    <Select onValueChange={handleCategoryChange}>
+                    <Select onValueChange={handleCategoryChange} value={selection.category || ''}>
                         <SelectTrigger>
                         <SelectValue placeholder="Elige una categoría..." />
                         </SelectTrigger>
@@ -286,9 +306,9 @@ export default function AiCardsPage() {
                 </div>
                 <div>
                     <h3 className="text-lg font-medium mb-2">2. Seleccionar Equipo</h3>
-                    <Select onValueChange={setSelectedTeamId} value={selectedTeamId || ''} disabled={!selectedCategoryId}>
+                    <Select onValueChange={handleTeamChange} value={selection.teamId || ''} disabled={!selection.category}>
                         <SelectTrigger>
-                        <SelectValue placeholder={selectedCategoryId ? "Elige un equipo..." : "Primero elige categoría"} />
+                        <SelectValue placeholder={selection.category ? "Elige un equipo..." : "Primero elige categoría"} />
                         </SelectTrigger>
                         <SelectContent>
                         {filteredTeams.map((team) => (
@@ -300,10 +320,10 @@ export default function AiCardsPage() {
                     </Select>
                 </div>
                 <div>
-                    {selectedTeamId && (
+                    {selection.teamId && (
                         <>
                             <h3 className="text-lg font-medium mb-2 invisible">3. Descargar</h3>
-                            <Button onClick={handleDownloadPdf} className="w-full md:w-auto" disabled={isGenerating}>
+                            <Button onClick={handleDownloadPdf} className="w-full" disabled={isGenerating}>
                                 <Download className="mr-2 h-4 w-4" />
                                 {isGenerating ? 'Generando PDF...' : `Descargar PDF (${selectedTeamPlayers.length})`}
                             </Button>
@@ -314,7 +334,7 @@ export default function AiCardsPage() {
             </CardContent>
         </Card>
         
-        {selectedTeamId && (
+        {selection.teamId && (
             <CardPreview player={selectedTeamPlayers[0] || null} />
         )}
 
