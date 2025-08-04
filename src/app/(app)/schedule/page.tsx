@@ -594,6 +594,70 @@ const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
     )
 }
 
+const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (id: string) => Team | undefined }) => {
+    if (finals.length === 0) {
+        return (
+            <div className="text-center py-10 text-muted-foreground">
+                <p>Aún no se han generado las finales.</p>
+                <p>Completa todos los partidos de la temporada regular y luego usa el botón "Generar Finales".</p>
+            </div>
+        );
+    }
+    
+    const FinalsCard = ({ match, title }: { match: GeneratedMatch, title: string }) => {
+        const homeTeam = getTeam(match.home);
+        const awayTeam = getTeam(match.away);
+        
+        return (
+             <Card className="text-center" neon="purple">
+                <CardHeader>
+                    <CardTitle>{title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-around">
+                     <div className="flex flex-col items-center gap-2">
+                        <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
+                        <p className="font-bold">{homeTeam?.name}</p>
+                    </div>
+                    <span className="text-2xl font-bold text-muted-foreground">VS</span>
+                     <div className="flex flex-col items-center gap-2">
+                        <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
+                        <p className="font-bold">{awayTeam?.name}</p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    const semiFinals = finals.filter(f => f.leg === 'Semifinal');
+    const maximaFinal = finals.find(f => f.category === 'Máxima' && f.leg === 'Final');
+    const primeraFinal = finals.find(f => f.category === 'Primera' && f.leg === 'Final');
+    const segundaFinal = finals.find(f => f.category === 'Segunda' && f.leg === 'Final');
+
+    return (
+        <div className="space-y-8">
+            {semiFinals.length > 0 && (
+                <div>
+                    <h3 className="text-2xl font-bold text-center mb-4">Semifinales - Segunda Categoría</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {semiFinals.map((match, i) => (
+                            <FinalsCard key={i} match={match} title={`Semifinal ${i+1}`} />
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+             <div>
+                <h3 className="text-2xl font-bold text-center mb-4">Finales</h3>
+                 <div className="space-y-6">
+                    {maximaFinal && <FinalsCard match={maximaFinal} title="Gran Final - Máxima Categoría" />}
+                    {primeraFinal && <FinalsCard match={primeraFinal} title="Gran Final - Primera Categoría" />}
+                    {segundaFinal && <FinalsCard match={segundaFinal} title="Final por el Ascenso - Segunda Categoría" />}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function SchedulePage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -603,11 +667,15 @@ export default function SchedulePage() {
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+  const [finalMatches, setFinalMatches] = useState<GeneratedMatch[]>([]);
+  
   const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
-  const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
+  const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
 
 
-  const isTournamentStarted = generatedMatches.length > 0;
+  const isTournamentGenerated = generatedMatches.length > 0;
+  // This is a mock check. In a real app, you'd check match statuses.
+  const areAllMatchesFinished = isTournamentGenerated; 
   
   useEffect(() => { setIsClient(true) }, []);
 
@@ -641,23 +709,27 @@ export default function SchedulePage() {
         return [...idaMatches, ...vueltaMatches];
     };
     
-    // 1. Generate all matches for all categories
     let allMatches: GeneratedMatch[] = [];
-    const categoriesConfig: {category: Category, group?: 'A' | 'B'}[] = [
-        { category: 'Máxima' },
-        { category: 'Primera' },
-        { category: 'Segunda', group: 'A' },
-        { category: 'Segunda', group: 'B' }
+    const categoriesConfig: {category: Category, isGrouped: boolean}[] = [
+        { category: 'Máxima', isGrouped: false },
+        { category: 'Primera', isGrouped: false },
+        { category: 'Segunda', isGrouped: getTeamsByCategory('Segunda').length >= 16 }
     ];
 
     categoriesConfig.forEach(cat => {
-        const teams = getTeamsByCategory(cat.category, cat.group);
-        if (teams.length > 1) {
-            allMatches.push(...generateRoundRobinMatches(teams, cat.category, cat.group));
+        if(cat.isGrouped) {
+             const groupA = getTeamsByCategory(cat.category, 'A');
+             const groupB = getTeamsByCategory(cat.category, 'B');
+             if (groupA.length > 1) allMatches.push(...generateRoundRobinMatches(groupA, cat.category, 'A'));
+             if (groupB.length > 1) allMatches.push(...generateRoundRobinMatches(groupB, cat.category, 'B'));
+        } else {
+            const teams = getTeamsByCategory(cat.category);
+            if (teams.length > 1) {
+                allMatches.push(...generateRoundRobinMatches(teams, cat.category));
+            }
         }
     });
 
-    // 2. Group matches by round
     const matchesByRound = allMatches.reduce((acc, match) => {
         const round = match.round || 0;
         if (!acc[round]) {
@@ -667,18 +739,13 @@ export default function SchedulePage() {
         return acc;
     }, {} as Record<number, GeneratedMatch[]>);
     
-    // 3. Schedule round by round
     let scheduledMatches: GeneratedMatch[] = [];
     let currentDate = startOfDay(settings.startDate);
-    
     const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
-
-
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
     for (const round of sortedRounds) {
-        // Shuffle matches within the round to mix categories
-        const roundMatches = matchesByRound[round].sort(() => Math.random() - 0.5);
+        let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5); // Shuffle to mix categories
         let roundScheduled = false;
         let dressingRoomCounter = 0;
 
@@ -699,11 +766,10 @@ export default function SchedulePage() {
                          const timeParts = time.split(':');
                          const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
                          
-                         const homeDressingRoom = (dressingRoomCounter % settings.numDressingRooms) + 1;
-                         dressingRoomCounter++;
-                         // Skip a dressing room for the away team
-                         const awayDressingRoom = ((dressingRoomCounter + 1) % settings.numDressingRooms) + 1;
-                         dressingRoomCounter++;
+                         const homeDressingRoom = (dressingRoomCounter % 2 === 0) ? (dressingRoomCounter % settings.numDressingRooms) + 1 : (dressingRoomCounter % settings.numDressingRooms) + 2;
+                         const awayDressingRoom = homeDressingRoom + 2 <= settings.numDressingRooms ? homeDressingRoom + 2 : (homeDressingRoom + 2) % settings.numDressingRooms;
+
+                         dressingRoomCounter +=1;
 
                          scheduledMatches.push({
                             ...match,
@@ -745,9 +811,8 @@ export default function SchedulePage() {
       setGeneratedMatches(prev => prev.map(updateFn));
   };
 
-
   const handleDrawButtonClick = () => {
-      if (isTournamentStarted) {
+      if (isTournamentGenerated) {
           setIsRescheduleDialogOpen(true);
       } else {
          setIsDrawLeagueDialogOpen(true);
@@ -756,9 +821,41 @@ export default function SchedulePage() {
   
   const handleFinalizeTournament = () => {
     setGeneratedMatches([]);
+    setFinalMatches([]);
     setFinalizeAlertStep(0);
     toast({ title: '¡Torneo Finalizado!', description: 'Todos los datos de la temporada han sido reiniciados.'});
   };
+
+   const handleGenerateFinals = () => {
+        let finals: GeneratedMatch[] = [];
+
+        // Maxima Final
+        const maximaTeams = mockStandings.filter(s => getTeam(s.teamId)?.category === 'Máxima').sort((a,b) => b.points - a.points).slice(0, 2);
+        if (maximaTeams.length === 2) {
+            finals.push({ home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
+        }
+
+        // Primera Final
+        const primeraTeams = mockStandings.filter(s => getTeam(s.teamId)?.category === 'Primera').sort((a,b) => b.points - a.points).slice(0, 2);
+        if (primeraTeams.length === 2) {
+            finals.push({ home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
+        }
+        
+        // Segunda Semifinals & Final
+        const groupATeams = mockStandings.filter(s => getTeam(s.teamId)?.group === 'A').sort((a,b) => b.points - a.points).slice(0, 2);
+        const groupBTeams = mockStandings.filter(s => getTeam(s.teamId)?.group === 'B').sort((a,b) => b.points - a.points).slice(0, 2);
+        
+        if (groupATeams.length === 2 && groupBTeams.length === 2) {
+            // Semifinals
+            finals.push({ home: groupATeams[0].teamId, away: groupBTeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
+            finals.push({ home: groupBTeams[0].teamId, away: groupATeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
+            // Dummy final
+            finals.push({ home: groupATeams[0].teamId, away: groupBTeams[0].teamId, category: 'Segunda', leg: 'Final' });
+        }
+        
+        setFinalMatches(finals);
+        toast({ title: 'Fase Final Generada', description: 'Los partidos de las finales han sido creados.' });
+    };
 
 
     const ResetDialog = ({ step, onStepChange, onConfirm }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void }) => {
@@ -820,13 +917,13 @@ export default function SchedulePage() {
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold mr-2">Admin:</span>
                      <Button 
-                        variant={isTournamentStarted ? "outline" : "default"}
+                        variant={isTournamentGenerated ? "outline" : "default"}
                         onClick={handleDrawButtonClick}
                         >
-                         {isTournamentStarted ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
-                         {isTournamentStarted ? "Reagendar Partido" : "Sorteo de Liga"}
+                         {isTournamentGenerated ? <CalendarPlus className="mr-2" /> : <Dices className="mr-2" />}
+                         {isTournamentGenerated ? "Reagendar Partido" : "Sorteo de Liga"}
                      </Button>
-                     {isTournamentStarted && (
+                     {isTournamentGenerated && (
                         <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
                             <Trophy className="mr-2" />
                             Finalizar Torneo
@@ -855,6 +952,7 @@ export default function SchedulePage() {
             <TabsTrigger value="primera">Primera</TabsTrigger>
             <TabsTrigger value="segunda">Segunda</TabsTrigger>
             <TabsTrigger value="rescheduled"><History className="mr-2"/>Reagendados</TabsTrigger>
+            {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
                  <div className="flex justify-end mb-4">
@@ -886,6 +984,26 @@ export default function SchedulePage() {
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
+            </TabsContent>
+             <TabsContent value="finals">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Fase Final del Torneo</CardTitle>
+                        <CardDescription>Partidos de eliminación directa para definir a los campeones.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {finalMatches.length === 0 && areAllMatchesFinished && (
+                             <div className="text-center py-10">
+                                <p className="text-muted-foreground mb-4">La temporada regular ha concluido. ¡Es hora de definir a los campeones!</p>
+                                <Button onClick={handleGenerateFinals}>
+                                    <Trophy className="mr-2"/>
+                                    Generar Finales
+                                </Button>
+                            </div>
+                        )}
+                        <FinalsView finals={finalMatches} getTeam={getTeam} />
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
         
@@ -921,3 +1039,4 @@ export default function SchedulePage() {
     
 
   
+
