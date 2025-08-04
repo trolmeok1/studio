@@ -141,7 +141,8 @@ export default function AiCardsPage() {
                                         <div className="text-center mt-1 text-base">
                                             <p>{selectedPlayer.category.toUpperCase()}</p>
                                             <p className="text-muted-foreground">{selectedPlayer.idNumber}</p>
-                                            {team?.logoUrl && (
+                                            <p className="font-semibold">{selectedPlayer.team}</p>
+                                             {team?.logoUrl && (
                                                 <Image 
                                                     src={team.logoUrl}
                                                     alt={`Logo de ${team.name}`}
@@ -151,7 +152,6 @@ export default function AiCardsPage() {
                                                     data-ai-hint="team logo"
                                                 />
                                             )}
-                                            <p className="font-semibold">{selectedPlayer.team}</p>
                                         </div>
                                     </main>
 
@@ -207,11 +207,13 @@ export default function AiCardsPage() {
             .id-card-wrapper {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                overflow: visible !important;
+            }
+            .id-card-wrapper > div {
+                min-height: 9.5cm !important; /* Forces the card to have a minimum height, ensuring it fits 3 per A4 page */
             }
             @page {
                 size: A4 portrait;
-                margin: 0;
+                margin: 0.5cm;
             }
         }
       `}</style>
