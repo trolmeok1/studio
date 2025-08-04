@@ -298,15 +298,16 @@ const GeneralScheduleView = ({ generatedMatches, selectedCategory, groupByDate }
 
         return sortedMatches
             .reduce((acc, match) => {
-                if (!match.date && !match.round) return acc;
-                const dateKey = groupByDate 
-                    ? match.date ? format(match.date, 'PPPP', {locale: es}) : 'Fecha por definir'
+                if (!match.date && !match.round && groupByDate) return acc;
+
+                const groupKey = groupByDate
+                    ? (match.date ? format(match.date, 'PPPP', { locale: es }) : 'Fecha por definir')
                     : `Fecha ${match.round || 'N/A'}`;
                 
-                if (!acc[dateKey]) {
-                    acc[dateKey] = [];
+                if (!acc[groupKey]) {
+                    acc[groupKey] = [];
                 }
-                acc[dateKey].push(match);
+                acc[groupKey].push(match);
                 return acc;
             }, {} as Record<string, GeneratedMatch[]>);
     }, [filteredMatches, isClient, groupByDate]);
@@ -546,51 +547,58 @@ export default function SchedulePage() {
     const allTeamIdsForVocal = [...new Set(allMatches.flatMap(m => [m.home, m.away]))];
     const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
     
-    let lastUsedDressingRoomPair = 0;
+    let lastUsedDressingRoomPairIndex = 0;
+    const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
 
     for (const round of sortedRounds) {
         let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5);
+        let matchesForCurrentDate = 0;
         
         while(roundMatches.length > 0) {
             const dayOfWeek = getDay(currentDate);
+
             if(settings.gameDays.includes(dayOfWeek)) {
-                for (const time of settings.gameTimes) {
-                     if (roundMatches.length === 0) break;
-                     
-                     for (let fieldIndex = 0; fieldIndex < settings.numFields; fieldIndex++) {
-                        if (roundMatches.length === 0) break;
+                 const availableSlotsToday = settings.gameTimes.length * settings.numFields;
 
-                        const match = roundMatches.shift()!;
-                        const teamsPlayingInSlot = new Set([match.home, match.away]);
-                        const eligibleVocalTeams = allTeamIdsForVocal.filter(id => !teamsPlayingInSlot.has(id));
-                        const vocalTeamId = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
-                        
-                        const timeParts = time.split(':');
-                        const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                        
-                        const numDressingRoomPairs = Math.floor(settings.numDressingRooms / 2);
-                        const currentPairIndex = lastUsedDressingRoomPair % numDressingRoomPairs;
-                        lastUsedDressingRoomPair++;
+                for (let i = 0; i < availableSlotsToday && roundMatches.length > 0; i++) {
+                    const timeIndex = Math.floor(matchesForCurrentDate / settings.numFields) % settings.gameTimes.length;
+                    const fieldIndex = matchesForCurrentDate % settings.numFields;
 
-                        const homeDressingRoom = currentPairIndex * 2 + 1;
-                        const awayDressingRoom = homeDressingRoom + 1;
+                    const match = roundMatches.shift()!;
+                    const teamsPlayingInSlot = new Set([match.home, match.away]);
+                    const eligibleVocalTeams = allTeamIdsForVocal.filter(id => !teamsPlayingInSlot.has(id));
+                    const vocalTeamId = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
+                    
+                    const time = settings.gameTimes[timeIndex];
+                    const timeParts = time.split(':');
+                    const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+                    
+                    const pairIndex = lastUsedDressingRoomPairIndex % numDressingRoomPairs;
+                    
+                    const homeDressingRoom = pairIndex * 2 + 1;
+                    const awayDressingRoom = homeDressingRoom + 1;
+                    
+                    scheduledMatches.push({
+                       ...match,
+                       date: matchDateTime,
+                       time: format(matchDateTime, 'HH:mm'),
+                       field: fieldIndex + 1,
+                       homeDressingRoom: homeDressingRoom,
+                       awayDressingRoom: awayDressingRoom,
+                       vocalTeamId: vocalTeamId
+                    });
 
-                        scheduledMatches.push({
-                           ...match,
-                           date: matchDateTime,
-                           time: format(matchDateTime, 'HH:mm'),
-                           field: fieldIndex + 1,
-                           homeDressingRoom: homeDressingRoom,
-                           awayDressingRoom: awayDressingRoom,
-                           vocalTeamId: vocalTeamId
-                        });
-                     }
+                    matchesForCurrentDate++;
+                    lastUsedDressingRoomPairIndex++;
                 }
             }
-             if (roundMatches.length > 0) {
-               currentDate = addDays(currentDate, 1);
+
+            if(roundMatches.length > 0) {
+              currentDate = addDays(currentDate, 1);
+              matchesForCurrentDate = 0;
             }
         }
+        currentDate = addDays(currentDate, 1);
     }
 
     setGeneratedMatches(scheduledMatches);
@@ -753,7 +761,7 @@ export default function SchedulePage() {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
-                <TabsTrigger value="general">General (por Jornada)</TabsTrigger>
+                <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="maxima">Máxima</TabsTrigger>
                 <TabsTrigger value="primera">Primera</TabsTrigger>
                 <TabsTrigger value="segunda">Segunda</TabsTrigger>
@@ -761,16 +769,16 @@ export default function SchedulePage() {
                 {isTournamentGenerated && <TabsTrigger value="finals"><Trophy className="mr-2"/>Fase Final</TabsTrigger>}
             </TabsList>
             <TabsContent value="general">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupByDate={false} />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupByDate={true} />
             </TabsContent>
              <TabsContent value="maxima">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupByDate={true} />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupByDate={false} />
             </TabsContent>
              <TabsContent value="primera">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupByDate={true} />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupByDate={false} />
             </TabsContent>
              <TabsContent value="segunda">
-                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupByDate={true} />
+                <GeneralScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupByDate={false} />
             </TabsContent>
             <TabsContent value="rescheduled">
                 <RescheduledMatchesView matches={generatedMatches} />
@@ -829,6 +837,7 @@ export default function SchedulePage() {
     
 
   
+
 
 
 
