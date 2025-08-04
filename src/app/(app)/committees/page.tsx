@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId } from '@/lib/mock-data';
+import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId, sanctions } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,13 +67,22 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
         }
 
         const isJuvenil = player ? getAge(player.birthDate) < 19 : false;
+        const isSanctioned = player ? sanctions.some(s => s.playerId === player.id) : false;
+
+        const rowClass = cn(
+            "h-8",
+            isJuvenil && "bg-green-100",
+            isSanctioned && "bg-red-200/80 text-red-900 line-through"
+        );
 
         return (
-            <TableRow className={cn("h-8", isJuvenil && "bg-green-100")}>
+            <TableRow className={rowClass}>
+                <TableCell className="border text-center p-1 w-[20px]"><Checkbox disabled={isSanctioned} /></TableCell>
                 <TableCell className="border text-center p-1 w-[40px] text-xs font-medium">{player?.jerseyNumber}</TableCell>
                 <TableCell className="border p-1 text-left w-[200px] text-xs">
                     {player?.name || ''}
                     {isJuvenil && <span className="font-bold text-green-700 ml-2">JUVENIL</span>}
+                    {isSanctioned && <span className="font-bold text-red-700 ml-2">SANCIONADO</span>}
                 </TableCell>
                 <TableCell className="border text-center p-1 w-[40px]"></TableCell>
             </TableRow>
@@ -172,13 +181,14 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                         <Table className="border-collapse border border-gray-400">
                              <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[20px] border text-center text-black p-1 text-xs"></TableHead>
                                     <TableHead className="w-[40px] border text-center text-black p-1 text-xs">N°</TableHead>
                                     <TableHead className="border text-center text-black p-1 text-xs">NOMBRES Y APELLIDOS</TableHead>
                                     <TableHead className="w-[40px] border text-center text-black p-1 text-xs">GOL</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {Array.from({ length: 15 }).map((_, index) => (
+                                {Array.from({ length: 18 }).map((_, index) => (
                                     <PlayerRow key={`A-${index}`} player={playersA[index]} number={index + 1} />
                                 ))}
                             </TableBody>
@@ -210,13 +220,14 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                         <Table className="border-collapse border border-gray-400">
                              <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[20px] border text-center text-black p-1 text-xs"></TableHead>
                                     <TableHead className="w-[40px] border text-center text-black p-1 text-xs">N°</TableHead>
                                     <TableHead className="border text-center text-black p-1 text-xs">NOMBRES Y APELLIDOS</TableHead>
                                     <TableHead className="w-[40px] border text-center text-black p-1 text-xs">GOL</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                 {Array.from({ length: 15 }).map((_, index) => (
+                                 {Array.from({ length: 18 }).map((_, index) => (
                                     <PlayerRow key={`B-${index}`} player={playersB[index]} number={index + 1} />
                                 ))}
                             </TableBody>
