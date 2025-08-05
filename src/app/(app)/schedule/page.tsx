@@ -117,7 +117,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
 };
 
 
-const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => void }) => {
+const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (settings: any) => void, title: string, description: string }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2));
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
@@ -150,8 +150,8 @@ const DrawSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) => voi
     return (
         <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-                <DialogTitle>Configuración de Programación de Liga</DialogTitle>
-                <DialogDescription>Define los parámetros para generar el calendario de partidos.</DialogDescription>
+                <DialogTitle>{title}</DialogTitle>
+                <DialogDescription>{description}</DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-[60vh] pr-6">
                 <div className="space-y-4 py-4">
@@ -460,6 +460,9 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
                         <p className="font-bold">{awayTeam?.name}</p>
                     </div>
                 </CardContent>
+                <CardFooter className="p-3 bg-muted/50 text-xs text-muted-foreground">
+                    {match.date ? format(match.date, 'PPP, p', { locale: es }) : 'Fecha y Hora por definir'}
+                </CardFooter>
             </Card>
         )
     }
@@ -553,6 +556,7 @@ export default function SchedulePage() {
   const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [isDrawLeagueDialogOpen, setIsDrawLeagueDialogOpen] = useState(false);
+  const [isDrawFinalsDialogOpen, setIsDrawFinalsDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
@@ -753,9 +757,62 @@ export default function SchedulePage() {
         }
         
         setFinalMatches(finals);
-        setActiveTab('finals');
-        toast({ title: 'Fase Final Generada', description: 'Los partidos de las finales han sido creados.' });
+        setIsDrawFinalsDialogOpen(true);
     };
+
+    const scheduleFinals = (settings: any) => {
+        let scheduledFinals: GeneratedMatch[] = [];
+        let currentDate = startOfDay(settings.startDate);
+        let matchesForCurrentDate = 0;
+        let dressingRoomCursor = 0;
+        
+        const allFinalTeams = [...new Set(finalMatches.flatMap(m => [m.home, m.away]))];
+
+
+        for (const match of finalMatches) {
+             let dayFound = false;
+             while(!dayFound) {
+                 const dayOfWeek = getDay(currentDate);
+                 if(settings.gameDays.includes(dayOfWeek)) {
+                     dayFound = true;
+                 } else {
+                     currentDate = addDays(currentDate, 1);
+                 }
+             }
+            
+            const timeIndex = matchesForCurrentDate % settings.gameTimes.length;
+            const fieldIndex = Math.floor(matchesForCurrentDate / settings.gameTimes.length) % settings.numFields;
+            
+            const time = settings.gameTimes[timeIndex];
+            const timeParts = time.split(':');
+            const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+
+            const teamsPlayingInSlot = new Set([match.home, match.away]);
+            const eligibleVocalTeams = allFinalTeams.filter(id => !teamsPlayingInSlot.has(id));
+            const vocalTeamId = eligibleVocalTeams.length > 0 ? eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)] : allTeams[Math.floor(Math.random() * allTeams.length)].id;
+
+            const numDressingRooms = settings.numDressingRooms;
+            const homeDressingRoom = (dressingRoomCursor % numDressingRooms) + 1;
+            const awayDressingRoom = ((dressingRoomCursor + 2) % numDressingRooms) + 1;
+            dressingRoomCursor = (dressingRoomCursor + 1) % numDressingRooms;
+
+            scheduledFinals.push({
+                ...match,
+                date: matchDateTime,
+                time: format(matchDateTime, 'HH:mm'),
+                field: fieldIndex + 1,
+                homeDressingRoom,
+                awayDressingRoom,
+                vocalTeamId
+            });
+
+            matchesForCurrentDate++;
+        }
+
+        setFinalMatches(scheduledFinals);
+        setActiveTab('finals');
+        toast({ title: 'Fase Final Programada', description: 'Los partidos de las finales han sido agendados.' });
+    }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -794,7 +851,18 @@ export default function SchedulePage() {
         </div>
 
         <Dialog open={isDrawLeagueDialogOpen} onOpenChange={setIsDrawLeagueDialogOpen}>
-            <DrawSettingsDialog onGenerate={generateLeagueSchedule} />
+            <DrawSettingsDialog 
+                onGenerate={generateLeagueSchedule}
+                title="Configuración de Programación de Liga"
+                description="Define los parámetros para generar el calendario de partidos."
+            />
+        </Dialog>
+         <Dialog open={isDrawFinalsDialogOpen} onOpenChange={setIsDrawFinalsDialogOpen}>
+            <DrawSettingsDialog 
+                onGenerate={scheduleFinals}
+                title="Configuración de Programación de Finales"
+                description="Define los parámetros para agendar las semifinales y finales."
+            />
         </Dialog>
 
         
