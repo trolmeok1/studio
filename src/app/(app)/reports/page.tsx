@@ -318,49 +318,43 @@ const ScheduleReport = () => {
     }, [weeklyMatches]);
     
     return (
-         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
-            <header className="flex justify-between items-center mb-6 border-b-2 pb-4 border-black">
-                <div className="flex items-center gap-4">
-                    <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} data-ai-hint="league logo" />
-                    <div>
-                        <h1 className="text-2xl font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
-                        <h2 className="text-xl font-semibold">Programación Semanal de Partidos</h2>
-                    </div>
-                </div>
+        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none relative" style={{ backgroundImage: `url('https://placehold.co/1000x1200.png')`, backgroundSize: 'cover', backgroundPosition: 'center' }} data-ai-hint="soccer field top view">
+            <div className="absolute inset-0 bg-black/60" />
+            <header className="relative z-10 text-center mb-6 text-white">
+                <h1 className="text-4xl font-extrabold uppercase tracking-wider">Partidos Semanales</h1>
+                <p className="text-lg text-gray-300">Jornada 5</p>
             </header>
-            
-            {Object.keys(groupedMatches).length === 0 ? (
-                <p className="text-center text-gray-500 py-10">No hay partidos programados para la próxima semana.</p>
-            ) : (
-                Object.entries(groupedMatches).map(([date, matches]) => (
-                    <div key={date} className="mb-6">
-                        <h3 className="text-lg font-bold bg-gray-200 p-2 rounded-md mb-2">{date}</h3>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Hora</TableHead>
-                                    <TableHead>Categoría</TableHead>
-                                    <TableHead>Equipo Local</TableHead>
-                                    <TableHead>Equipo Visitante</TableHead>
-                                    <TableHead>Cancha</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+
+            <div className="relative z-10 space-y-6">
+                {Object.keys(groupedMatches).length === 0 ? (
+                    <p className="text-center text-white py-10">No hay partidos programados para la próxima semana.</p>
+                ) : (
+                    Object.entries(groupedMatches).map(([date, matches]) => (
+                        <div key={date}>
+                            <h3 className="text-lg font-bold text-white bg-white/20 p-2 rounded-t-md mb-0 text-center">{date}</h3>
+                            <div className="bg-white/90 p-4 rounded-b-md space-y-4">
                                 {matches.map(match => (
-                                    <TableRow key={match.id}>
-                                        <TableCell className="font-bold">{format(new Date(match.date), 'HH:mm')}</TableCell>
-                                        <TableCell><Badge variant="outline">{match.category}</Badge></TableCell>
-                                        <TableCell>{match.teams.home.name}</TableCell>
-                                        <TableCell>{match.teams.away.name}</TableCell>
-                                        <TableCell className="text-center">{match.field || 'N/A'}</TableCell>
-                                    </TableRow>
+                                    <div key={match.id} className="flex items-center justify-between p-2 border-b">
+                                        <div className="flex items-center gap-3 w-2/5">
+                                            <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                                            <span className="font-semibold text-right flex-1">{match.teams.home.name}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="font-bold text-lg text-gray-700">VS</p>
+                                            <p className="text-sm text-gray-500">{format(new Date(match.date), 'HH:mm')}</p>
+                                        </div>
+                                         <div className="flex items-center gap-3 w-2/5">
+                                            <span className="font-semibold text-left flex-1">{match.teams.away.name}</span>
+                                             <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={40} height={40} className="rounded-full" data-ai-hint="team logo" />
+                                        </div>
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                ))
-            )}
-         </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
     );
 };
 
