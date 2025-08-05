@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -66,7 +67,7 @@ const RequestHistory = () => {
                     <TableBody>
                         {requests.map(req => (
                             <TableRow key={req.id}>
-                                <TableCell>{req.date && format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
+                                <TableCell>{req.date && !isNaN(new Date(req.date).getTime()) ? format(new Date(req.date), 'dd/MM/yyyy') : ''}</TableCell>
                                 <TableCell>{req.teamName}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline">{req.requestType === 'qualification' ? 'Calificación' : 'Recalificación'}</Badge>
@@ -334,4 +335,3 @@ export default function RequalificationPage() {
         </div>
     );
 }
-
