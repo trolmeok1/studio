@@ -6,6 +6,9 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { AppSidebar, BottomNavbar } from '@/components/AppSidebar';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
+
 
 /*
 export const metadata: Metadata = {

@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -312,8 +310,7 @@ export default function RequalificationPage() {
                                                 <Input id="player-in-name" value={playerIn.name} onChange={(e) => setPlayerIn(p => ({ ...p, name: e.target.value }))} />
                                             </div>
                                             <div>
-                                                <Label htmlFor="player-in-id">N° de Cédula</Label>
-                                                <Input id="player-in-id" value={playerIn.idNumber} onChange={(e) => setPlayerIn(p => ({ ...p, idNumber: e.target.value }))} />
+                                                <Label htmlFor="player-in-id">N° de Cédula</Label>												<Input id="player-in-id" value={playerIn.idNumber} onChange={(e) => setPlayerIn(p => ({ ...p, idNumber: e.target.value }))} />
                                             </div>
                                             <div>
                                                 <Label htmlFor="player-in-birthdate">Fecha de Nacimiento</Label>
