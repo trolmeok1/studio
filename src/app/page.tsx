@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,7 +77,7 @@ const TopScorersTable = ({ scorers }: { scorers: Scorer[] }) => (
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={scorer.playerPhotoUrl} alt={scorer.playerName} data-ai-hint="player portrait" />
-                                        <AvatarFallback>{scorer.playerName.charAt(0)}</AvatarFallback>
+                                        <AvatarFallback>{scorer.playerName?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div>
                                         <p className="font-medium">{scorer.playerName}</p>
@@ -147,21 +148,27 @@ export default function DashboardPage() {
      useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const [statsData, matchesData, scorersData, standingsData] = await Promise.all([
-                getDashboardStats(),
-                getMatches(),
-                getTopScorers(),
-                getStandings()
-            ]);
-            setStats(statsData);
-            const finishedMatches = matchesData
-                .filter(m => m.status === 'finished')
-                .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setRecentMatches(finishedMatches);
-            setTopScorers(scorersData);
-            const maximaStandings = standingsData.filter(s => s.rank <= 5); // Assuming getStandings returns sorted by category
-            setStandings(maximaStandings);
-            setLoading(false);
+            try {
+                const [statsData, matchesData, scorersData, standingsData] = await Promise.all([
+                    getDashboardStats(),
+                    getMatches(),
+                    getTopScorers(),
+                    getStandings()
+                ]);
+                setStats(statsData);
+                const finishedMatches = matchesData
+                    .filter(m => m.status === 'finished')
+                    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecentMatches(finishedMatches);
+                setTopScorers(scorersData);
+                // Filter for 'Máxima' category and take top 5
+                const maximaStandings = standingsData.filter(s => s.category === 'Máxima').slice(0, 5);
+                setStandings(maximaStandings);
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchData();
     }, [user]);
@@ -176,7 +183,13 @@ export default function DashboardPage() {
         );
     }
     
-    if (!stats) return null;
+    if (!stats) return (
+        <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+                <p className="text-lg text-destructive-foreground bg-destructive p-4 rounded-md">No se pudieron cargar las estadísticas del dashboard.</p>
+            </div>
+        </div>
+    );
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

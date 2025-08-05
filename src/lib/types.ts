@@ -1,5 +1,6 @@
 
 
+
 export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -25,7 +26,7 @@ export interface Player {
   status: PlayerStatus;
   statusReason?: string;
   careerHistory?: PlayerCareer[];
-  stats: {
+  stats?: {
     goals: number;
     assists: number;
     yellowCards: number;
@@ -141,6 +142,7 @@ export interface Standing {
   teamId: string;
   teamName: string;
   teamLogoUrl?: string;
+  category: Category;
   group?: 'A' | 'B';
   played: number;
   wins: number;

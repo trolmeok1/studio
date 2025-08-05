@@ -2,7 +2,7 @@
 
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
-import type { Player, Team, Standing, Sanction, Scorer, Match, Expense, RequalificationRequest, VocalPaymentDetails, LogEntry, User } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Match, Expense, RequalificationRequest, VocalPaymentDetails, LogEntry, User, Category } from './types';
 import { get } from 'http';
 
 // Firestore collection references
@@ -28,6 +28,7 @@ export const getTeams = async (): Promise<Team[]> => {
 };
 
 export const getTeamById = async (id: string): Promise<Team | undefined> => {
+    if (!id) return undefined;
     const teamDoc = await getDoc(doc(db, 'teams', id));
     return teamDoc.exists() ? { id: teamDoc.id, ...teamDoc.data() } as Team : undefined;
 };
@@ -48,11 +49,13 @@ export const getPlayers = async (): Promise<Player[]> => {
 };
 
 export const getPlayerById = async (id: string): Promise<Player | undefined> => {
+    if (!id) return undefined;
     const playerDoc = await getDoc(doc(db, 'players', id));
     return playerDoc.exists() ? { id: playerDoc.id, ...playerDoc.data() } as Player : undefined;
 };
 
 export const getPlayersByTeamId = async (teamId: string): Promise<Player[]> => {
+    if (!teamId) return [];
     const q = query(playersCollection, where("teamId", "==", teamId));
     const snapshot = await getDocs(q);
     return snapshotToArray<Player>(snapshot);
@@ -62,7 +65,7 @@ export const updatePlayerStats = async (playerId: string, statsUpdate: { goals: 
     const playerRef = doc(db, 'players', playerId);
     const playerDoc = await getDoc(playerRef);
     if (playerDoc.exists()) {
-        const currentStats = playerDoc.data().stats;
+        const currentStats = playerDoc.data().stats || { goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
         await updateDoc(playerRef, {
             'stats.goals': currentStats.goals + statsUpdate.goals,
             'stats.assists': currentStats.assists + statsUpdate.assists,
@@ -77,20 +80,33 @@ export const getStandings = async (): Promise<Standing[]> => {
     const snapshot = await getDocs(standingsCollection);
     const standingsData = snapshotToArray<Standing>(snapshot);
     
-    // Sort by points, then by goal difference
-    return standingsData.sort((a, b) => {
-        if (b.points !== a.points) {
-            return b.points - a.points;
-        }
-        return (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst);
-    }).map((s, index) => ({...s, rank: index + 1}));
+    // Group by category to rank separately
+    const categories = [...new Set(standingsData.map(s => s.category))];
+    let allRankedStandings: Standing[] = [];
+
+    categories.forEach(category => {
+        const categoryStandings = standingsData
+            .filter(s => s.category === category)
+            .sort((a, b) => {
+                if (b.points !== a.points) {
+                    return b.points - a.points;
+                }
+                return (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst);
+            })
+            .map((s, index) => ({...s, rank: index + 1}));
+        allRankedStandings.push(...categoryStandings);
+    });
+
+    return allRankedStandings;
 };
+
 
 // --- Scorers (Top 10) ---
 export const getTopScorers = async (): Promise<Scorer[]> => {
     const snapshot = await getDocs(query(playersCollection));
     const playersData = snapshotToArray<Player>(snapshot);
     return playersData
+        .filter(player => player.stats && player.stats.goals > 0) // Ensure player has stats and goals
         .sort((a, b) => (b.stats?.goals || 0) - (a.stats?.goals || 0))
         .slice(0, 10)
         .map((player, index) => ({
@@ -111,6 +127,7 @@ export const getSanctions = async (): Promise<Sanction[]> => {
 };
 
 export const getSanctionsByTeamId = async (teamId: string): Promise<Sanction[]> => {
+    if (!teamId) return [];
     const q = query(sanctionsCollection, where("teamId", "==", teamId));
     const snapshot = await getDocs(q);
     return snapshotToArray<Sanction>(snapshot);
@@ -127,11 +144,13 @@ export const getMatches = async (): Promise<Match[]> => {
 };
 
 export const getMatchById = async (id: string): Promise<Match | undefined> => {
+    if (!id) return undefined;
     const matchDoc = await getDoc(doc(db, 'matches', id));
     return matchDoc.exists() ? { id: matchDoc.id, ...matchDoc.data() } as Match : undefined;
 };
 
 export const getMatchesByTeamId = async (teamId: string): Promise<Match[]> => {
+    if (!teamId) return [];
     const homeQuery = query(matchesCollection, where("teams.home.id", "==", teamId));
     const awayQuery = query(matchesCollection, where("teams.away.id", "==", teamId));
     const [homeSnapshot, awaySnapshot] = await Promise.all([getDocs(homeQuery), getDocs(awayQuery)]);
@@ -170,6 +189,7 @@ export const removeExpense = async (id: string) => {
 
 // --- Vocal Payments --- (Derived from matches, not a separate collection)
 export const getVocalPaymentsByTeamId = async (teamId: string): Promise<any[]> => {
+    if (!teamId) return [];
     const matches = await getMatchesByTeamId(teamId);
     return matches
         .filter(m => m.status === 'finished')
@@ -200,6 +220,7 @@ export const getUsers = async (): Promise<User[]> => {
 }
 
 export const getUserByEmail = async (email: string): Promise<User | null> => {
+    if (!email) return null;
     const q = query(usersCollection, where("email", "==", email));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
@@ -210,8 +231,11 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
 }
 
 export const updateUser = async (user: User) => {
+     if (!user || !user.id) return;
      const userRef = doc(db, 'users', user.id);
-     await updateDoc(userRef, { ...user });
+     // Omit id from the data being written to Firestore
+     const { id, ...userData } = user;
+     await updateDoc(userRef, userData);
 }
 
 // --- Logs ---
@@ -233,7 +257,7 @@ export const getDashboardStats = async () => {
     
     return {
         players: { approved: playersSnap.size, new: 0, rejected: 0 },
-        teams: { approved: teamsSnap.size, registered: 0, rejected: 0, sanctioned: 0 },
+        teams: { approved: teamsSnap.size, registered: teamsSnap.size, rejected: 0, sanctioned: 0 },
         matchesPlayed: matches.filter(m => m.status === 'finished').length,
         goalsScored: matches.reduce((acc, m) => acc + (m.score?.home || 0) + (m.score?.away || 0), 0),
     };

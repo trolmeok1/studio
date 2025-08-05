@@ -1,10 +1,9 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { getUsers, updateUser, getUserByEmail } from '@/lib/mock-data';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { getUserByEmail, updateUser as dbUpdateUser, getUsers } from '@/lib/mock-data';
 import type { User, Permissions, UserRole } from '@/lib/types';
-
 
 const defaultGuestUser: User = { 
     id: 'guest-user', 
@@ -26,14 +25,12 @@ const defaultGuestUser: User = {
         roles: { view: false, edit: false },
         logs: { view: false, edit: false },
     }, 
-    avatarUrl: 'https://placehold.co/100x100.png', 
-    password: 'password' 
+    avatarUrl: 'https://placehold.co/100x100.png'
 };
 
 
 interface AuthContextType {
   user: User;
-  setUser: (user: User | null) => void;
   users: User[];
   setUsers: (users: User[]) => void;
   login: (email: string, password?: string) => Promise<boolean>;
@@ -52,27 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isCopaPublic, setIsCopaPublic] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-        setIsAuthLoading(true);
-        try {
-            const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
-                setCurrentUser(JSON.parse(storedUser));
-            } else {
-                setCurrentUser(defaultGuestUser);
-            }
-        } catch (error) {
-            console.error("Failed to parse user from localStorage", error);
-            setCurrentUser(defaultGuestUser);
-        } finally {
-            setIsAuthLoading(false);
-        }
-    }
-    loadData();
-  }, []);
-
-  const handleSetUser = (user: User | null) => {
+  const syncUser = useCallback((user: User | null) => {
     if (user) {
         localStorage.setItem('currentUser', JSON.stringify(user));
         setCurrentUser(user);
@@ -80,39 +57,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('currentUser');
         setCurrentUser(defaultGuestUser);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    async function loadInitialData() {
+        setIsAuthLoading(true);
+        try {
+            const allUsers = await getUsers();
+            setUsersState(allUsers);
+            const storedUserJson = localStorage.getItem('currentUser');
+            if (storedUserJson) {
+                const storedUser = JSON.parse(storedUserJson);
+                // Optional: Verify user against the fresh list from DB
+                const userExists = allUsers.some(u => u.id === storedUser.id);
+                if (userExists) {
+                    setCurrentUser(storedUser);
+                } else {
+                   syncUser(null);
+                }
+            } else {
+                setCurrentUser(defaultGuestUser);
+            }
+        } catch (error) {
+            console.error("Failed to initialize auth state:", error);
+            syncUser(null);
+        } finally {
+            setIsAuthLoading(false);
+        }
+    }
+    loadInitialData();
+  }, [syncUser]);
+
 
   const login = async (email: string, password?: string): Promise<boolean> => {
-    const userFromDb = await getUserByEmail(email);
-    
-    if (userFromDb && userFromDb.password === password) {
-        handleSetUser(userFromDb);
-        return true;
+    setIsAuthLoading(true);
+    try {
+        const userFromDb = await getUserByEmail(email);
+        if (userFromDb && userFromDb.password === password) {
+            syncUser(userFromDb);
+            return true;
+        }
+        return false;
+    } catch(e) {
+        return false;
     }
-
-    return false;
+    finally {
+        setIsAuthLoading(false);
+    }
   };
 
   const logout = () => {
-    handleSetUser(null);
+    syncUser(null);
   };
   
   const setUsers = (updatedUsers: User[]) => {
       setUsersState(updatedUsers);
+      // find the logged in user from the updated list and update their state
       const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
       if (updatedCurrentUser) {
-          handleSetUser(updatedCurrentUser);
+          syncUser(updatedCurrentUser);
       }
+      // Persist all changes to the database
       updatedUsers.forEach(user => {
-          if (users.some(u => u.id === user.id)) {
-            updateUser(user);
-          }
+         // This is a mock, in a real app you might want to check for changes before updating
+         dbUpdateUser(user);
       });
   }
 
   const value = {
     user: currentUser,
-    setUser: handleSetUser,
     users,
     setUsers,
     login,

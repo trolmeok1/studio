@@ -1,18 +1,35 @@
 
 'use client';
 
-import { getTeamById, type Person } from '@/lib/mock-data';
+import { getTeamById, type Person, type Team } from '@/lib/mock-data';
 import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function TeamInfoPrintPage() {
   const params = useParams();
   const teamId = typeof params.id === 'string' ? params.id : '';
-  const team = getTeamById(teamId);
+  const [team, setTeam] = useState<Team | null | undefined>(undefined);
 
-  if (!team) {
+  useEffect(() => {
+      async function fetchTeam() {
+          if (teamId) {
+              const teamData = await getTeamById(teamId);
+              setTeam(teamData);
+          } else {
+              setTeam(null);
+          }
+      }
+      fetchTeam();
+  }, [teamId]);
+
+  if (team === undefined) {
+    return <div>Cargando...</div>;
+  }
+
+  if (team === null) {
     notFound();
   }
   

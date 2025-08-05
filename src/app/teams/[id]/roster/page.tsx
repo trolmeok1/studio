@@ -1,24 +1,46 @@
 
 'use client';
 
-import { getTeamById, getPlayersByTeamId } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, type Player } from '@/lib/mock-data';
 import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { Team } from '@/lib/types';
 
 export default function TeamRosterPage() {
   const params = useParams();
   const teamId = typeof params.id === 'string' ? params.id : '';
-  const team = getTeamById(teamId);
+  const [team, setTeam] = useState<Team | null | undefined>(undefined);
+  const [players, setPlayers] = useState<Player[]>([]);
+  
+  useEffect(() => {
+      async function fetchData() {
+          if (teamId) {
+              const teamData = await getTeamById(teamId);
+              setTeam(teamData);
+              if (teamData) {
+                  const playersData = await getPlayersByTeamId(teamId);
+                  setPlayers(playersData);
+              }
+          } else {
+              setTeam(null);
+          }
+      }
+      fetchData();
+  }, [teamId]);
 
-  if (!team) {
+  if (team === undefined) {
+    return <div>Cargando...</div>;
+  }
+  
+  if (team === null) {
     notFound();
   }
 
-  const allPlayers = getPlayersByTeamId(teamId);
-  const incomingPlayers = allPlayers.filter(p => p.status === 'activo');
-  const outgoingPlayers = allPlayers.filter(p => p.status === 'inactivo');
+  const incomingPlayers = players.filter(p => p.status === 'activo');
+  const outgoingPlayers = players.filter(p => p.status === 'inactivo');
 
   const splitName = (fullName: string) => {
     const parts = fullName.split(' ');
@@ -27,7 +49,7 @@ export default function TeamRosterPage() {
     return { firstName, lastName };
   };
 
-  const PlayerTable = ({ title, players, startIndex = 0 }: { title: string, players: typeof allPlayers, startIndex?: number }) => (
+  const PlayerTable = ({ title, players, startIndex = 0 }: { title: string, players: Player[], startIndex?: number }) => (
     <div className="mb-8">
         <h2 className="bg-gray-300 text-black font-bold text-center p-1 text-md mb-2 border border-black">{title}</h2>
         <table className="w-full border-collapse border border-black text-xs text-center">
