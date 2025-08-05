@@ -14,7 +14,9 @@ En resumen: **Crear y editar no cuesta. Usar los servicios a gran escala, sí.**
 
 ---
 
-## Cómo ejecutar el proyecto en tu computadora
+## Parte 1: Cómo ejecutar el proyecto en tu computadora
+
+Sigue estos pasos para tener una copia funcional en tu máquina local.
 
 ### Requisitos
 
@@ -50,15 +52,64 @@ En resumen: **Crear y editar no cuesta. Usar los servicios a gran escala, sí.**
 
 ---
 
-## Cómo "instalar" la aplicación en un teléfono (¡Método correcto!)
+## Parte 2: Cómo Publicar (Desplegar) tu Aplicación en Internet
 
-Este proyecto es una **Aplicación Web Progresiva (PWA)**. Esto es genial porque se instala directamente desde el navegador y se comporta como una app nativa, **sin necesidad de una tienda de aplicaciones como Google Play.**
+Una vez que tengas el proyecto en tu computadora, sigue estos pasos para publicarlo en Firebase Hosting y obtener una URL pública.
 
-**Punto clave:** La aplicación, una vez "instalada", **NO se abre en el navegador con la barra de direcciones**. Se abre en su propia ventana, a pantalla completa, y se siente como cualquier otra app de tu teléfono.
+### Requisitos Previos
+
+- Haber completado la "Parte 1".
+- Tener tu proyecto de Firebase ya creado en la [consola de Firebase](https://console.firebase.google.com/).
+
+### Pasos
+
+1.  **Instala las herramientas de Firebase:** Si no las tienes, abre tu terminal y ejecuta:
+    ```bash
+    npm install -g firebase-tools
+    ```
+
+2.  **Inicia sesión en Firebase:** En la misma terminal, dentro de la carpeta de tu proyecto, ejecuta:
+    ```bash
+    firebase login
+    ```
+    Esto abrirá una ventana en tu navegador para que inicies sesión con tu cuenta de Google.
+
+3.  **Configura el Hosting:** Ahora, vincula tu carpeta local con tu proyecto de Firebase. Ejecuta:
+    ```bash
+    firebase init hosting
+    ```
+    Sigue las instrucciones que aparecerán:
+    - **"Please select an option"**: Elige `Use an existing project`.
+    - **Selecciona tu proyecto**: Elige el nombre de tu proyecto de Firebase en la lista.
+    - **"What do you want to use as your public directory?"**: Escribe `out` y presiona Enter.
+    - **"Configure as a single-page app (rewrite all urls to /index.html)?"**: Escribe `y` y presiona Enter.
+    - **"File out/index.html already exists. Overwrite?"**: Escribe `N` (No) y presiona Enter.
+
+4.  **Construye la versión de producción:** Antes de subirla, tienes que "compilar" tu aplicación. Ejecuta:
+    ```bash
+    npm run build
+    ```
+    Esto creará una carpeta `out` optimizada para producción.
+
+5.  **¡Despliega!** Este es el último paso. Ejecuta:
+    ```bash
+    firebase deploy --only hosting
+    ```
+    Después de unos momentos, la terminal te dará tu **URL de Hosting**. ¡Será algo como `https://tu-proyecto.web.app`!
+
+¡Listo! Ya puedes compartir esa URL con quien quieras.
+
+---
+
+## Parte 3: Cómo "instalar" la aplicación en un teléfono (PWA)
+
+Este proyecto es una **Aplicación Web Progresiva (PWA)**. Se instala directamente desde el navegador y se comporta como una app nativa, **sin necesidad de una tienda de aplicaciones**.
+
+**Punto clave:** La aplicación, una vez "instalada", **NO se abre en el navegador con la barra de direcciones**. Se abre en su propia ventana, a pantalla completa.
 
 ### Pasos para que cualquier usuario instale la App:
 
-Una vez que hayas desplegado tu aplicación en Firebase Hosting y tengas una URL pública (ej. `https://tu-liga.web.app`):
+Una vez que tengas tu URL pública del paso anterior:
 
 1.  **Abrir la URL** en el navegador Google Chrome en un teléfono Android.
 2.  El navegador podría mostrar un aviso para **"Añadir a la pantalla de inicio"**.
@@ -66,7 +117,7 @@ Una vez que hayas desplegado tu aplicación en Firebase Hosting y tengas una URL
 4.  Seleccionar la opción **"Instalar aplicación"** o **"Añadir a pantalla de inicio"**.
 5.  Confirmar la acción.
 
-¡Y listo! Un ícono de la aplicación aparecerá en el menú del teléfono y en la pantalla de inicio. Se abrirá como una aplicación normal, sin la barra de direcciones del navegador. ¡Es así de simple!
+Un ícono de la aplicación aparecerá en el menú del teléfono. ¡Así de simple!
 
 ---
 ## (Opcional) Sube tu proyecto a GitHub
