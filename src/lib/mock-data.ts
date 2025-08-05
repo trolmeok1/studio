@@ -91,7 +91,7 @@ export const getTopScorers = async (): Promise<Scorer[]> => {
     const snapshot = await getDocs(query(playersCollection));
     const playersData = snapshotToArray<Player>(snapshot);
     return playersData
-        .sort((a, b) => b.stats.goals - a.stats.goals)
+        .sort((a, b) => (b.stats?.goals || 0) - (a.stats?.goals || 0))
         .slice(0, 10)
         .map((player, index) => ({
             rank: index + 1,
@@ -100,7 +100,7 @@ export const getTopScorers = async (): Promise<Scorer[]> => {
             playerPhotoUrl: player.photoUrl,
             teamName: player.team,
             teamId: player.teamId,
-            goals: player.stats.goals,
+            goals: player.stats?.goals || 0,
         }));
 };
 
