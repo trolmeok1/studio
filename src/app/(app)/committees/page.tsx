@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getMatchesByTeamId, getSanctions as getAllSanctions, getMatches } from '@/lib/mock-data';
+import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getMatchesByTeamId, getSanctions, getMatches } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -58,18 +58,17 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                 return;
             };
 
-            getMatchesByTeamId(teamId).then(matches => {
-                const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
-                const total = pastMatches.reduce((total, pastMatch) => {
-                    const isHome = pastMatch.teams.home.id === teamId;
-                    const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
-                    if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
-                        return total + (teamDetails.vocalPaymentDetails.total || 0);
-                    }
-                    return total;
-                }, 0);
-                setValue(total);
-            });
+            const matches = getMatchesByTeamId(teamId);
+            const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
+            const total = pastMatches.reduce((total, pastMatch) => {
+                const isHome = pastMatch.teams.home.id === teamId;
+                const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+                if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                    return total + (teamDetails.vocalPaymentDetails.total || 0);
+                }
+                return total;
+            }, 0);
+            setValue(total);
         }, [teamId, match]);
         return value;
     }
@@ -93,13 +92,15 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
         const [isSanctioned, setIsSanctioned] = useState(false);
 
         useEffect(() => {
-            if(player) {
-                getAllSanctions().then(s => {
-                    setIsSanctioned(s.some(sanc => sanc.playerId === player.id));
-                });
-            } else {
-                setIsSanctioned(false);
+            async function checkSanction() {
+                if(player) {
+                    const sanctions = await getSanctions();
+                    setIsSanctioned(sanctions.some(sanc => sanc.playerId === player.id));
+                } else {
+                    setIsSanctioned(false);
+                }
             }
+            checkSanction();
         }, [player]);
 
 
@@ -518,18 +519,17 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const [pendingValue, setPendingValue] = useState(0);
 
         useEffect(() => {
-            getMatchesByTeamId(teamId).then(matches => {
-                const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
-                const totalPending = pastMatches.reduce((total, pastMatch) => {
-                    const isHome = pastMatch.teams.home.id === teamId;
-                    const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
-                    if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
-                        return total + (teamDetails.vocalPaymentDetails.total || 0);
-                    }
-                    return total;
-                }, 0);
-                setPendingValue(totalPending);
-            });
+            const matches = getMatchesByTeamId(teamId);
+            const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
+            const totalPending = pastMatches.reduce((total, pastMatch) => {
+                const isHome = pastMatch.teams.home.id === teamId;
+                const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+                if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                    return total + (teamDetails.vocalPaymentDetails.total || 0);
+                }
+                return total;
+            }, 0);
+            setPendingValue(totalPending);
         }, [match.id, teamId]);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
