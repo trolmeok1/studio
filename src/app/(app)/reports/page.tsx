@@ -46,7 +46,7 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
     }
     
     return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none" style={{ backgroundImage: `url('/field-bg-light.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
             <header className="flex flex-col items-center text-center mb-6 bg-black/50 text-white p-4 rounded-lg">
                 <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={80} height={80} data-ai-hint="league logo" className="bg-white rounded-full p-1" />
                 <h1 className="text-3xl font-bold mt-2 tracking-widest uppercase">Tabla de Posiciones</h1>

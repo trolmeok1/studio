@@ -146,7 +146,7 @@ function TopScorersCard() {
     }, []);
 
   return (
-    <Card className="bg-gray-900/70 text-white overflow-hidden" style={{ backgroundImage: `url('/field-bg.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <Card className="bg-gray-900/70 text-white overflow-hidden">
       <div className="bg-black/60 backdrop-blur-sm p-6 h-full">
         <CardHeader className="text-center p-0 mb-4">
           <CardTitle className="text-4xl font-extrabold tracking-wider uppercase">Goleadores</CardTitle>

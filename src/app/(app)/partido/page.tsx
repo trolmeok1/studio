@@ -53,7 +53,7 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
     }
 
     return (
-        <Card className="bg-gray-900/70 backdrop-blur-sm border-white/10" style={{ backgroundImage: `url('/field-bg.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <Card className="bg-gray-900/70 backdrop-blur-sm border-white/10">
             <CardHeader className="text-center">
                 <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} className="mx-auto" data-ai-hint="league logo" />
                 <CardTitle className="text-white text-2xl font-bold tracking-widest uppercase">Tabla de Posiciones</CardTitle>
