@@ -50,28 +50,23 @@ En resumen: **Crear y editar no cuesta. Usar los servicios a gran escala, sí.**
 
 ---
 
-## Cómo "instalar" la aplicación en un teléfono (¡Importante!)
+## Cómo "instalar" la aplicación en un teléfono (¡Método correcto!)
 
-Este proyecto es una **Aplicación Web Progresiva (PWA)**. Esto significa dos cosas muy importantes:
+Este proyecto es una **Aplicación Web Progresiva (PWA)**. Esto es genial porque se instala directamente desde el navegador y se comporta como una app nativa, **sin necesidad de una tienda de aplicaciones como Google Play.**
 
-1.  **No se genera un archivo APK directamente:** El proyecto está construido con tecnología web (Next.js/React), por lo que no puedes abrirlo en Android Studio para compilar un `.apk` tradicional. Las instrucciones que encuentres sobre generar APKs en Android Studio no aplican aquí.
-2.  **La "instalación" se hace desde el navegador web y se comporta como una App Nativa:** Esta es la forma moderna y recomendada. Es más simple para ti y para tus usuarios. Una vez instalada, **NO se abre en el navegador con la barra de direcciones**. Se abre en su propia ventana, a pantalla completa, y se siente como cualquier otra app.
+**Punto clave:** La aplicación, una vez "instalada", **NO se abre en el navegador con la barra de direcciones**. Se abre en su propia ventana, a pantalla completa, y se siente como cualquier otra app de tu teléfono.
 
-### Pasos para el usuario final:
+### Pasos para que cualquier usuario instale la App:
 
 Una vez que hayas desplegado tu aplicación en Firebase Hosting y tengas una URL pública (ej. `https://tu-liga.web.app`):
 
 1.  **Abrir la URL** en el navegador Google Chrome en un teléfono Android.
-2.  El navegador podría mostrar un aviso para "Añadir a la pantalla de inicio".
+2.  El navegador podría mostrar un aviso para **"Añadir a la pantalla de inicio"**.
 3.  Si no aparece, el usuario debe tocar el **menú de los tres puntos (⋮)** en la esquina superior derecha.
 4.  Seleccionar la opción **"Instalar aplicación"** o **"Añadir a pantalla de inicio"**.
 5.  Confirmar la acción.
 
-¡Y listo! Un ícono de la aplicación aparecerá en el menú del teléfono y se abrirá como una aplicación normal, sin la barra de direcciones del navegador.
-
-### ¿Y si REALMENTE necesito un APK para la Play Store?
-
-Si tu objetivo final es publicar en Google Play, la información que encontraste sobre **Bubblewrap** y **TWA (Trusted Web Activity)** es correcta. Es una herramienta de línea de comandos que "envuelve" tu PWA en un APK. Sin embargo, es un proceso avanzado que debes realizar manualmente en tu computadora local y está fuera del alcance de lo que podemos hacer juntos en este entorno. Te recomendamos empezar con el método de instalación directa y solo explorar Bubblewrap si la publicación en la Play Store es un requisito indispensable para ti.
+¡Y listo! Un ícono de la aplicación aparecerá en el menú del teléfono y en la pantalla de inicio. Se abrirá como una aplicación normal, sin la barra de direcciones del navegador. ¡Es así de simple!
 
 ---
 ## (Opcional) Sube tu proyecto a GitHub
