@@ -96,7 +96,7 @@ const RequestHistory = () => {
                                     <TableCell>
                                         <Badge variant={getStatusVariant(req.status)} className="flex items-center gap-1 w-fit">
                                             {getStatusIcon(req.status)}
-                                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                                            {req.status && (req.status.charAt(0).toUpperCase() + req.status.slice(1))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
