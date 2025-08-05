@@ -72,10 +72,12 @@ export function AddTeam({ onTeamAdded }: { onTeamAdded: (newTeam: Team) => void 
         resetForm();
         setIsOpen(false);
     } catch (error) {
-        console.error("Failed to add team:", error);
+        console.error("Error detallado al agregar equipo:", error);
+        // Display a more specific error message to the user
+        const errorMessage = error instanceof Error ? error.message : "Ocurrió un error desconocido.";
         toast({
-            title: 'Error al guardar',
-            description: 'No se pudo agregar el equipo. Por favor, inténtalo de nuevo.',
+            title: 'Error al Guardar el Equipo',
+            description: `No se pudo agregar el equipo. Causa: ${errorMessage}`,
             variant: 'destructive',
         });
     } finally {
