@@ -26,7 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { MatchEvent, MatchEventType } from '@/lib/types';
+import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
 import { isToday, isFuture, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/firebase';
@@ -35,8 +35,8 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 
-    const [teamA, setTeamA] = useState<any>(null);
-    const [teamB, setTeamB] = useState<any>(null);
+    const [teamA, setTeamA] = useState<MatchTeam | null>(null);
+    const [teamB, setTeamB] = useState<MatchTeam | null>(null);
     const [playersA, setPlayersA] = useState<Player[]>([]);
     const [playersB, setPlayersB] = useState<Player[]>([]);
 

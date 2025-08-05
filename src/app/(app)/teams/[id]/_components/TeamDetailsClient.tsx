@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -232,7 +233,7 @@ const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
     </Card>
 );
 
-const PerformanceChart = ({ matches }: { matches: Match[] }) => {
+const PerformanceChart = ({ teamId, matches }: { teamId: string, matches: Match[] }) => {
     const lastFive = useMemo(() => matches
         .filter(m => m.status === 'finished')
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -242,8 +243,11 @@ const PerformanceChart = ({ matches }: { matches: Match[] }) => {
     return (
         <div className="flex items-center justify-center gap-2">
             {lastFive.map((match, index) => {
-                const isWin = (match.score?.home ?? 0) > (match.score?.away ?? 0);
-                const isDraw = (match.score?.home ?? 0) === (match.score?.away ?? 0);
+                const isHome = match.teams.home.id === teamId;
+                const homeScore = match.score?.home ?? 0;
+                const awayScore = match.score?.away ?? 0;
+                const isWin = (isHome && homeScore > awayScore) || (!isHome && awayScore > homeScore);
+                const isDraw = homeScore === awayScore;
                 
                 let Icon = Minus;
                 let color = 'text-yellow-500';
@@ -339,7 +343,7 @@ export function TeamDetailsClient({
              <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Rendimiento (Últimos 5)</p>
                  <div className="mt-2 h-8 flex items-center justify-center">
-                     <PerformanceChart matches={matches} />
+                     <PerformanceChart teamId={team.id} matches={matches} />
                 </div>
             </div>
         </CardContent>

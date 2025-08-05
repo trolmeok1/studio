@@ -65,7 +65,10 @@ export interface VocalPaymentDetails {
     paymentStatus: 'paid' | 'pending';
 }
 
-export interface MatchTeam extends Team {
+export interface MatchTeam {
+    id: string;
+    name: string;
+    logoUrl: string;
     attended: boolean;
     vocalPaymentDetails?: VocalPaymentDetails;
 }

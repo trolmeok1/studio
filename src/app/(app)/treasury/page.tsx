@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { DateRange } from "react-day-picker";
 import Link from 'next/link';
+import type { MatchTeam } from '@/lib/types';
 
 
 const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => void }) => {
@@ -150,7 +152,7 @@ export default function TreasuryPage() {
     }, 0), [paidMatches]);
     
     const pendingPayments = useMemo(() => filteredMatches.flatMap(match => {
-        const pending = [];
+        const pending: { team: MatchTeam, amount: number, date: string }[] = [];
         if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
             pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date});
         }
@@ -163,7 +165,7 @@ export default function TreasuryPage() {
     const totalSanctionIncome = 550; // Mock data for now
 
     const absentTeams = useMemo(() => filteredMatches.flatMap(match => {
-        const absentees = [];
+        const absentees: (MatchTeam & { date: string })[] = [];
         if (!match.teams.home.attended) {
             absentees.push({ ...match.teams.home, date: match.date });
         }

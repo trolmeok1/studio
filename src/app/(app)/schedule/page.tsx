@@ -1,8 +1,9 @@
 
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, getStandings, type Standing } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -553,10 +554,7 @@ export default function SchedulePage() {
   useEffect(() => { 
     setIsClient(true);
     async function fetchTeams() {
-        const teamsFromMaxima = await getTeamsByCategory('Máxima');
-        const teamsFromPrimera = await getTeamsByCategory('Primera');
-        const teamsFromSegunda = await getTeamsByCategory('Segunda');
-        setAllTeams([...teamsFromMaxima, ...teamsFromPrimera, ...teamsFromSegunda]);
+        setAllTeams(await getTeams());
     }
     fetchTeams();
   }, []);
@@ -565,14 +563,18 @@ export default function SchedulePage() {
 
 
   const isTournamentGenerated = useMemo(() => generatedMatches.length > 0, [generatedMatches]);
+  
+  const rescheduledMatchesCount = useMemo(() => {
+    if (!isClient) return 0;
+    return generatedMatches.filter(m => m.rescheduled).length;
+  }, [isClient, generatedMatches]);
+
   const areAllMatchesFinished = isTournamentGenerated; 
   
   const generateLeagueSchedule = async (settings: any) => {
     const teamsMaxima = await getTeamsByCategory('Máxima');
     const teamsPrimera = await getTeamsByCategory('Primera');
     const teamsSegunda = await getTeamsByCategory('Segunda');
-    const teamsSegundaA = teamsSegunda.filter(t => t.group === 'A');
-    const teamsSegundaB = teamsSegunda.filter(t => t.group === 'B');
 
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
         let currentTeams = [...teams];
@@ -815,9 +817,6 @@ export default function SchedulePage() {
         setActiveTab('finals');
         toast({ title: 'Fase Final Programada', description: 'Los partidos de las finales han sido agendados.' });
     }
-
-    const rescheduledMatchesCount = useMemo(() => generatedMatches.filter(m => m.rescheduled).length, [generatedMatches]);
-
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between">
@@ -963,4 +962,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
