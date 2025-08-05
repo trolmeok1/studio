@@ -226,7 +226,7 @@ function SanctionsCard() {
                    <Avatar className="h-16 w-16">
                       <AvatarImage src={sanction.playerPhotoUrl} alt={sanction.playerName} data-ai-hint="player portrait" />
                       <AvatarFallback>
-                          {sanction.playerName.substring(0, 2).toUpperCase()}
+                          {sanction.playerName ? sanction.playerName.substring(0, 2).toUpperCase() : 'SA'}
                       </AvatarFallback>
                    </Avatar>
                    <div className="flex-grow">
