@@ -107,10 +107,11 @@ export const getTeams = async (): Promise<Team[]> => {
 };
 
 export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDataUri: string | null): Promise<Team> => {
+    // 1. Create the initial team data with default/empty values
     const newTeamData: Omit<Team, 'id'> = {
         name: teamData.name,
         category: teamData.category,
-        logoUrl: '', // Placeholder
+        logoUrl: '', // Placeholder, will be updated later
         group: teamData.category === 'Segunda' ? 'A' : undefined,
         president: { name: '' },
         vicePresident: { name: '' },
@@ -120,11 +121,11 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
         delegates: [],
     };
 
-    // 1. Create the team document in Firestore to get a unique ID
+    // 2. Add the team document to Firestore to get a unique ID
     const newTeamRef = await addDoc(collection(db, 'teams'), newTeamData);
     const newTeamId = newTeamRef.id;
 
-    // 2. If a logo is provided, upload it to Storage using the new team ID
+    // 3. If a logo is provided, upload it to Storage using the new team ID
     let logoUrl = 'https://placehold.co/100x100.png';
     if (logoDataUri) {
         try {
@@ -133,15 +134,16 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
             logoUrl = await getDownloadURL(snapshot.ref);
         } catch (error) {
             console.error("Error uploading logo, deleting team doc. Error:", error);
+            // If logo upload fails, delete the created team document to avoid orphan data
             await deleteDoc(newTeamRef);
-            throw error;
+            throw error; // Re-throw the error to be caught by the component
         }
     }
 
-    // 3. Update the team document with the final logo URL
+    // 4. Update the team document with the final logo URL
     await updateDoc(newTeamRef, { logoUrl: logoUrl });
 
-    // 4. Return the complete new team object
+    // 5. Return the complete new team object
     const finalTeamDoc = await getDoc(newTeamRef);
     return { id: newTeamId, ...finalTeamDoc.data() } as Team;
 };
