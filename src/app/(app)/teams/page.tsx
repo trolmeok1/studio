@@ -58,7 +58,7 @@ export default function TeamsPage() {
 
     useEffect(() => {
         loadTeams();
-    }, [loadTeams]);
+    }, []);
 
     const handleTeamAdded = useCallback((newTeam: Team) => {
         setTeams(prevTeams => [...prevTeams, newTeam]);
