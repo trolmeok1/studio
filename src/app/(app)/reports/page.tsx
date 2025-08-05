@@ -5,13 +5,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Calendar, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck, Image as ImageIcon } from 'lucide-react';
+import { BarChart2, Calendar, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck, Image as ImageIcon, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { standings as mockStandings, teams, expenses as mockExpenses, type Category, type Standing, type Match, type Expense, getReferees, type Team } from '@/lib/mock-data';
+import { standings as mockStandings, teams, expenses as mockExpenses, type Category, type Standing, type Match, type Expense, upcomingMatches } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -262,9 +262,111 @@ const SemifinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team,
     );
 };
 
+const FinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+    return (
+        <div
+            id="printable-report"
+            className="bg-[#5c0a0a] text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col"
+            style={{ backgroundImage: `url(https://placehold.co/800x1000.png)`, backgroundSize: 'cover', backgroundPosition: 'bottom' }}
+             data-ai-hint="red cracked wall"
+        >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-red-900/30 z-0" />
+            <div className="relative z-10 flex-grow flex flex-col">
+                <header className="text-center">
+                    <h1 className="text-7xl md:text-8xl font-black uppercase tracking-tighter leading-none" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.5)'}}>Gran</h1>
+                    <h1 className="text-7xl md:text-8xl font-black uppercase tracking-tighter leading-none -mt-4" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.5)'}}>Final</h1>
+                </header>
+
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                     <Image src="https://placehold.co/400x400.png" alt="Soccer player silhouette" width={400} height={400} className="opacity-80 object-contain" data-ai-hint="soccer player kick" />
+                </div>
+
+                <main className="flex-grow flex items-end justify-between w-full mt-auto">
+                    <p className="font-black text-4xl uppercase -rotate-6">{localTeam?.name || "Equipo A"}</p>
+                    <p className="font-black text-6xl text-center italic mx-4">VS</p>
+                    <p className="font-black text-4xl uppercase rotate-6 text-right">{awayTeam?.name || "Equipo B"}</p>
+                </main>
+            </div>
+             <footer className="text-center z-10 mt-8">
+                {date && time && (
+                    <p className="text-xl font-bold tracking-wider">{`HOY A LAS ${time} HRS`}</p>
+                )}
+            </footer>
+        </div>
+    );
+};
+
+
+const ScheduleReport = () => {
+    const weeklyMatches = useMemo(() => {
+        const today = new Date();
+        const nextWeek = addDays(today, 7);
+        return upcomingMatches
+            .filter(match => isWithinInterval(new Date(match.date), { start: today, end: nextWeek }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, []);
+
+    const groupedMatches = useMemo(() => {
+        return weeklyMatches.reduce((acc, match) => {
+            const dateKey = format(new Date(match.date), 'PPPP', { locale: es });
+            if (!acc[dateKey]) {
+                acc[dateKey] = [];
+            }
+            acc[dateKey].push(match);
+            return acc;
+        }, {} as Record<string, Match[]>);
+    }, [weeklyMatches]);
+    
+    return (
+         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
+            <header className="flex justify-between items-center mb-6 border-b-2 pb-4 border-black">
+                <div className="flex items-center gap-4">
+                    <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} data-ai-hint="league logo" />
+                    <div>
+                        <h1 className="text-2xl font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
+                        <h2 className="text-xl font-semibold">Programación Semanal de Partidos</h2>
+                    </div>
+                </div>
+            </header>
+            
+            {Object.keys(groupedMatches).length === 0 ? (
+                <p className="text-center text-gray-500 py-10">No hay partidos programados para la próxima semana.</p>
+            ) : (
+                Object.entries(groupedMatches).map(([date, matches]) => (
+                    <div key={date} className="mb-6">
+                        <h3 className="text-lg font-bold bg-gray-200 p-2 rounded-md mb-2">{date}</h3>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Hora</TableHead>
+                                    <TableHead>Categoría</TableHead>
+                                    <TableHead>Equipo Local</TableHead>
+                                    <TableHead>Equipo Visitante</TableHead>
+                                    <TableHead>Cancha</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {matches.map(match => (
+                                    <TableRow key={match.id}>
+                                        <TableCell className="font-bold">{format(new Date(match.date), 'HH:mm')}</TableCell>
+                                        <TableCell><Badge variant="outline">{match.category}</Badge></TableCell>
+                                        <TableCell>{match.teams.home.name}</TableCell>
+                                        <TableCell>{match.teams.away.name}</TableCell>
+                                        <TableCell className="text-center">{match.field || 'N/A'}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                ))
+            )}
+         </div>
+    );
+};
+
 
 type ReportType = 'standings' | 'schedule' | 'flyer' | 'finance' | null;
-type FlyerDesign = 'standard' | 'semifinal';
+type FlyerDesign = 'standard' | 'semifinal' | 'final';
 
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
@@ -285,10 +387,15 @@ export default function ReportsPage() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setIsClient(true);
-            setDateRange({ from: new Date(), to: new Date() });
-            setFlyerDate(new Date());
         }
     }, []);
+    
+    useEffect(() => {
+        if (isClient) {
+             setDateRange({ from: new Date(), to: new Date() });
+             setFlyerDate(new Date());
+        }
+    }, [isClient]);
 
     const localTeam = useMemo(() => teams.find(t => t.id === localTeamId), [localTeamId]);
     const awayTeam = useMemo(() => teams.find(t => t.id === awayTeamId), [awayTeamId]);
@@ -317,9 +424,11 @@ export default function ReportsPage() {
                 </div>
                 <div className="mt-4">
                     {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} />}
+                    {reportType === 'schedule' && <ScheduleReport />}
                     {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
                     {reportType === 'flyer' && flyerDesign === 'standard' && <StandardFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                     {reportType === 'flyer' && flyerDesign === 'semifinal' && <SemifinalFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
+                    {reportType === 'flyer' && flyerDesign === 'final' && <FinalFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                 </div>
                  <style jsx global>{`
                     @media print {
@@ -357,7 +466,7 @@ export default function ReportsPage() {
                   </span>
                 </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <Card>
                     <CardHeader>
                         <div className="flex items-start gap-4">
@@ -401,12 +510,33 @@ export default function ReportsPage() {
                         </div>
                         <Button className="w-full mt-4" onClick={() => handleGenerate('standings')}>
                             <Printer className="mr-2" />
-                            Generar Reporte
+                            Generar Reporte de Posiciones
                         </Button>
                     </CardContent>
                 </Card>
                 
-                <Card>
+                 <Card>
+                    <CardHeader>
+                        <div className="flex items-start gap-4">
+                            <div className="bg-primary/10 text-primary p-3 rounded-full">
+                                <FileText className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <CardTitle>Reporte de Programación Semanal</CardTitle>
+                                <CardDescription>Genere un PDF con todos los partidos para los próximos 7 días.</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Button className="w-full" onClick={() => handleGenerate('schedule')}>
+                            <Printer className="mr-2" />
+                            Generar Programación Semanal
+                        </Button>
+                    </CardContent>
+                </Card>
+
+
+                 <Card className="md:col-span-2">
                     <CardHeader>
                         <div className="flex items-start gap-4">
                             <div className="bg-primary/10 text-primary p-3 rounded-full">
@@ -445,6 +575,7 @@ export default function ReportsPage() {
                                     <SelectContent>
                                         <SelectItem value="standard">Estándar (1 vs 1)</SelectItem>
                                         <SelectItem value="semifinal">Semifinal</SelectItem>
+                                        <SelectItem value="final">Gran Final</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
