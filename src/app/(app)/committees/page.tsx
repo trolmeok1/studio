@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -19,29 +18,48 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId, sanctions } from '@/lib/mock-data';
+import { 
+    getPlayers, 
+    getTeams, 
+    getMatches, 
+    getSanctions, 
+    type Player, 
+    updatePlayerStats, 
+    addSanction, 
+    type Category, 
+    type Match, 
+    type VocalPaymentDetails as VocalPaymentDetailsType, 
+    getPlayersByTeamId, 
+    updateMatchData, 
+    getMatchById, 
+    setMatchAsFinished, 
+    getMatchesByTeamId,
+    type Sanction
+} from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
+import type { MatchEvent, MatchEventType, MatchTeam, Team } from '@/lib/types';
 import { isToday, isFuture, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 
-const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
+const PhysicalMatchSheet = ({ match, allPlayers, allSanctions, allMatches }: { match: Match | null, allPlayers: Player[], allSanctions: Sanction[], allMatches: Match[] }) => {
 
     const teamA = useMemo(() => match?.teams.home, [match]);
     const teamB = useMemo(() => match?.teams.away, [match]);
-    const playersA = useMemo(() => teamA ? getPlayersByTeamId(teamA.id) : [], [teamA]);
-    const playersB = useMemo(() => teamB ? getPlayersByTeamId(teamB.id) : [], [teamB]);
+    const playersA = useMemo(() => teamA ? allPlayers.filter(p => p.teamId === teamA.id) : [], [teamA, allPlayers]);
+    const playersB = useMemo(() => teamB ? allPlayers.filter(p => p.teamId === teamB.id) : [], [teamB, allPlayers]);
 
     const calculatePendingValue = useCallback((teamId?: string) => {
         if (!teamId || !match) return 0;
-        const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
-        return pastMatches.reduce((total, pastMatch) => {
+        const pastMatches = allMatches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
+        const teamPastMatches = pastMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
+        
+        return teamPastMatches.reduce((total, pastMatch) => {
             const isHome = pastMatch.teams.home.id === teamId;
             const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
             if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
@@ -49,7 +67,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
             }
             return total;
         }, 0);
-    }, [match]);
+    }, [match, allMatches]);
 
     const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, calculatePendingValue]);
     const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, calculatePendingValue]);
@@ -67,7 +85,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
         }
 
         const isJuvenil = player ? getAge(player.birthDate) < 19 : false;
-        const isSanctioned = player ? sanctions.some(s => s.playerId === player.id) : false;
+        const isSanctioned = player ? allSanctions.some(s => s.playerId === player.id) : false;
 
         const rowClass = cn(
             "h-8",
@@ -279,10 +297,10 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     )
 }
 
-const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void, onFinishMatch: (matchId: string) => void }) => {
+const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch, allPlayers, allMatches }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void, onFinishMatch: (matchId: string) => void, allPlayers: Player[], allMatches: Match[] }) => {
     const { user } = useAuth();
     const { toast } = useToast();
-    const canEdit = user.role === 'admin' || user.role === 'secretary';
+    const canEdit = user.permissions.committees.edit;
 
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
     const [playerNumber, setPlayerNumber] = useState('');
@@ -457,8 +475,10 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
         const teamId = match.teams[teamKey].id;
         const pendingValue = useMemo(() => {
-            const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
-            return pastMatches.reduce((total, pastMatch) => {
+            const pastMatches = allMatches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
+            const teamPastMatches = pastMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
+            
+            return teamPastMatches.reduce((total, pastMatch) => {
                 const isHome = pastMatch.teams.home.id === teamId;
                 const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
                 if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
@@ -466,7 +486,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 }
                 return total;
             }, 0);
-        }, [match.id, teamId]);
+        }, [match.id, teamId, allMatches]);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
 
@@ -688,90 +708,110 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
 
 export default function CommitteesPage() {
-  const [activeTab, setActiveTab] = useState('digital');
-  const [isClient, setIsClient] = useState(false);
-  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState('digital');
+    const [loading, setLoading] = useState(true);
+    const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
+    const [allMatches, setAllMatches] = useState<Match[]>([]);
+    const [allSanctions, setAllSanctions] = useState<Sanction[]>([]);
+    const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
-  const { user } = useAuth();
-  const handlePrint = () => {
-    window.print();
-  };
-  
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const handleUpdateMatch = useCallback((updatedMatch: Match) => {
-    updateMatchData(updatedMatch);
-    setSelectedMatchId(null);
-    setTimeout(() => setSelectedMatchId(updatedMatch.id), 0);
-  }, []);
-  
-  const handleFinishMatch = useCallback((matchId: string) => {
-    setMatchAsFinished(matchId);
-    setSelectedMatchId(null);
-    setTimeout(() => setSelectedMatchId(matchId), 0);
-  }, []);
-
-  const selectedMatch = useMemo(() => {
-    if (!selectedMatchId) return null;
-    return getMatchById(selectedMatchId);
-  }, [selectedMatchId]);
-
-  const groupedMatches = useMemo(() => {
-    if (!isClient) return { today: [], future: [], past: [] };
-
-    const todayMatches = allMatches.filter(m => isToday(new Date(m.date)));
-    const futureMatches = allMatches.filter(m => isFuture(new Date(m.date)) && !isToday(new Date(m.date)));
-    const pastMatches = allMatches.filter(m => isPast(new Date(m.date)) && !isToday(new Date(m.date)));
-
-    return {
-        today: todayMatches,
-        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-        past: pastMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const { user } = useAuth();
+    const handlePrint = () => {
+        window.print();
     };
-  }, [isClient]);
 
-  const MatchSelect = () => (
+    useEffect(() => {
+        const loadData = async () => {
+            setLoading(true);
+            const [players, teams, matches, sanctions] = await Promise.all([
+                getPlayers(),
+                getTeams(),
+                getMatches(),
+                getSanctions()
+            ]);
+            setAllPlayers(players);
+            setAllTeams(teams);
+            setAllMatches(matches);
+            setAllSanctions(sanctions);
+            setLoading(false);
+        };
+        loadData();
+    }, []);
+
+    const handleUpdateMatch = useCallback((updatedMatch: Match) => {
+        updateMatchData(updatedMatch);
+        setAllMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+        setSelectedMatchId(null);
+        setTimeout(() => setSelectedMatchId(updatedMatch.id), 0);
+    }, []);
+
+    const handleFinishMatch = useCallback((matchId: string) => {
+        setMatchAsFinished(matchId);
+        setAllMatches(prev => prev.map(m => m.id === matchId ? { ...m, status: 'finished' } : m));
+        setSelectedMatchId(null);
+        setTimeout(() => setSelectedMatchId(matchId), 0);
+    }, []);
+
+    const selectedMatch = useMemo(() => {
+        if (!selectedMatchId) return null;
+        return allMatches.find(m => m.id === selectedMatchId) || null;
+    }, [selectedMatchId, allMatches]);
+
+    const groupedMatches = useMemo(() => {
+        const todayMatches = allMatches.filter(m => isToday(new Date(m.date)));
+        const futureMatches = allMatches.filter(m => isFuture(new Date(m.date)) && !isToday(new Date(m.date)));
+        const pastMatches = allMatches.filter(m => isPast(new Date(m.date)) && !isToday(new Date(m.date)));
+
+        return {
+            today: todayMatches,
+            future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+            past: pastMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        };
+    }, [allMatches]);
+    
+    if (loading) {
+        return <div className="p-8">Cargando datos...</div>
+    }
+
+    const MatchSelect = () => (
      <Select onValueChange={setSelectedMatchId} value={selectedMatchId || ''}>
         <SelectTrigger>
             <SelectValue placeholder="Elige un partido del calendario..."/>
         </SelectTrigger>
         <SelectContent>
-            {isClient && (
-                <>
-                    {groupedMatches.today.length > 0 && (
-                        <SelectGroup>
-                            <SelectLabel>Partidos de Hoy</SelectLabel>
-                            {groupedMatches.today.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})})
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    )}
-                     {groupedMatches.future.length > 0 && (
-                        <SelectGroup>
-                            <SelectLabel>Partidos Futuros</SelectLabel>
-                            {groupedMatches.future.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    )}
-                     {groupedMatches.past.length > 0 && (
-                        <SelectGroup>
-                            <SelectLabel>Partidos Pasados</SelectLabel>
-                            {groupedMatches.past.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    )}
-                </>
-            )}
+            <>
+                {groupedMatches.today.length > 0 && (
+                    <SelectGroup>
+                        <SelectLabel>Partidos de Hoy</SelectLabel>
+                        {groupedMatches.today.map(match => (
+                            <SelectItem key={match.id} value={match.id}>
+                                {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})})
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                )}
+                 {groupedMatches.future.length > 0 && (
+                    <SelectGroup>
+                        <SelectLabel>Partidos Futuros</SelectLabel>
+                        {groupedMatches.future.map(match => (
+                            <SelectItem key={match.id} value={match.id}>
+                                {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                )}
+                 {groupedMatches.past.length > 0 && (
+                    <SelectGroup>
+                        <SelectLabel>Partidos Pasados</SelectLabel>
+                        {groupedMatches.past.map(match => (
+                            <SelectItem key={match.id} value={match.id}>
+                                {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                )}
+            </>
         </SelectContent>
     </Select>
   )
@@ -814,10 +854,10 @@ export default function CommitteesPage() {
                 </CardHeader>
             </Card>
             <div className="hidden print:block">
-                 <PhysicalMatchSheet match={selectedMatch}/>
+                 <PhysicalMatchSheet match={selectedMatch} allPlayers={allPlayers} allSanctions={allSanctions} allMatches={allMatches} />
             </div>
              <div className="print:hidden">
-                 <PhysicalMatchSheet match={selectedMatch}/>
+                 <PhysicalMatchSheet match={selectedMatch} allPlayers={allPlayers} allSanctions={allSanctions} allMatches={allMatches} />
             </div>
           </TabsContent>
           <TabsContent value="digital" className="mt-0 space-y-4">
@@ -829,7 +869,7 @@ export default function CommitteesPage() {
                      </CardContent>
                  </CardHeader>
             </Card>
-             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} />
+             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} allPlayers={allPlayers} allMatches={allMatches} />
           </TabsContent>
         </Tabs>
 
@@ -874,3 +914,5 @@ export default function CommitteesPage() {
     </div>
   );
 }
+
+    

@@ -9,17 +9,9 @@ import { Trash2, Download, Upload, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { teams, players, upcomingMatches, requalificationRequests, expenses } from '@/lib/mock-data';
+import { getTeams, getPlayers, getMatches, getRequalificationRequests, getExpenses } from '@/lib/mock-data';
 
 type DataType = 'teams' | 'players' | 'finances' | 'requests' | 'all';
-
-const dataSources: Record<string, any> = {
-    teams,
-    players,
-    upcomingMatches,
-    requalificationRequests,
-    expenses
-};
 
 const ResetDialog = ({
   step,
@@ -101,8 +93,30 @@ export default function DataManagementPage() {
         // etc.
     };
 
-    const handleDownloadBackup = () => {
+    const handleDownloadBackup = async () => {
         try {
+            const [
+                teamsData,
+                playersData,
+                matchesData,
+                requestsData,
+                expensesData
+            ] = await Promise.all([
+                getTeams(),
+                getPlayers(),
+                getMatches(),
+                getRequalificationRequests(),
+                getExpenses()
+            ]);
+
+            const dataSources = {
+                teams: teamsData,
+                players: playersData,
+                matches: matchesData,
+                requalificationRequests: requestsData,
+                expenses: expensesData,
+            };
+
             const backupData = JSON.stringify(dataSources, null, 2);
             const blob = new Blob([backupData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);

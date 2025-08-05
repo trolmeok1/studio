@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DollarSign, Landmark, Ban, AlertTriangle, Printer, PlusCircle, Trash2 } from 'lucide-react';
-import { upcomingMatches, teams, type Category, expenses as mockExpenses, type Expense, addExpense, removeExpense } from '@/lib/mock-data';
+import { getMatches, getTeams, type Category, getExpenses, type Expense, addExpense, removeExpense, type Team, type Match } from '@/lib/mock-data';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -89,36 +89,53 @@ const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => 
 export default function TreasuryPage() {
     const [isClient, setIsClient] = useState(false);
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-    const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [matches, setMatches] = useState<Match[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setIsClient(true);
-        setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+        async function loadData() {
+            setLoading(true);
+            const [matchesData, expensesData] = await Promise.all([
+                getMatches(),
+                getExpenses()
+            ]);
+            setMatches(matchesData);
+            setExpenses(expensesData);
+            setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+            setLoading(false);
+        }
+        loadData();
     }, []);
     
-    const handleAddExpense = useCallback((newExpense: Omit<Expense, 'id'>) => {
-        const addedExpense = addExpense(newExpense);
-        setExpenses(prev => [...prev, addedExpense]);
+    const handleAddExpense = useCallback(async (newExpense: Omit<Expense, 'id'>) => {
+        const addedExpense = await addExpense(newExpense);
+        setExpenses(prev => [...prev, addedExpense].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }, []);
 
-    const handleRemoveExpense = useCallback((id: string) => {
-        removeExpense(id);
+    const handleRemoveExpense = useCallback(async (id: string) => {
+        await removeExpense(id);
         setExpenses(prev => prev.filter(e => e.id !== id));
     }, []);
 
     const filteredMatches = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return [];
-        return upcomingMatches.filter(m => {
+        const from = startOfDay(dateRange.from);
+        const to = endOfDay(dateRange.to);
+        return matches.filter(m => {
             const matchDate = new Date(m.date);
-            return matchDate >= dateRange.from! && matchDate <= dateRange.to!;
+            return matchDate >= from && matchDate <= to;
         });
-    }, [dateRange]);
+    }, [dateRange, matches]);
 
     const filteredExpenses = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return [];
+        const from = startOfDay(dateRange.from);
+        const to = endOfDay(dateRange.to);
         return expenses.filter(e => {
             const expenseDate = new Date(e.date);
-            return expenseDate >= dateRange.from! && expenseDate <= dateRange.to!;
+            return expenseDate >= from && expenseDate <= to;
         });
     }, [dateRange, expenses]);
 
@@ -164,7 +181,7 @@ export default function TreasuryPage() {
         </div>
     );
     
-    const VocalitiesTable = ({ matches }: { matches: typeof upcomingMatches }) => (
+    const VocalitiesTable = ({ matches: matchesToShow }: { matches: Match[] }) => (
         <Table>
             <TableHeader>
                 <TableRow>
@@ -175,7 +192,7 @@ export default function TreasuryPage() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {matches.map(match => {
+                {matchesToShow.map(match => {
                     const teamA = match.teams.home;
                     const teamB = match.teams.away;
                     const detailsA = teamA.vocalPaymentDetails;
@@ -220,7 +237,7 @@ export default function TreasuryPage() {
                         </TableRow>
                     )
                 })}
-                 {matches.length === 0 && (
+                 {matchesToShow.length === 0 && (
                      <TableRow>
                         <TableCell colSpan={4} className="text-center h-24">
                             No hay vocalías registradas en el período seleccionado.
@@ -235,8 +252,8 @@ export default function TreasuryPage() {
     const matchesByFirst = useMemo(() => filteredMatches.filter(m => m.category === 'Primera'), [filteredMatches]);
     const matchesBySecond = useMemo(() => filteredMatches.filter(m => m.category === 'Segunda'), [filteredMatches]);
 
-    if (!isClient) {
-        return null;
+    if (!isClient || loading) {
+        return <div className="p-8">Cargando datos de tesorería...</div>;
     }
 
     return (
