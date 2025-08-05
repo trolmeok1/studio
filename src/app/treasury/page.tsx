@@ -13,7 +13,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
@@ -120,9 +120,9 @@ export default function TreasuryPage() {
     }, []);
 
     const filteredMatches = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return [];
+        if (!dateRange?.from) return [];
         const from = startOfDay(dateRange.from);
-        const to = endOfDay(dateRange.to);
+        const to = endOfDay(dateRange.to ?? dateRange.from);
         return matches.filter(m => {
             const matchDate = new Date(m.date);
             return matchDate >= from && matchDate <= to;
@@ -130,9 +130,9 @@ export default function TreasuryPage() {
     }, [dateRange, matches]);
 
     const filteredExpenses = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return [];
+        if (!dateRange?.from) return [];
         const from = startOfDay(dateRange.from);
-        const to = endOfDay(dateRange.to);
+        const to = endOfDay(dateRange.to ?? dateRange.from);
         return expenses.filter(e => {
             const expenseDate = new Date(e.date);
             return expenseDate >= from && expenseDate <= to;
