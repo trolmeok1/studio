@@ -81,9 +81,12 @@ const RequestHistory = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {requests.map(req => (
+                            {requests.map(req => {
+                                const reqDate = new Date(req.date);
+                                const isValidDate = !isNaN(reqDate.getTime());
+                                return (
                                 <TableRow key={req.id}>
-                                    <TableCell>{format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell>{isValidDate ? format(reqDate, 'dd/MM/yyyy') : ''}</TableCell>
                                     <TableCell>{req.teamName}</TableCell>
                                     <TableCell>
                                         <Badge variant="outline">{req.requestType === 'qualification' ? 'Calificación' : 'Recalificación'}</Badge>
@@ -105,7 +108,7 @@ const RequestHistory = () => {
                                         )}
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                     <ScrollBar orientation="horizontal" />
@@ -412,7 +415,5 @@ export default function RequalificationPage() {
         </div>
     );
 }
-
-    
 
     
