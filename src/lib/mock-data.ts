@@ -1,7 +1,8 @@
 
-
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
+import { db } from './firebase';
+import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy } from 'firebase/firestore';
 
 
 const allPermissions: Permissions = {
@@ -26,487 +27,232 @@ const secretaryPermissions: Permissions = {
     logs: { view: false, edit: false },
 };
 
-let users: User[] = [
-    { 
-        id: 'user-1', 
-        name: 'Usuario Admin', 
-        email: 'admin@ligacontrol.com', 
-        password: 'password', 
-        role: 'admin', 
-        permissions: allPermissions,
-        avatarUrl: 'https://placehold.co/100x100.png'
-    },
-    { 
-        id: 'user-2', 
-        name: 'Secretario/a', 
-        email: 'secretary@ligacontrol.com', 
-        password: 'password', 
-        role: 'secretary', 
-        permissions: secretaryPermissions,
-        avatarUrl: 'https://placehold.co/100x100.png'
-    },
-];
-
+// --- Users ---
 export const getUsers = async (): Promise<User[]> => {
-    return Promise.resolve(users);
+    const usersCol = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCol);
+    return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 };
 
 export const getUserByEmail = async (email: string): Promise<User | undefined> => {
-    return Promise.resolve(users.find(u => u.email === email));
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, where("email", "==", email), limit(1));
+    const userSnapshot = await getDocs(q);
+    if (userSnapshot.empty) return undefined;
+    const userDoc = userSnapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() } as User;
 };
 
-export const updateUser = (updatedUser: User) => {
-    const index = users.findIndex(u => u.id === updatedUser.id);
-    if (index !== -1) {
-        users[index] = updatedUser;
+export const updateUser = async (updatedUser: User) => {
+    const userRef = doc(db, 'users', updatedUser.id);
+    await updateDoc(userRef, { ...updatedUser });
+};
+
+// --- Expenses ---
+export const getExpenses = async (): Promise<Expense[]> => {
+    const expensesCol = collection(db, 'expenses');
+    const expenseSnapshot = await getDocs(query(expensesCol, orderBy('date', 'desc')));
+    return expenseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
+};
+
+export const addExpense = async (expense: Omit<Expense, 'id'>): Promise<Expense> => {
+    const expensesCol = collection(db, 'expenses');
+    const docRef = await addDoc(expensesCol, expense);
+    return { id: docRef.id, ...expense };
+}
+
+export const removeExpense = async (id: string) => {
+    const expenseRef = doc(db, 'expenses', id);
+    await deleteDoc(expenseRef);
+}
+
+
+// --- Teams ---
+export const getTeams = async (): Promise<Team[]> => {
+    const teamsCol = collection(db, 'teams');
+    const teamSnapshot = await getDocs(teamsCol);
+    return teamSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+};
+
+export const getTeamById = async (id: string): Promise<Team | undefined> => {
+    const teamRef = doc(db, 'teams', id);
+    const teamSnap = await getDoc(teamRef);
+    return teamSnap.exists() ? { id: teamSnap.id, ...teamSnap.data() } as Team : undefined;
+};
+
+export const getTeamsByCategory = async (category: Category, group?: 'A' | 'B'): Promise<Team[]> => {
+    const teamsCol = collection(db, 'teams');
+    let q;
+    if (group) {
+        q = query(teamsCol, where("category", "==", category), where("group", "==", group));
+    } else {
+        q = query(teamsCol, where("category", "==", category));
+    }
+    const teamSnapshot = await getDocs(q);
+    return teamSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+};
+
+// --- Players ---
+export const getPlayers = async (): Promise<Player[]> => {
+    const playersCol = collection(db, 'players');
+    const playerSnapshot = await getDocs(playersCol);
+    return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
+};
+
+export const getPlayerById = async (id: string): Promise<Player | undefined> => {
+    const playerRef = doc(db, 'players', id);
+    const playerSnap = await getDoc(playerRef);
+    return playerSnap.exists() ? { id: playerSnap.id, ...playerSnap.data() } as Player : undefined;
+};
+
+export const getPlayersByTeamId = async (teamId: string): Promise<Player[]> => {
+    const playersCol = collection(db, 'players');
+    const q = query(playersCol, where("teamId", "==", teamId));
+    const playerSnapshot = await getDocs(q);
+    return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
+};
+
+export const updatePlayerStats = async (playerId: string, statsUpdate: { goals: number, assists: number, yellowCards: number, redCards: number }) => {
+    const playerRef = doc(db, 'players', playerId);
+    const playerSnap = await getDoc(playerRef);
+    if (playerSnap.exists()) {
+        const currentStats = playerSnap.data().stats || { goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
+        await updateDoc(playerRef, {
+            'stats.goals': currentStats.goals + statsUpdate.goals,
+            'stats.assists': currentStats.assists + statsUpdate.assists,
+            'stats.yellowCards': currentStats.yellowCards + statsUpdate.yellowCards,
+            'stats.redCards': currentStats.redCards + statsUpdate.redCards,
+        });
     }
 };
 
+export const updatePlayerStatus = async (playerId: string, status: 'activo' | 'inactivo') => {
+    const playerRef = doc(db, 'players', playerId);
+    await updateDoc(playerRef, { status: status });
+};
 
-export let expenses: Expense[] = [
-    { id: 'exp-1', date: new Date().toISOString(), description: 'Compra de trofeos para premiación', amount: 500 },
-    { id: 'exp-2', date: new Date().toISOString(), description: 'Pago de servicios básicos de la oficina', amount: 120.50 },
-];
-
-export const getExpenses = async (): Promise<Expense[]> => Promise.resolve(expenses);
-export const addExpense = (expense: Omit<Expense, 'id'>) => {
-    const newExpense: Expense = { id: `exp-${Date.now()}`, ...expense };
-    expenses.push(newExpense);
-    return newExpense;
-}
-export const removeExpense = (id: string) => {
-    expenses = expenses.filter(e => e.id !== id);
-}
-
-
-export let teams: Team[] = [
-  // Máxima Category - 12 teams
-  { 
-    id: '1', 
-    name: 'Cosmic Comets', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Máxima', 
-    president: { name: 'Carlos Emilio Lasso Cuasapaz', phone: '0995168089' },
-    vicePresident: { name: 'Ricardo Nepas Cholca', phone: '0992767019' },
-    secretary: { name: 'Jeanette Toapanta', phone: '0987192255' },
-    treasurer: { name: 'Patricio Cobos', phone: '0986695854' },
-    vocal: { name: 'Juan Caiza Cumbal', phone: '0969134043' },
-    delegates: [
-        { name: 'Carlos Emilio Lasso Cuasapaz', phone: '0995168089' },
-        { name: 'Juan Caiza Cumbal', phone: '0969134043' },
-        { name: 'Jeanette Toapanta', phone: '0987192255' }
-    ]
-  },
-  { 
-    id: '2', 
-    name: 'Solar Flares', 
-    logoUrl: 'https://placehold.co/100x100.png', 
-    category: 'Máxima', 
-    president: { name: 'John Doe', phone: '0991112233' },
-    vicePresident: { name: 'VP Name' },
-    secretary: { name: 'Secretary Name' },
-    treasurer: { name: 'Treasurer Name' },
-    vocal: { name: 'Vocal Name' },
-    delegates: [ { name: 'Delegate 1' } ]
-  },
-  { id: '3', name: 'Galaxy Gliders', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Jane Smith', phone: '0993334455' } },
-  { id: '4', name: 'Orion Stars', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Peter Jones' } },
-  { id: 't-max-5', name: 'Andromeda Avengers', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Alex Ray' } },
-  { id: 't-max-6', name: 'Meteor Monarchs', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Sue Storm' } },
-  { id: 't-max-7', name: 'Gravity Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Ben Grimm' } },
-  { id: 't-max-8', name: 'Starship Strikers', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Reed Richards' } },
-  { id: 't-max-9', name: 'Celestial FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Victor Von Doom' } },
-  { id: 't-max-10', name: 'Eclipse Enforcers', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Tony Stark' } },
-  { id: 't-max-11', name: 'Dark Matter Dynamos', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Bruce Banner' } },
-  { id: 't-max-12', name: 'Lightyear Legends', logoUrl: 'https://placehold.co/100x100.png', category: 'Máxima', president: { name: 'Steve Rogers' } },
-
-  // Primera Category - 12 teams
-  { id: '5', name: 'Vortex Voyagers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Mary Johnson' } },
-  { id: '6', name: 'Pulsar Pioneers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'James Brown' } },
-  { id: 't-pri-3', name: 'Equinox FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Chris Evans' } },
-  { id: 't-pri-4', name: 'Solstice Spirits', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Scarlett Johansson' } },
-  { id: 't-pri-5', name: 'Orbital Outlaws', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Mark Ruffalo' } },
-  { id: 't-pri-6', name: 'Comet Crusaders', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Chris Hemsworth' } },
-  { id: 't-pri-7', name: 'Asteroid Aces', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Jeremy Renner' } },
-  { id: 't-pri-8', name: 'Zenith Zephyrs', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Tom Hiddleston' } },
-  { id: 't-pri-9', name: 'Nadir Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Samuel L. Jackson' } },
-  { id: 't-pri-10', name: 'Infinity FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Cobie Smulders' } },
-  { id: 't-pri-11', name: 'Quantum Questers', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Clark Gregg' } },
-  { id: 't-pri-12', name: 'Dimension Drifters', logoUrl: 'https://placehold.co/100x100.png', category: 'Primera', president: { name: 'Gwyneth Paltrow' } },
-
-  // Segunda Category - 16 teams
-  { id: '7', name: 'Quasar Quest', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Patricia Taylor' } },
-  { id: '8', name: 'Nebula Nomads', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Robert Wilson' } },
-  { id: '9', name: 'Asteroide FC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Linda Garcia' } },
-  { id: '10', name: 'Supernova SC', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Michael Miller' } },
-  { id: '11', name: 'Blackhole United', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Barbara Davis' } },
-  { id: '12', name: 'Rocket Rangers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'William Rodriguez' } },
-  { id: '13', name: 'Mars Rovers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'Elizabeth Martinez' } },
-  { id: '14', name: 'Jupiter Giants', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'A', president: { name: 'David Hernandez' } },
-  { id: '15', name: 'Saturn Rings', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Jennifer Lopez' } },
-  { id: '16', name: 'Neptune Knights', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Richard Gonzalez' } },
-  { id: '17', name: 'Pluto Pups', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Susan Perez' } },
-  { id: '18', name: 'Mercury Meteors', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Joseph Sanchez' } },
-  { id: '19', name: 'Venus Vipers', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Thomas Ramirez' } },
-  { id: '20', name: 'Earth Eagles', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Charles Torres' } },
-  { id: '21', name: 'Alpha Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Daniel Clark' } },
-  { id: '22', name: 'Proxima Centauri', logoUrl: 'https://placehold.co/100x100.png', category: 'Segunda', group: 'B', president: { name: 'Nancy Lewis' } }
-];
-
-export let players: Player[] = [
-    { id: 'p-001', name: 'Lionel Messi', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 22, assists: 10, yellowCards: 3, redCards: 0 }, idNumber: '1712345678', birthDate: '1987-06-24', jerseyNumber: 10, status: 'activo', careerHistory: [{teamName: 'Cosmic Comets', startDate: '2023-01-15' }] },
-    { id: 'p-002', name: 'Cristiano Ronaldo', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 25, assists: 5, yellowCards: 4, redCards: 0 }, idNumber: '1712345679', birthDate: '1985-02-05', jerseyNumber: 7, status: 'activo', careerHistory: [{teamName: 'Cosmic Comets', startDate: '2022-08-20' }] },
-    { id: 'p-003', name: 'Neymar Jr', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Cosmic Comets', teamId: '1', category: 'Máxima', position: 'Delantero', stats: { goals: 18, assists: 15, yellowCards: 6, redCards: 1 }, idNumber: '1712345680', birthDate: '1992-02-05', jerseyNumber: 11, status: 'inactivo', statusReason: 'Transferencia a otro club', careerHistory: [{teamName: 'Galaxy Gliders', startDate: '2021-09-01', endDate: '2022-09-01'}, {teamName: 'Cosmic Comets', startDate: '2022-09-01' }] },
-    { id: 'p-004', name: 'Kylian Mbappé', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 28, assists: 8, yellowCards: 2, redCards: 0 }, idNumber: '1712345681', birthDate: '1998-12-20', jerseyNumber: 7, status: 'activo', careerHistory: [{teamName: 'Solar Flares', startDate: '2020-01-30' }] },
-    { id: 'p-005', name: 'Kevin De Bruyne', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 12, assists: 25, yellowCards: 3, redCards: 0 }, idNumber: '1712345682', birthDate: '1991-06-28', jerseyNumber: 17, status: 'activo', careerHistory: [{teamName: 'Solar Flares', startDate: '2019-07-15' }] },
-    { id: 'p-sf-3', name: 'Andrés Iniesta', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 8, assists: 20, yellowCards: 1, redCards: 0 }, idNumber: '1712345683', birthDate: '1984-05-11', jerseyNumber: 8, status: 'activo', careerHistory: [{teamName: 'Solar Flares', startDate: '2018-06-01' }] },
-    { id: 'p-sf-4', name: 'Xavi Hernández', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 6, assists: 22, yellowCards: 2, redCards: 0 }, idNumber: '1712345684', birthDate: '1980-01-25', jerseyNumber: 6, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-5', name: 'Sergio Ramos', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 4, assists: 2, yellowCards: 10, redCards: 2 }, idNumber: '1712345685', birthDate: '1986-03-30', jerseyNumber: 4, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-6', name: 'Iker Casillas', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Portero', stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 }, idNumber: '1712345686', birthDate: '1981-05-20', jerseyNumber: 1, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-7', name: 'David Villa', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 20, assists: 5, yellowCards: 1, redCards: 0 }, idNumber: '1712345687', birthDate: '1981-12-03', jerseyNumber: 9, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-8', name: 'Carles Puyol', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 2, assists: 1, yellowCards: 8, redCards: 1 }, idNumber: '1712345688', birthDate: '1978-04-13', jerseyNumber: 5, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-9', name: 'Zinedine Zidane', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Mediocampista', stats: { goals: 15, assists: 18, yellowCards: 5, redCards: 1 }, idNumber: '1712345689', birthDate: '1972-06-23', jerseyNumber: 21, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-10', name: 'Ronaldinho Gaúcho', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 22, assists: 25, yellowCards: 3, redCards: 0 }, idNumber: '1712345690', birthDate: '1980-03-21', jerseyNumber: 80, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-11', name: 'Paolo Maldini', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Defensa', stats: { goals: 3, assists: 4, yellowCards: 2, redCards: 0 }, idNumber: '1712345691', birthDate: '1968-06-26', jerseyNumber: 3, status: 'activo', careerHistory: [] },
-    { id: 'p-sf-12', name: 'Thierry Henry', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Solar Flares', teamId: '2', category: 'Máxima', position: 'Delantero', stats: { goals: 24, assists: 12, yellowCards: 1, redCards: 0 }, idNumber: '1712345692', birthDate: '1977-08-17', jerseyNumber: 14, status: 'activo', careerHistory: [] },
-    { id: 'p-006', name: 'Virgil van Dijk', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Galaxy Gliders', teamId: '3', category: 'Máxima', position: 'Defensa', stats: { goals: 5, assists: 3, yellowCards: 1, redCards: 0 }, idNumber: '1712345683', birthDate: '1991-07-08', jerseyNumber: 4, status: 'activo', careerHistory: [] },
-    { id: 'p-007', name: 'Luka Modric', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Orion Stars', teamId: '4', category: 'Máxima', position: 'Mediocampista', stats: { goals: 8, assists: 18, yellowCards: 2, redCards: 0 }, idNumber: '1712345684', birthDate: '1985-09-09', jerseyNumber: 10, status: 'activo', careerHistory: [] },
-    { id: 'p-008', name: 'Erling Haaland', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Vortex Voyagers', teamId: '5', category: 'Primera', position: 'Delantero', stats: { goals: 35, assists: 5, yellowCards: 1, redCards: 0 }, idNumber: '1712345685', birthDate: '2000-07-21', jerseyNumber: 9, status: 'activo', careerHistory: [] },
-    { id: 'p-009', name: 'Mohamed Salah', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Pulsar Pioneers', teamId: '6', category: 'Primera', position: 'Delantero', stats: { goals: 25, assists: 12, yellowCards: 0, redCards: 0 }, idNumber: '1712345686', birthDate: '1992-06-15', jerseyNumber: 11, status: 'activo', careerHistory: [] },
-    { id: 'p-010', name: 'Alisson Becker', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Quasar Quest', teamId: '7', category: 'Segunda', position: 'Portero', stats: { goals: 0, assists: 1, yellowCards: 1, redCards: 0 }, idNumber: '1712345687', birthDate: '1992-10-02', jerseyNumber: 1, status: 'activo', careerHistory: [] },
-    { id: 'p-011', name: 'Robert Lewandowski', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Andromeda Avengers', teamId: 't-max-5', category: 'Máxima', position: 'Delantero', stats: { goals: 30, assists: 3, yellowCards: 2, redCards: 0 }, idNumber: '1712345688', birthDate: '1988-08-21', jerseyNumber: 9, status: 'activo', careerHistory: [] },
-    { id: 'p-012', name: 'Sadio Mané', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Equinox FC', teamId: 't-pri-3', category: 'Primera', position: 'Delantero', stats: { goals: 20, assists: 8, yellowCards: 3, redCards: 0 }, idNumber: '1712345689', birthDate: '1992-04-10', jerseyNumber: 10, status: 'activo', careerHistory: [] },
-    { id: 'p-013', name: 'Joshua Kimmich', photoUrl: 'https://placehold.co/400x400.png', idCardUrl: 'https://placehold.co/856x540.png', team: 'Asteroide FC', teamId: '9', category: 'Segunda', position: 'Mediocampista', stats: { goals: 7, assists: 15, yellowCards: 5, redCards: 0 }, idNumber: '1712345690', birthDate: '1995-02-08', jerseyNumber: 6, status: 'activo', careerHistory: [] },
-];
-
-
-export let standings: Standing[] = teams.map((team, index) => ({
-    rank: index + 1,
-    teamId: team.id,
-    teamName: team.name,
-    played: 0,
-    wins: 0,
-    draws: 0,
-    losses: 0,
-    points: 0,
-    goalsFor: 0,
-    goalsAgainst: 0,
-}));
-
-
-export const getTopScorers = async (): Promise<Scorer[]> => {
-    return Promise.resolve(
-        players
-            .sort((a, b) => b.stats.goals - a.stats.goals)
-            .slice(0, 10)
-            .map((player, index) => ({
-                rank: index + 1,
-                playerId: player.id,
-                playerName: player.name,
-                playerPhotoUrl: player.photoUrl,
-                teamName: player.team,
-                teamId: player.teamId,
-                goals: player.stats.goals,
-            }))
-    );
+// --- Standings ---
+export const getStandings = async (): Promise<Standing[]> => {
+    const standingsCol = collection(db, 'standings');
+    const standingsSnapshot = await getDocs(standingsCol);
+    return standingsSnapshot.docs.map(doc => ({ ...doc.data(), teamId: doc.id } as Standing));
 };
 
 
+// --- Scorers ---
+export const getTopScorers = async (): Promise<Scorer[]> => {
+    const playersCol = collection(db, 'players');
+    const q = query(playersCol, orderBy('stats.goals', 'desc'), limit(10));
+    const playerSnapshot = await getDocs(q);
+    return playerSnapshot.docs.map((doc, index) => {
+        const player = doc.data() as Player;
+        return {
+            rank: index + 1,
+            playerId: doc.id,
+            playerName: player.name,
+            playerPhotoUrl: player.photoUrl,
+            teamName: player.team,
+            teamId: player.teamId,
+            goals: player.stats.goals,
+        };
+    });
+};
+
+// --- Sanctions ---
 export const getSanctions = async (): Promise<Sanction[]> => {
-    return Promise.resolve(
-        players
-            .filter(p => p.stats.redCards > 0)
-            .map((player, index) => ({
-                id: `s${index + 1}`,
-                playerId: player.id,
-                playerName: player.name,
-                playerPhotoUrl: player.photoUrl,
-                teamName: player.team,
-                teamId: player.teamId,
-                reason: 'Tarjeta Roja Directa',
-                gamesSuspended: 1,
-                date: '2024-07-20',
-        }))
-    );
+    const sanctionsCol = collection(db, 'sanctions');
+    const sanctionSnapshot = await getDocs(sanctionsCol);
+    return sanctionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sanction));
+};
+
+export const addSanction = async (newSanction: Omit<Sanction, 'id'>) => {
+    const sanctionsCol = collection(db, 'sanctions');
+    await addDoc(sanctionsCol, newSanction);
+};
+
+
+// --- Matches ---
+export const getMatches = async (): Promise<Match[]> => {
+    const matchesCol = collection(db, 'matches');
+    const matchSnapshot = await getDocs(matchesCol);
+    return matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+};
+
+export const getMatchesByTeamId = async (teamId: string): Promise<Match[]> => {
+    const allMatches = await getMatches();
+    return allMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
 }
 
-export const addSanction = (newSanction: Sanction) => {
-    // This is a mock function, in a real scenario this would update a database
-    console.log('Adding sanction:', newSanction);
-}
+export const getMatchById = async (id: string): Promise<Match | undefined> => {
+    const matchRef = doc(db, 'matches', id);
+    const matchSnap = await getDoc(matchRef);
+    return matchSnap.exists() ? { id: matchSnap.id, ...matchSnap.data() } as Match : undefined;
+};
 
-export const achievements: Achievement[] = [
-    { teamName: 'Athletic Bilbao Jr', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Campeón', category: 'Categoría Máxima', year: '2018-2019' },
-    { teamName: 'Cruzeiro', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Vicecampeón', category: 'Categoría Máxima', year: '2018-2019' },
-    { teamName: 'Jesús Del Gran Poder', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Campeón', category: 'Categoría Femenino', year: '2018-2019' },
-    { teamName: 'Union Bautista', teamLogoUrl: 'https://placehold.co/100x100.png', achievement: 'Vicecampeón', category: 'Categoría Femenino', year: '2018-2019' },
-]
+export const updateMatchData = async (updatedMatch: Match) => {
+    const matchRef = doc(db, 'matches', updatedMatch.id);
+    await updateDoc(matchRef, { ...updatedMatch });
+};
 
+export const setMatchAsFinished = async (matchId: string) => {
+    const matchRef = doc(db, 'matches', matchId);
+    await updateDoc(matchRef, { status: 'finished' });
+};
+
+
+// --- Requests ---
+export const getRequalificationRequests = async (): Promise<RequalificationRequest[]> => {
+    const requestsCol = collection(db, 'requalificationRequests');
+    const requestSnapshot = await getDocs(requestsCol);
+    return requestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RequalificationRequest));
+};
+
+// --- Logs ---
+export const getSystemLogs = async (): Promise<LogEntry[]> => {
+    const logsCol = collection(db, 'logs');
+    const logSnapshot = await getDocs(query(logsCol, orderBy('timestamp', 'desc')));
+    return logSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LogEntry));
+};
+
+// --- Dashboard Stats ---
 export const getDashboardStats = async (): Promise<DashboardStats> => {
+    // This is a complex aggregation. For a real app, this would be better handled 
+    // by a backend function or by keeping aggregate counts in a separate document.
+    // Here, we'll fetch everything and compute, which is inefficient for large datasets.
+    const players = await getPlayers();
+    const teams = await getTeams();
+    const matches = await getMatches();
+    const goalsScored = players.reduce((sum, p) => sum + (p.stats.goals || 0), 0);
+    
     return Promise.resolve({
-        categories: 6,
-        stages: 3,
-        fines: 48,
-        matchesPlayed: 698,
-        goalsScored: 4856,
-        yellowCards: 2768,
-        redCards: 335,
+        categories: [...new Set(teams.map(t => t.category))].length,
+        stages: 3, // Mock
+        fines: 48, // Mock
+        matchesPlayed: matches.filter(m => m.status === 'finished').length,
+        goalsScored: goalsScored,
+        yellowCards: players.reduce((sum, p) => sum + (p.stats.yellowCards || 0), 0),
+        redCards: players.reduce((sum, p) => sum + (p.stats.redCards || 0), 0),
         teams: {
-            registered: 2,
-            approved: 65,
-            rejected: 9,
-            sanctioned: 1,
+            registered: 2, // Mock
+            approved: teams.length,
+            rejected: 9, // Mock
+            sanctioned: 1, // Mock
         },
         players: {
-            approved: 1730,
-            new: 394,
-            rejected: 1470,
+            approved: players.length,
+            new: players.filter(p => new Date(p.careerHistory?.[0]?.startDate || 0) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+            rejected: 1470, // Mock
         }
     });
 }
 
-const today = new Date();
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
-const yesterday = new Date(today);
-yesterday.setDate(yesterday.getDate() - 1);
 
-const defaultVocalPayment: VocalPaymentDetails = {
-    referee: 11.00,
-    fee: 2.00,
-    yellowCardFine: 0,
-    redCardFine: 0,
-    otherFines: 0,
-    otherFinesDescription: '',
-    advancePayment: 0,
-    includePendingDebt: false,
-    total: 13.00,
-    paymentStatus: 'paid'
-}
-
-export let upcomingMatches: Match[] = [
-    {
-        id: 'm1',
-        date: yesterday.toISOString(),
-        category: 'Máxima',
-        teams: {
-            home: { ...teams[0], attended: true, vocalPaymentDetails: {...defaultVocalPayment, redCardFine: 5, total: 18, paymentStatus: 'paid'} },
-            away: { ...teams[1], attended: true, vocalPaymentDetails: {...defaultVocalPayment, yellowCardFine: 2, total: 15, paymentStatus: 'pending'}  }
-        },
-        status: 'finished',
-        score: { home: 2, away: 1 },
-        events: [
-            { id: 'evt-m1-1', playerId: 'p-001', playerName: 'Lionel Messi', teamName: 'Cosmic Comets', event: 'goal' },
-            { id: 'evt-m1-2', playerId: 'p-002', playerName: 'Cristiano Ronaldo', teamName: 'Cosmic Comets', event: 'goal' },
-            { id: 'evt-m1-3', playerId: 'p-004', playerName: 'Kylian Mbappé', teamName: 'Solar Flares', event: 'goal' },
-        ]
-    },
-    {
-        id: 'm2',
-        date: tomorrow.toISOString(),
-        category: 'Primera',
-        teams: {
-            home: { ...teams[4], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
-            away: { ...teams[5], attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
-        },
-        status: 'future',
-        score: { home: 0, away: 0 },
-        events: []
-    },
-     {
-        id: 'm3',
-        date: today.toISOString(),
-        category: 'Segunda',
-        teams: {
-            home: { ...teams.find(t => t.id === '7')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
-            away: { ...teams.find(t => t.id === '8')!, attended: false, vocalPaymentDetails: { ...defaultVocalPayment, total: 0, paymentStatus: 'pending'} }
-        },
-        status: 'in-progress',
-        score: { home: 0, away: 0 },
-        events: []
-    },
-    {
-        id: 'm4',
-        date: yesterday.toISOString(),
-        category: 'Segunda',
-        teams: {
-            home: { ...teams.find(t => t.id === '9')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} },
-            away: { ...teams.find(t => t.id === '10')!, attended: true, vocalPaymentDetails: {...defaultVocalPayment, paymentStatus: 'paid'} }
-        },
-        status: 'finished',
-        score: { home: 0, away: 0 },
-        events: []
-    }
-];
-
-export const matchData: MatchData = {
-  date: '2024-07-28',
-  time: '14:00',
-  category: 'Máxima',
-  phase: 'Fase de Grupos',
-  matchday: 'Jornada 5',
-  field: 'Cancha Principal',
-  vocalTeam: 'Galaxy Gliders',
-  teamA: {
-    ...teams.find(t => t.id === '1')!,
-    players: players.filter(p => p.teamId === '1').slice(0, 30),
-    score: 0,
-    attended: true,
-    vocalPaymentDetails: defaultVocalPayment,
-  },
-  teamB: {
-    ...teams.find(t => t.id === '2')!,
-     players: players.filter(p => p.teamId === '2').slice(0, 30),
-     score: 0,
-     attended: true,
-     vocalPaymentDetails: defaultVocalPayment,
-  },
-};
-
-export const getPlayers = async (): Promise<Player[]> => Promise.resolve(players);
-export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
-export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
-export const getTeams = async (): Promise<Team[]> => Promise.resolve(teams);
-export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
-export const getStandings = async (): Promise<Standing[]> => Promise.resolve(standings);
-
-export const getTeamsByCategory = (category: Category, group?: 'A' | 'B'): Team[] => teams.filter(t => {
-    const categoryMatch = t.category === category;
-    if (!group) return categoryMatch;
-    return categoryMatch && t.group === group;
-});
-export const getMatchesByTeamId = (teamId: string): Match[] => upcomingMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
-
-
-// Function to update player stats
-export const updatePlayerStats = (playerId: string, statsUpdate: { goals: number, assists: number, yellowCards: number, redCards: number }) => {
-    const playerIndex = players.findIndex(p => p.id === playerId);
-    if (playerIndex !== -1) {
-        players[playerIndex].stats.goals += statsUpdate.goals;
-        players[playerIndex].stats.assists += statsUpdate.assists;
-        players[playerIndex].stats.yellowCards += statsUpdate.yellowCards;
-        players[playerIndex].stats.redCards += statsUpdate.redCards;
-    }
-};
-
-export const updatePlayerStatus = (playerId: string, status: 'activo' | 'inactivo') => {
-    const playerIndex = players.findIndex(p => p.id === playerId);
-    if (playerIndex !== -1) {
-        players[playerIndex].status = status;
-    }
-};
-
-export const systemLogs: LogEntry[] = [
-    {
-        id: 'log1',
-        timestamp: '2024-07-31T12:30:00.000Z',
-        user: 'Usuario Admin',
-        userAvatar: 'https://placehold.co/100x100.png',
-        action: 'create',
-        category: 'team',
-        description: "agregó el equipo 'Asteroide FC'."
-    },
-    {
-        id: 'log2',
-        timestamp: '2024-07-31T10:00:00.000Z',
-        user: 'Secretario/a',
-        userAvatar: 'https://placehold.co/100x100.png',
-        action: 'payment',
-        category: 'treasury',
-        description: "marcó como pagada la vocalía de 'Solar Flares' ($15.00)."
-    },
-     {
-        id: 'log3',
-        timestamp: '2024-07-30T14:00:00.000Z',
-        user: 'Usuario Admin',
-        userAvatar: 'https://placehold.co/100x100.png',
-        action: 'update',
-        category: 'team',
-        description: "editó la información del club 'Cosmic Comets'."
-    },
-     {
-        id: 'log4',
-        timestamp: '2024-07-30T11:00:00.000Z',
-        user: 'Usuario Admin',
-        userAvatar: 'https://placehold.co/100x100.png',
-        action: 'generate',
-        category: 'system',
-        description: "generó la nómina de jugadores para 'Galaxy Gliders'."
-    },
-    {
-        id: 'log5',
-        timestamp: '2024-07-29T18:00:00.000Z',
-        user: 'Usuario Admin',
-        userAvatar: 'https://placehold.co/100x100.png',
-        action: 'delete',
-        category: 'player',
-        description: "eliminó al jugador 'Neymar Jr' del equipo 'Cosmic Comets'."
-    },
-];
-
-export const getMatches = async (): Promise<Match[]> => Promise.resolve(upcomingMatches);
-export const getMatchById = async (id: string): Promise<Match | undefined> => Promise.resolve(upcomingMatches.find(m => m.id === id));
-
-
-export const updateMatchData = (updatedMatch: Match) => {
-    const index = upcomingMatches.findIndex(m => m.id === updatedMatch.id);
-    if (index !== -1) {
-        upcomingMatches[index] = updatedMatch;
-    }
-};
-
-export const setMatchAsFinished = (matchId: string) => {
-    const index = upcomingMatches.findIndex(m => m.id === matchId);
-    if (index !== -1) {
-        upcomingMatches[index].status = 'finished';
-    }
-};
-
-export let requalificationRequests: RequalificationRequest[] = [
-    {
-        id: 'req-1',
-        teamId: '1',
-        teamName: 'Cosmic Comets',
-        requestType: 'requalification',
-        playerInName: 'Ansu Fati',
-        playerOutName: 'Neymar Jr',
-        date: '2024-07-28T10:00:00.000Z',
-        status: 'pending',
-    },
-    {
-        id: 'req-2',
-        teamId: '2',
-        teamName: 'Solar Flares',
-        requestType: 'qualification',
-        playerInName: 'Pedri González',
-        date: '2024-07-27T11:30:00.000Z',
-        status: 'pending',
-    },
-    {
-        id: 'req-3',
-        teamId: '5',
-        teamName: 'Vortex Voyagers',
-        requestType: 'qualification',
-        playerInName: 'Gavi',
-        date: '2024-07-25T14:00:00.000Z',
-        status: 'approved',
-    },
-     {
-        id: 'req-4',
-        teamId: '7',
-        teamName: 'Quasar Quest',
-        requestType: 'requalification',
-        playerInName: 'Ferran Torres',
-        playerOutName: 'Un Jugador Viejo',
-        date: '2024-07-24T16:00:00.000Z',
-        status: 'rejected',
-    },
-];
-
-export const getRequalificationRequests = async (): Promise<RequalificationRequest[]> => Promise.resolve(requalificationRequests);
-
-export const getReferees = () => [
-    { id: 'ref-1', name: 'Byron Moreno' },
-    { id: 'ref-2', name: 'Néstor Pitana' },
-    { id: 'ref-3', name: 'Pierluigi Collina' },
-];
+// These are now empty or used as fallbacks, as data comes from Firestore.
+export let players: Player[] = [];
+export let teams: Team[] = [];
+export let standings: Standing[] = [];
+export let systemLogs: LogEntry[] = [];
+export let requalificationRequests: RequalificationRequest[] = [];
+export let upcomingMatches: Match[] = [];
+export const achievements: Achievement[] = [];
+export const matchData: MatchData | {} = {};
