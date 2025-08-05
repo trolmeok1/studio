@@ -229,12 +229,12 @@ export function AppSidebar() {
                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatarUrl} data-ai-hint="user avatar" alt={user.name} />
-                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarImage src={user.avatarUrl} data-ai-hint="user avatar" alt={user.name} />
+                            <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                        <span className="font-semibold text-sm">{user.name}</span>
-                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                            <span className="font-semibold text-sm">{user.name}</span>
+                            <span className="text-xs text-muted-foreground">{user.email}</span>
                         </div>
                     </div>
                      <div className="flex items-center">
