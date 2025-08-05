@@ -40,12 +40,12 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 
     useEffect(() => {
         if (teamA) {
-            getPlayersByTeamId(teamA.id).then(setPlayersA);
+            setPlayersA(getPlayersByTeamId(teamA.id));
         } else {
             setPlayersA([]);
         }
         if (teamB) {
-            getPlayersByTeamId(teamB.id).then(setPlayersB);
+            setPlayersB(getPlayersByTeamId(teamB.id));
         } else {
             setPlayersB([]);
         }
@@ -851,7 +851,7 @@ export default function CommitteesPage() {
 
     return {
         today: todayMatches,
-        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime()),
         past: pastMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     };
   }, [isClient, allMatches]);

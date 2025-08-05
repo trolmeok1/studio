@@ -362,10 +362,10 @@ export const matchData: MatchData = {
 };
 
 export const getPlayers = async (): Promise<Player[]> => Promise.resolve(players);
-export const getPlayerById = async (id: string): Promise<Player | undefined> => Promise.resolve(players.find(p => p.id === id));
-export const getPlayersByTeamId = async (teamId: string): Promise<Player[]> => Promise.resolve(players.filter(p => p.teamId === teamId));
+export const getPlayerById = (id: string): Player | undefined => players.find(p => p.id === id);
+export const getPlayersByTeamId = (teamId: string): Player[] => players.filter(p => p.teamId === teamId);
 export const getTeams = async (): Promise<Team[]> => Promise.resolve(teams);
-export const getTeamById = async (id: string): Promise<Team | undefined> => Promise.resolve(teams.find(t => t.id === id));
+export const getTeamById = (id: string): Team | undefined => teams.find(t => t.id === id);
 export const getStandings = async (): Promise<Standing[]> => Promise.resolve(standings);
 
 export const getTeamsByCategory = (category: Category, group?: 'A' | 'B'): Team[] => teams.filter(t => {
