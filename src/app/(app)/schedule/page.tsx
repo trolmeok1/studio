@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, standings as mockStandings } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -670,28 +670,37 @@ export default function SchedulePage() {
    const handleGenerateFinals = () => {
         let finals: GeneratedMatch[] = [];
 
-        const mockStandings = allTeams.map(t => ({ teamId: t.id, category: t.category, group: t.group, points: Math.random() * 50 }));
-
-        const maximaTeams = mockStandings.filter(s => s.category === 'Máxima').sort((a,b) => b.points - a.points).slice(0, 2);
+        const getTopTeams = (category: Category, group?: 'A' | 'B') => {
+            return mockStandings
+                .filter(s => {
+                    const team = getTeam(s.teamId);
+                    return team?.category === category && (group ? team.group === group : true);
+                })
+                .sort((a,b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
+                .slice(0, 2);
+        };
+        
+        const maximaTeams = getTopTeams('Máxima');
         if (maximaTeams.length === 2) {
             finals.push({ home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
         }
 
-        const primeraTeams = mockStandings.filter(s => s.category === 'Primera').sort((a,b) => b.points - a.points).slice(0, 2);
+        const primeraTeams = getTopTeams('Primera');
         if (primeraTeams.length === 2) {
             finals.push({ home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
         }
         
-        const groupATeams = mockStandings.filter(s => s.group === 'A').sort((a,b) => b.points - a.points).slice(0, 2);
-        const groupBTeams = mockStandings.filter(s => s.group === 'B').sort((a,b) => b.points - a.points).slice(0, 2);
+        const groupATeams = getTopTeams('Segunda', 'A');
+        const groupBTeams = getTopTeams('Segunda', 'B');
         
-        if (groupATeams.length === 2 && groupBTeams.length === 2) {
+        if (groupATeams.length >= 2 && groupBTeams.length >= 2) {
             finals.push({ home: groupATeams[0].teamId, away: groupBTeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
             finals.push({ home: groupBTeams[0].teamId, away: groupATeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
             finals.push({ home: groupATeams[0].teamId, away: groupBTeams[0].teamId, category: 'Segunda', leg: 'Final' });
         }
         
         setFinalMatches(finals);
+        setActiveTab('finals');
         toast({ title: 'Fase Final Generada', description: 'Los partidos de las finales han sido creados.' });
     };
 
@@ -832,7 +841,7 @@ export default function SchedulePage() {
                             <CardDescription>Partidos de eliminación directa para definir a los campeones.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {finalMatches.length === 0 && areAllMatchesFinished && (
+                            {finalMatches.length === 0 && areAllMatchesFinished && user.permissions.schedule.edit && (
                                 <div className="text-center py-10">
                                     <p className="text-muted-foreground mb-4">La temporada regular ha concluido. ¡Es hora de definir a los campeones!</p>
                                     <Button onClick={handleGenerateFinals}>
@@ -870,25 +879,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-    
-
-  
-
-
-
-
-
-
-
-
-
-
-    
-
