@@ -17,7 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayers, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatches, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId, sanctions } from '@/lib/mock-data';
+import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatchesData, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId, getSanctions as getAllSanctions, getMatches } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,24 +49,32 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
         }
     }, [teamA, teamB]);
 
-    const calculatePendingValue = useCallback((teamId?: string) => {
-        if (!teamId || !match) return 0;
-        getMatchesByTeamId(teamId).then(matches => {
-            const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
-            return pastMatches.reduce((total, pastMatch) => {
-                const isHome = pastMatch.teams.home.id === teamId;
-                const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
-                if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
-                    return total + (teamDetails.vocalPaymentDetails.total || 0);
-                }
-                return total;
-            }, 0);
-        });
-        return 0;
-    }, [match]);
+    const usePendingValue = (teamId?: string) => {
+        const [value, setValue] = useState(0);
+         useEffect(() => {
+            if (!teamId || !match) {
+                setValue(0);
+                return;
+            };
 
-    const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, calculatePendingValue]);
-    const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, calculatePendingValue]);
+            getMatchesByTeamId(teamId).then(matches => {
+                const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
+                const total = pastMatches.reduce((total, pastMatch) => {
+                    const isHome = pastMatch.teams.home.id === teamId;
+                    const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+                    if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                        return total + (teamDetails.vocalPaymentDetails.total || 0);
+                    }
+                    return total;
+                }, 0);
+                setValue(total);
+            });
+        }, [teamId, match]);
+        return value;
+    }
+
+    const pendingValueA = usePendingValue(teamA?.id);
+    const pendingValueB = usePendingValue(teamB?.id);
     
     const PlayerRow = ({ player, number }: { player?: Player, number: number }) => {
         const getAge = (birthDateString: string) => {
@@ -85,9 +93,11 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 
         useEffect(() => {
             if(player) {
-                getSanctions().then(s => {
+                getAllSanctions().then(s => {
                     setIsSanctioned(s.some(sanc => sanc.playerId === player.id));
                 });
+            } else {
+                setIsSanctioned(false);
             }
         }, [player]);
 
@@ -315,7 +325,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     
     useEffect(() => {
-        getPlayers().then(setAllPlayers);
+        allPlayersData().then(setAllPlayers);
     }, []);
 
     useEffect(() => {
