@@ -151,7 +151,7 @@ export const getPlayers = async (): Promise<Player[]> => {
     return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
 };
 
-export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'status' | 'stats'>, photoDataUri: string): Promise<Player> => {
+export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'status' | 'stats' | 'careerHistory'>, photoDataUri: string): Promise<Player> => {
     const newPlayerId = `player-${Date.now()}`;
     const storageRef = ref(storage, `player-photos/${newPlayerId}`);
     const snapshot = await uploadString(storageRef, photoDataUri, 'data_url');
@@ -162,6 +162,10 @@ export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'st
         photoUrl: photoUrl,
         status: 'activo',
         stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
+        careerHistory: [{
+            teamName: playerData.team,
+            startDate: new Date().toISOString(),
+        }]
     };
 
     const docRef = await addDoc(collection(db, 'players'), newPlayer);
