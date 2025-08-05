@@ -107,10 +107,9 @@ export const getTeams = async (): Promise<Team[]> => {
 };
 
 export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDataUri: string | null): Promise<Team> => {
-    const newTeamData: Omit<Team, 'id'> = {
+    const newTeamData: Omit<Team, 'id' | 'logoUrl' | 'group'> & { group?: 'A' | 'B' } = {
         name: teamData.name,
         category: teamData.category,
-        logoUrl: '',
         president: { name: '' },
         vicePresident: { name: '' },
         secretary: { name: '' },
@@ -376,3 +375,5 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
+
+    
