@@ -567,7 +567,7 @@ export default function SchedulePage() {
   const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
 
 
-  const isTournamentGenerated = generatedMatches.length > 0;
+  const isTournamentGenerated = useMemo(() => generatedMatches.length > 0, [generatedMatches]);
   const areAllMatchesFinished = isTournamentGenerated; 
   
   useEffect(() => { setIsClient(true) }, []);
