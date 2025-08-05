@@ -7,7 +7,7 @@ import type { User, Permissions, UserRole } from '@/lib/types';
 
 
 const defaultGuestUser: User = { 
-    id: 'user-3', 
+    id: 'guest-user', 
     name: 'Invitado', 
     email: 'guest@ligacontrol.com', 
     role: 'guest', 
@@ -33,11 +33,11 @@ const defaultGuestUser: User = {
 
 interface AuthContextType {
   user: User;
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
   users: User[];
   setUsers: (users: User[]) => void;
   login: (email: string, password?: string) => Promise<boolean>;
-  loginAs: (role: UserRole) => void;
+  logout: () => void;
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
   isAuthLoading: boolean;
@@ -55,68 +55,68 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     async function loadData() {
         setIsAuthLoading(true);
-        const fetchedUsers = await getUsers();
-        if (fetchedUsers.length > 0) {
-            setUsersState(fetchedUsers as User[]);
-            const guestUser = fetchedUsers.find(u => u.role === 'guest') || defaultGuestUser;
-            setCurrentUser(guestUser as User);
-        } else {
-            setUsersState([defaultGuestUser]);
+        try {
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                setCurrentUser(JSON.parse(storedUser));
+            } else {
+                setCurrentUser(defaultGuestUser);
+            }
+        } catch (error) {
+            console.error("Failed to parse user from localStorage", error);
             setCurrentUser(defaultGuestUser);
+        } finally {
+            setIsAuthLoading(false);
         }
-        setIsAuthLoading(false);
     }
     loadData();
   }, []);
 
+  const handleSetUser = (user: User | null) => {
+    if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        setCurrentUser(user);
+    } else {
+        localStorage.removeItem('currentUser');
+        setCurrentUser(defaultGuestUser);
+    }
+  }
+
   const login = async (email: string, password?: string): Promise<boolean> => {
     const userFromDb = await getUserByEmail(email);
     
-    // In a real app, you would hash and compare passwords.
-    // For this demo, we'll do a simple string comparison.
     if (userFromDb && userFromDb.password === password) {
-        setCurrentUser(userFromDb);
+        handleSetUser(userFromDb);
         return true;
     }
 
     return false;
   };
 
-  const loginAs = (role: UserRole) => {
-    const userToLogin = users.find(u => u.role === role);
-    if (userToLogin) {
-      setCurrentUser(userToLogin);
-    } else {
-        // Fallback to guest if specific role not found in the initial user list
-        const guestUser = users.find(u => u.role === 'guest') || defaultGuestUser;
-        setCurrentUser(guestUser);
-    }
+  const logout = () => {
+    handleSetUser(null);
   };
   
   const setUsers = (updatedUsers: User[]) => {
       setUsersState(updatedUsers);
       const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
       if (updatedCurrentUser) {
-          setCurrentUser(updatedCurrentUser);
+          handleSetUser(updatedCurrentUser);
       }
       updatedUsers.forEach(user => {
           if (users.some(u => u.id === user.id)) {
             updateUser(user);
-          } else {
-            // In a real app, you'd have an addUser function.
-            // For now, we assume users are added via Firebase Console
-            // or another trusted mechanism.
           }
       });
   }
 
   const value = {
     user: currentUser,
-    setUser: setCurrentUser,
+    setUser: handleSetUser,
     users,
     setUsers,
     login,
-    loginAs,
+    logout,
     isCopaPublic,
     setIsCopaPublic,
     isAuthLoading,

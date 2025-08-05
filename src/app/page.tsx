@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Users, Goal, Shield, Activity, CalendarDays, ClipboardList, HandCoins } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { DashboardStats, Match, Scorer, Standing } from '@/lib/types';
 import { getDashboardStats, getMatches, getTopScorers, getStandings } from '@/lib/mock-data';
@@ -131,6 +131,7 @@ const StandingsWidget = ({ standings }: {standings: Standing[]}) => (
 
 export default function DashboardPage() {
     const { user, isAuthLoading } = useAuth();
+    const router = useRouter();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [recentMatches, setRecentMatches] = useState<Match[]>([]);
     const [topScorers, setTopScorers] = useState<Scorer[]>([]);
@@ -141,7 +142,7 @@ export default function DashboardPage() {
         if (!isAuthLoading && user.role === 'guest') {
             // No redirect, allow guest access
         }
-    }, [user, isAuthLoading]);
+    }, [user, isAuthLoading, router]);
     
      useEffect(() => {
         const fetchData = async () => {

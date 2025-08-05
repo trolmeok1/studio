@@ -54,15 +54,17 @@ import React from 'react';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, isCopaPublic, isAuthLoading } = useAuth();
+  const { user, logout, isCopaPublic, isAuthLoading } = useAuth();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
 
   const isActive = (path: string) => {
-    return pathname === path || pathname.startsWith(`${path}/`);
+    if (path === '/') return pathname === path;
+    return pathname.startsWith(path);
   };
 
   const handleLogout = () => {
+    logout();
     router.push('/login');
   };
   
@@ -93,10 +95,10 @@ export function AppSidebar() {
   }
 
   const { permissions } = user;
-  const hasAdminPermissions = user.role === 'admin' || user.role === 'secretary';
+  const hasAdminPermissions = user.role !== 'guest';
 
   const mainNavItems = [
-    permissions.dashboard.view && { href: '/dashboard', icon: LayoutDashboard, label: 'Inicio', tooltip: 'Inicio' },
+    permissions.dashboard.view && { href: '/', icon: LayoutDashboard, label: 'Inicio', tooltip: 'Inicio' },
     permissions.teams.view && { href: '/teams', icon: Shield, label: 'Equipos', tooltip: 'Equipos' },
     (permissions.copa.view && (isCopaPublic || hasAdminPermissions)) && { href: '/copa', icon: Trophy, label: 'Copa', tooltip: 'Copa' }
   ].filter(Boolean);
@@ -275,16 +277,17 @@ export function BottomNavbar() {
     }
 
     const { permissions } = user;
-    const hasAdminPermissions = user.role === 'admin' || user.role === 'secretary';
+    const hasAdminPermissions = user.role !== 'guest';
 
     const isActive = (path: string) => {
-      return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
+      if (path === '/') return pathname === path;
+      return pathname.startsWith(path);
     };
 
     const canViewCopa = permissions.copa.view && (isCopaPublic || hasAdminPermissions);
 
     let navItems = [
-      { href: '/dashboard', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
+      { href: '/', icon: Home, label: 'Inicio', permission: permissions.dashboard.view },
       { href: '/teams', icon: Shield, label: 'Equipos', permission: permissions.teams.view },
       { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
       { href: '/partido', icon: ClipboardList, label: 'Resultados', permission: permissions.partido.view },
