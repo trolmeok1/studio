@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { getTeamById, getPlayersByTeamId } from '@/lib/mock-data';

@@ -1,5 +1,4 @@
 
-
 'use client';
 import { getTeams, type Team, type Category } from '@/lib/mock-data';
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
