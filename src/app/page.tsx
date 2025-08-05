@@ -110,7 +110,7 @@ const StandingsWidget = ({ standings }: {standings: Standing[]}) => (
                 </TableHeader>
                 <TableBody>
                     {standings.filter(s => s.teamName !== 'Descansa').slice(0, 5).map((s, i) => (
-                        <TableRow key={s.teamId}>
+                        <TableRow key={`${s.teamId}-${i}`}>
                             <TableCell className="font-bold">{i + 1}</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
