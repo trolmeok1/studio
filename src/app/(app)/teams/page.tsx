@@ -1,15 +1,15 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getTeams, type Team, type Category } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Search, Shield, Users } from 'lucide-react';
+import { Search, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
+import { AddTeam } from './_components/AddTeam';
+import { Button } from '@/components/ui/button';
 
 const TeamCard = ({ team }: { team: Team }) => (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -25,11 +25,11 @@ const TeamCard = ({ team }: { team: Team }) => (
         </CardHeader>
         <CardContent>
             <div className="flex justify-end">
-                <Link href={`/teams/${team.id}`}>
-                    <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" asChild>
+                    <Link href={`/teams/${team.id}`}>
                         Ver Equipo
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
         </CardContent>
     </Card>
@@ -58,9 +58,9 @@ export default function TeamsPage() {
     }, [teams, activeTab, searchTerm]);
     
     const categories: Category[] = useMemo(() => {
-       const uniqueCategories = [...new Set(teams.map(t => t.category))];
+       const uniqueCategories = [...new Set(teams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
        // Custom sort order
-       const order: Category[] = ['Máxima', 'Primera', 'Segunda', 'Copa'];
+       const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
        return uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
     }, [teams]);
 
@@ -74,9 +74,7 @@ export default function TeamsPage() {
                         Gestiona los equipos de la liga, su información y sus jugadores.
                     </p>
                 </div>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Registrar Nuevo Equipo
-                </Button>
+                <AddTeam />
             </div>
             
             <Card>
@@ -97,7 +95,7 @@ export default function TeamsPage() {
                 </CardHeader>
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Category)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
                              {categories.map(cat => (
                                 <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
                              ))}
