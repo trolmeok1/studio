@@ -55,7 +55,7 @@ En resumen: **Crear y editar no cuesta. Usar los servicios a gran escala, sí.**
 Este proyecto es una **Aplicación Web Progresiva (PWA)**. Esto significa dos cosas muy importantes:
 
 1.  **No se genera un archivo APK directamente:** El proyecto está construido con tecnología web (Next.js/React), por lo que no puedes abrirlo en Android Studio para compilar un `.apk` tradicional. Las instrucciones que encuentres sobre generar APKs en Android Studio no aplican aquí.
-2.  **La "instalación" se hace desde el navegador web:** Esta es la forma moderna y recomendada. Es más simple para ti y para tus usuarios.
+2.  **La "instalación" se hace desde el navegador web y se comporta como una App Nativa:** Esta es la forma moderna y recomendada. Es más simple para ti y para tus usuarios. Una vez instalada, **NO se abre en el navegador con la barra de direcciones**. Se abre en su propia ventana, a pantalla completa, y se siente como cualquier otra app.
 
 ### Pasos para el usuario final:
 
