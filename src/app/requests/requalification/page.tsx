@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { teams as allTeams, getPlayersByTeamId, requalificationRequests as allRequests, type Player, type Team, type RequalificationRequest } from '@/lib/mock-data';
+import { getTeams, getPlayersByTeamId, getRequalificationRequests, type Player, type Team, type RequalificationRequest } from '@/lib/mock-data';
 import { ArrowLeft, Printer, UserPlus, UserX, FileText, BadgeCheck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,8 +32,12 @@ const RequestHistory = () => {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        setRequests(allRequests);
-        setIsClient(true);
+        async function loadRequests() {
+            const allRequests = await getRequalificationRequests();
+            setRequests(allRequests);
+            setIsClient(true);
+        }
+        loadRequests();
     }, []);
 
     const getStatusVariant = (status: RequalificationRequest['status']) => {
@@ -114,6 +118,7 @@ const RequestHistory = () => {
 export default function RequalificationPage() {
     const [step, setStep] = useState(1);
     const [requestType, setRequestType] = useState<RequestType | null>(null);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
     const [selectedTeamId, setSelectedTeamId] = useState('');
     const [reason, setReason] = useState('');
     const [playerOutId, setPlayerOutId] = useState('');
@@ -123,11 +128,16 @@ export default function RequalificationPage() {
 
     useEffect(() => {
         setIsClient(true);
+        async function loadTeams() {
+            const teamsData = await getTeams();
+            setAllTeams(teamsData);
+        }
+        loadTeams();
     }, []);
 
-    const selectedTeam = useMemo(() => allTeams.find(t => t.id === selectedTeamId), [selectedTeamId]);
+    const selectedTeam = useMemo(() => allTeams.find(t => t.id === selectedTeamId), [selectedTeamId, allTeams]);
     const teamPlayers = useMemo(() => selectedTeamId ? getPlayersByTeamId(selectedTeamId) : [], [selectedTeamId]);
-    const playerOut = useMemo(() => teamPlayers.find(p => p.id === playerOutId), [playerOutId]);
+    const playerOut = useMemo(() => teamPlayers.find(p => p.id === playerOutId), [playerOutId, teamPlayers]);
 
     const handleNextStep = () => {
         const isQualificationValid = requestType === 'qualification' && selectedTeam && playerIn.firstName && playerIn.idNumber;
@@ -402,3 +412,7 @@ export default function RequalificationPage() {
         </div>
     );
 }
+
+    
+
+    
