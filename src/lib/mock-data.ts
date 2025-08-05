@@ -106,8 +106,8 @@ export const getTeams = async (): Promise<Team[]> => {
     return teamSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
 };
 
-export const addTeam = async (teamData: Omit<Team, 'id' | 'logoUrl'>, logoDataUri: string | null): Promise<Team> => {
-    let logoUrl = 'https://placehold.co/100x100.png'; // default logo
+export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDataUri: string | null): Promise<Team> => {
+    let logoUrl = 'https://placehold.co/100x100.png';
     const newTeamId = `team-${Date.now()}`;
 
     if (logoDataUri) {
@@ -115,15 +115,24 @@ export const addTeam = async (teamData: Omit<Team, 'id' | 'logoUrl'>, logoDataUr
         const snapshot = await uploadString(storageRef, logoDataUri, 'data_url');
         logoUrl = await getDownloadURL(snapshot.ref);
     }
-    
-    const newTeam = {
-        ...teamData,
-        logoUrl
+
+    const newTeam: Omit<Team, 'id'> = {
+        name: teamData.name,
+        category: teamData.category,
+        logoUrl: logoUrl,
+        group: teamData.category === 'Segunda' ? 'A' : undefined, // Default group for 'Segunda'
+        president: { name: '' },
+        vicePresident: { name: '' },
+        secretary: { name: '' },
+        treasurer: { name: '' },
+        vocal: { name: '' },
+        delegates: [],
     };
 
     const docRef = await addDoc(collection(db, 'teams'), newTeam);
-    return { id: docRef.id, ...newTeam } as Team;
+    return { id: docRef.id, ...newTeam };
 };
+
 
 export const getTeamById = async (id: string): Promise<Team | undefined> => {
     if (!id) return undefined;
