@@ -137,7 +137,7 @@ export default function RequalificationPage() {
             return;
         }
         setDocumentReady(true);
-    }
+    };
     
      const handlePrint = () => {
         window.print();
@@ -193,7 +193,7 @@ export default function RequalificationPage() {
                                 <div><strong>NÚMERO DE CÉDULA:</strong></div>
                                 <div>{playerIn.idNumber}</div>
                                 <div><strong>FECHA DE NACIMIENTO:</strong></div>
-                                <div>{format(new Date(playerIn.birthDate), 'dd/MM/yyyy')}</div>
+                                <div>{playerIn.birthDate ? format(new Date(playerIn.birthDate), 'dd/MM/yyyy') : ''}</div>
                             </div>
                         </section>
 
