@@ -15,6 +15,7 @@ import { ArrowLeft, Printer, UserPlus, UserX, FileText, BadgeCheck, CheckCircle2
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const initialNewPlayerState = {
     number: '',
@@ -62,46 +63,49 @@ const RequestHistory = () => {
                 <CardDescription>Revisa el estado de todas las solicitudes de calificación y recalificación.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Fecha</TableHead>
-                            <TableHead>Equipo</TableHead>
-                            <TableHead>Tipo</TableHead>
-                            <TableHead>Jugador Entrante</TableHead>
-                            <TableHead>Jugador Saliente</TableHead>
-                            <TableHead>Estado</TableHead>
-                             <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {requests.map(req => (
-                            <TableRow key={req.id}>
-                                <TableCell>{format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
-                                <TableCell>{req.teamName}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline">{req.requestType === 'qualification' ? 'Calificación' : 'Recalificación'}</Badge>
-                                </TableCell>
-                                <TableCell className="font-medium">{req.playerInName}</TableCell>
-                                <TableCell>{req.playerOutName || 'N/A'}</TableCell>
-                                <TableCell>
-                                    <Badge variant={getStatusVariant(req.status)} className="flex items-center gap-1 w-fit">
-                                        {getStatusIcon(req.status)}
-                                        {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                     {req.status === 'pending' && (
-                                        <div className="flex gap-2 justify-end">
-                                            <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700">Aprobar</Button>
-                                            <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700">Rechazar</Button>
-                                        </div>
-                                    )}
-                                </TableCell>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Equipo</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>Jugador Entrante</TableHead>
+                                <TableHead>Jugador Saliente</TableHead>
+                                <TableHead>Estado</TableHead>
+                                 <TableHead className="text-right">Acciones</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {requests.map(req => (
+                                <TableRow key={req.id}>
+                                    <TableCell>{format(new Date(req.date), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell>{req.teamName}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">{req.requestType === 'qualification' ? 'Calificación' : 'Recalificación'}</Badge>
+                                    </TableCell>
+                                    <TableCell className="font-medium">{req.playerInName}</TableCell>
+                                    <TableCell>{req.playerOutName || 'N/A'}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={getStatusVariant(req.status)} className="flex items-center gap-1 w-fit">
+                                            {getStatusIcon(req.status)}
+                                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                         {req.status === 'pending' && (
+                                            <div className="flex gap-2 justify-end">
+                                                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700">Aprobar</Button>
+                                                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700">Rechazar</Button>
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
             </CardContent>
         </Card>
     )
