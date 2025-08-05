@@ -71,7 +71,7 @@ const TopScorersTable = ({ scorers }: { scorers: Scorer[] }) => (
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {scorers.filter(scorer => scorer.playerName).map(scorer => (
+                    {scorers.map(scorer => (
                         <TableRow key={scorer.playerId}>
                             <TableCell>
                                 <div className="flex items-center gap-3">
@@ -110,9 +110,9 @@ const StandingsWidget = ({ standings }: {standings: Standing[]}) => (
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {standings.filter(s => s.teamName !== 'Descansa').slice(0, 5).map((s, i) => (
-                        <TableRow key={`${s.teamId}-${i}`}>
-                            <TableCell className="font-bold">{i + 1}</TableCell>
+                    {standings.slice(0, 5).map(s => (
+                        <TableRow key={s.teamId}>
+                            <TableCell className="font-bold">{s.rank}</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                      <Image src={s.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={s.teamName || 'Logo del equipo'} width={20} height={20} className="rounded-full" data-ai-hint="team logo"/>
@@ -212,3 +212,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
