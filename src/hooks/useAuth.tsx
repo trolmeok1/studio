@@ -1,42 +1,10 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { getUserByEmail, getUsers, type User, type UserRole, type Permissions } from '@/lib/mock-data';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { getUserByEmail, getUsers, addUser, updateUser, type User, type UserRole, type Permissions } from '@/lib/mock-data';
 
 export type { User, UserRole, Permissions };
-
-const allPermissionsTrue: Permissions = {
-    dashboard: { view: true, edit: true },
-    players: { view: true, edit: true },
-    schedule: { view: true, edit: true },
-    partido: { view: true, edit: true },
-    copa: { view: true, edit: true },
-    aiCards: { view: true, edit: true },
-    committees: { view: true, edit: true },
-    treasury: { view: true, edit: true },
-    requests: { view: true, edit: true },
-    reports: { view: true, edit: true },
-    teams: { view: true, edit: true },
-    roles: { view: true, edit: true },
-    logs: { view: true, edit: true },
-};
-
-const secretaryPermissions: Permissions = {
-    dashboard: { view: true, edit: false },
-    players: { view: true, edit: true },
-    schedule: { view: true, edit: true },
-    partido: { view: true, edit: true },
-    copa: { view: true, edit: true },
-    aiCards: { view: false, edit: false },
-    committees: { view: true, edit: true },
-    treasury: { view: true, edit: true },
-    requests: { view: true, edit: true },
-    reports: { view: true, edit: false },
-    teams: { view: true, edit: true },
-    roles: { view: false, edit: false },
-    logs: { view: false, edit: false },
-};
 
 const guestPermissions: Permissions = {
     dashboard: { view: true, edit: false },
@@ -66,7 +34,6 @@ const defaultGuestUser: User = {
 
 interface AuthContextType {
   user: User;
-  setUser: (user: User) => void;
   users: User[];
   setUsers: (users: User[]) => void;
   loginAs: (email: string) => Promise<boolean>;
@@ -74,6 +41,7 @@ interface AuthContextType {
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
   isAuthLoading: boolean;
+  saveUser: (user: User) => Promise<void>;
 }
 
 
@@ -107,7 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const loginAs = async (email: string) => {
-    const userToLogin = await getUserByEmail(email);
+    // In a real app, password would be checked here
+    const userToLogin = users.find(u => u.email === email);
     if (userToLogin) {
       setCurrentUser(userToLogin);
       sessionStorage.setItem('currentUser', JSON.stringify(userToLogin));
@@ -123,16 +92,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setUsers = (updatedUsers: User[]) => {
       setUsersState(updatedUsers);
-      const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
-      if (updatedCurrentUser) {
-          setCurrentUser(updatedCurrentUser);
-          sessionStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
-      }
-  }
+  };
+  
+  const saveUser = useCallback(async (userToSave: User) => {
+    const userExists = users.some(u => u.id === userToSave.id);
+    
+    if (userExists) {
+        await updateUser(userToSave);
+        setUsersState(prev => prev.map(u => u.id === userToSave.id ? userToSave : u));
+        // Update current user if they are the one being edited
+        if(currentUser.id === userToSave.id) {
+            setCurrentUser(userToSave);
+            sessionStorage.setItem('currentUser', JSON.stringify(userToSave));
+        }
+    } else {
+        const newUser = await addUser(userToSave);
+        setUsersState(prev => [...prev, newUser]);
+    }
+  }, [users, currentUser.id]);
 
   const value = {
     user: currentUser,
-    setUser: setCurrentUser,
     users,
     setUsers,
     loginAs,
@@ -140,6 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isCopaPublic,
     setIsCopaPublic,
     isAuthLoading,
+    saveUser
   };
 
   return (

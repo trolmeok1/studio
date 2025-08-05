@@ -2,35 +2,56 @@
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch } from 'firebase/firestore';
 
-
-const allPermissions: Permissions = {
-    dashboard: { view: true, edit: true },
-    players: { view: true, edit: true },
-    schedule: { view: true, edit: true },
-    partido: { view: true, edit: true },
-    copa: { view: true, edit: true },
-    aiCards: { view: true, edit: true },
-    committees: { view: true, edit: true },
-    treasury: { view: true, edit: true },
-    requests: { view: true, edit: true },
-    reports: { view: true, edit: true },
-    teams: { view: true, edit: true },
-    roles: { view: true, edit: true },
-    logs: { view: true, edit: true },
-};
-
-const secretaryPermissions: Permissions = {
-    ...allPermissions,
-    roles: { view: false, edit: false },
-    logs: { view: false, edit: false },
-};
 
 // --- Users ---
 export const getUsers = async (): Promise<User[]> => {
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
+    if (userSnapshot.empty) {
+        // If no users, create default admin and secretary
+        const batch = writeBatch(db);
+        const adminUser = {
+            name: 'Administrador',
+            email: 'admin@ligacontrol.com',
+            role: 'admin',
+            permissions: {
+                dashboard: { view: true, edit: true }, players: { view: true, edit: true },
+                schedule: { view: true, edit: true }, partido: { view: true, edit: true },
+                copa: { view: true, edit: true }, aiCards: { view: true, edit: true },
+                committees: { view: true, edit: true }, treasury: { view: true, edit: true },
+                requests: { view: true, edit: true }, reports: { view: true, edit: true },
+                teams: { view: true, edit: true }, roles: { view: true, edit: true },
+                logs: { view: true, edit: true },
+            },
+            avatarUrl: 'https://placehold.co/100x100.png'
+        };
+        const secretaryUser = {
+            name: 'Secretario',
+            email: 'secretary@ligacontrol.com',
+            role: 'secretary',
+            permissions: {
+                dashboard: { view: true, edit: false }, players: { view: true, edit: true },
+                schedule: { view: true, edit: true }, partido: { view: true, edit: true },
+                copa: { view: true, edit: true }, aiCards: { view: false, edit: false },
+                committees: { view: true, edit: true }, treasury: { view: true, edit: true },
+                requests: { view: true, edit: true }, reports: { view: true, edit: false },
+                teams: { view: true, edit: true }, roles: { view: false, edit: false },
+                logs: { view: false, edit: false },
+            },
+            avatarUrl: 'https://placehold.co/100x100.png'
+        };
+        const adminRef = doc(collection(db, "users"));
+        batch.set(adminRef, adminUser);
+        const secretaryRef = doc(collection(db, "users"));
+        batch.set(secretaryRef, secretaryUser);
+        await batch.commit();
+        return [
+            { id: adminRef.id, ...adminUser },
+            { id: secretaryRef.id, ...secretaryUser }
+        ] as User[];
+    }
     return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 };
 
@@ -44,9 +65,18 @@ export const getUserByEmail = async (email: string): Promise<User | undefined> =
 };
 
 export const updateUser = async (updatedUser: User) => {
+    if(!updatedUser.id) throw new Error("User ID is required for update.");
     const userRef = doc(db, 'users', updatedUser.id);
-    await updateDoc(userRef, { ...updatedUser });
+    const { id, ...userData } = updatedUser;
+    await updateDoc(userRef, userData);
 };
+
+export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
+    const usersCol = collection(db, 'users');
+    const docRef = await addDoc(usersCol, newUser);
+    return { id: docRef.id, ...newUser };
+};
+
 
 // --- Expenses ---
 export const getExpenses = async (): Promise<Expense[]> => {
@@ -75,6 +105,7 @@ export const getTeams = async (): Promise<Team[]> => {
 };
 
 export const getTeamById = async (id: string): Promise<Team | undefined> => {
+    if (!id) return undefined;
     const teamRef = doc(db, 'teams', id);
     const teamSnap = await getDoc(teamRef);
     return teamSnap.exists() ? { id: teamSnap.id, ...teamSnap.data() } as Team : undefined;
@@ -100,12 +131,14 @@ export const getPlayers = async (): Promise<Player[]> => {
 };
 
 export const getPlayerById = async (id: string): Promise<Player | undefined> => {
+    if (!id) return undefined;
     const playerRef = doc(db, 'players', id);
     const playerSnap = await getDoc(playerRef);
     return playerSnap.exists() ? { id: playerSnap.id, ...playerSnap.data() } as Player : undefined;
 };
 
 export const getPlayersByTeamId = async (teamId: string): Promise<Player[]> => {
+    if (!teamId) return [];
     const playersCol = collection(db, 'players');
     const q = query(playersCol, where("teamId", "==", teamId));
     const playerSnapshot = await getDocs(q);
@@ -118,10 +151,10 @@ export const updatePlayerStats = async (playerId: string, statsUpdate: { goals: 
     if (playerSnap.exists()) {
         const currentStats = playerSnap.data().stats || { goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
         await updateDoc(playerRef, {
-            'stats.goals': currentStats.goals + statsUpdate.goals,
-            'stats.assists': currentStats.assists + statsUpdate.assists,
-            'stats.yellowCards': currentStats.yellowCards + statsUpdate.yellowCards,
-            'stats.redCards': currentStats.redCards + statsUpdate.redCards,
+            'stats.goals': (currentStats.goals || 0) + statsUpdate.goals,
+            'stats.assists': (currentStats.assists || 0) + statsUpdate.assists,
+            'stats.yellowCards': (currentStats.yellowCards || 0) + statsUpdate.yellowCards,
+            'stats.redCards': (currentStats.redCards || 0) + statsUpdate.redCards,
         });
     }
 };
@@ -153,7 +186,7 @@ export const getTopScorers = async (): Promise<Scorer[]> => {
             playerPhotoUrl: player.photoUrl,
             teamName: player.team,
             teamId: player.teamId,
-            goals: player.stats.goals,
+            goals: player.stats?.goals || 0,
         };
     });
 };
@@ -165,9 +198,10 @@ export const getSanctions = async (): Promise<Sanction[]> => {
     return sanctionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sanction));
 };
 
-export const addSanction = async (newSanction: Omit<Sanction, 'id'>) => {
+export const addSanction = async (newSanction: Omit<Sanction, 'id'>): Promise<Sanction> => {
     const sanctionsCol = collection(db, 'sanctions');
-    await addDoc(sanctionsCol, newSanction);
+    const docRef = await addDoc(sanctionsCol, newSanction);
+    return { id: docRef.id, ...newSanction };
 };
 
 
@@ -191,7 +225,8 @@ export const getMatchById = async (id: string): Promise<Match | undefined> => {
 
 export const updateMatchData = async (updatedMatch: Match) => {
     const matchRef = doc(db, 'matches', updatedMatch.id);
-    await updateDoc(matchRef, { ...updatedMatch });
+    const { id, ...matchData } = updatedMatch;
+    await updateDoc(matchRef, matchData);
 };
 
 export const setMatchAsFinished = async (matchId: string) => {
@@ -222,16 +257,16 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const players = await getPlayers();
     const teams = await getTeams();
     const matches = await getMatches();
-    const goalsScored = players.reduce((sum, p) => sum + (p.stats.goals || 0), 0);
+    const goalsScored = players.reduce((sum, p) => sum + (p.stats?.goals || 0), 0);
     
-    return Promise.resolve({
+    return {
         categories: [...new Set(teams.map(t => t.category))].length,
         stages: 3, // Mock
         fines: 48, // Mock
         matchesPlayed: matches.filter(m => m.status === 'finished').length,
         goalsScored: goalsScored,
-        yellowCards: players.reduce((sum, p) => sum + (p.stats.yellowCards || 0), 0),
-        redCards: players.reduce((sum, p) => sum + (p.stats.redCards || 0), 0),
+        yellowCards: players.reduce((sum, p) => sum + (p.stats?.yellowCards || 0), 0),
+        redCards: players.reduce((sum, p) => sum + (p.stats?.redCards || 0), 0),
         teams: {
             registered: 2, // Mock
             approved: teams.length,
@@ -240,10 +275,10 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         },
         players: {
             approved: players.length,
-            new: players.filter(p => new Date(p.careerHistory?.[0]?.startDate || 0) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+            new: players.filter(p => p.careerHistory?.[0]?.startDate && new Date(p.careerHistory[0].startDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
             rejected: 1470, // Mock
         }
-    });
+    };
 }
 
 
@@ -256,3 +291,4 @@ export let requalificationRequests: RequalificationRequest[] = [];
 export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
+export let expenses: Expense[] = [];

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -19,12 +20,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const permissionModules: { key: keyof Permissions; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'players', label: 'Jugadores' },
     { key: 'schedule', label: 'Programación' },
     { key: 'partido', label: 'Partido' },
+    { key: 'copa', label: 'Copa' },
     { key: 'aiCards', label: 'Carnets AI' },
     { key: 'committees', label: 'Vocalías' },
     { key: 'treasury', label: 'Tesorería' },
@@ -35,13 +38,27 @@ const permissionModules: { key: keyof Permissions; label: string }[] = [
     { key: 'logs', label: 'Logs del Sistema' },
 ];
 
+const allPermissionsFalse: Permissions = {
+    dashboard: { view: false, edit: false }, players: { view: false, edit: false },
+    schedule: { view: false, edit: false }, partido: { view: false, edit: false },
+    copa: { view: false, edit: false }, aiCards: { view: false, edit: false },
+    committees: { view: false, edit: false }, treasury: { view: false, edit: false },
+    requests: { view: false, edit: false }, reports: { view: false, edit: false },
+    teams: { view: false, edit: false }, roles: { view: false, edit: false },
+    logs: { view: false, edit: false },
+};
+
+
 const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { user?: User; onSave: (user: User) => void; children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) => {
     const [userData, setUserData] = useState<Partial<User>>(user || { name: '', email: '', password: '' });
-    const [permissions, setPermissions] = useState<Permissions>(user?.permissions || {} as Permissions);
+    const [permissions, setPermissions] = useState<Permissions>(user?.permissions || allPermissionsFalse);
+    const { toast } = useToast();
 
     React.useEffect(() => {
-        setUserData(user || { name: '', email: '', password: '' });
-        setPermissions(user?.permissions || {} as Permissions);
+        if (open) {
+          setUserData(user || { name: '', email: '', password: '' });
+          setPermissions(user?.permissions || allPermissionsFalse);
+        }
     }, [user, open]);
 
 
@@ -71,15 +88,19 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
 
     const handleSave = () => {
         const finalUser: User = {
-            id: user?.id || `user-${Date.now()}`,
+            id: user?.id || `user-${Date.now()}`, // Firestore will generate ID if new
             name: userData.name || '',
             email: userData.email || '',
             password: userData.password,
-            role: 'guest', // Role can be deprecated or used for a base layer
+            role: 'secretary', // Role can be deprecated or used for a base layer
             permissions: permissions,
-            avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
+            avatarUrl: userData.avatarUrl || `https://i.pravatar.cc/150?u=${userData.email}`,
         };
         onSave(finalUser);
+        toast({
+            title: user ? "Usuario actualizado" : "Usuario creado",
+            description: `Se han guardado los datos para ${finalUser.name}.`,
+        });
         onOpenChange(false);
     };
 
@@ -152,18 +173,13 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
 };
 
 export default function RolesPage() {
-  const { user: currentUser, users, setUsers } = useAuth();
+  const { user: currentUser, users, saveUser } = useAuth();
   const isAdmin = currentUser.permissions.roles.edit;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
-  const handleSaveUser = (updatedUser: User) => {
-      const userExists = users.some(u => u.id === updatedUser.id);
-      if (userExists) {
-          setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-      } else {
-          setUsers([...users, updatedUser]);
-      }
+  const handleSaveUser = async (userToSave: User) => {
+      await saveUser(userToSave);
   };
 
   const openAddDialog = () => {
