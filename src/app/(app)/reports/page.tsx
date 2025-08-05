@@ -184,11 +184,20 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
 };
 
 const StandardFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+    const [bg, setBg] = useState<string | null>(null);
+    useEffect(() => {
+        setBg(localStorage.getItem('standard-flyer-bg'));
+    }, []);
+
+    const backgroundStyle = bg
+        ? { backgroundImage: `url(${bg})` }
+        : { backgroundImage: `url('/textured-background.png')` };
+
     return (
         <div
             id="printable-report"
-            className="bg-[#1a233c] text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col justify-between"
-            style={{ backgroundImage: `url('/textured-background.png')` }}
+            className="bg-[#1a233c] text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col justify-between bg-cover bg-center"
+            style={backgroundStyle}
         >
              <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-teal-500/20 to-transparent -translate-x-1/4 -translate-y-1/4 blur-3xl"></div>
              <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-teal-500/20 to-transparent translate-x-1/4 translate-y-1/4 blur-3xl"></div>
@@ -221,12 +230,23 @@ const StandardFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, 
 };
 
 const SemifinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+    const [bg, setBg] = useState<string | null>(null);
+    useEffect(() => {
+        setBg(localStorage.getItem('semifinal-flyer-bg'));
+    }, []);
+
+    const backgroundStyle = {
+        backgroundImage: bg ? `url(${bg})` : `url('https://placehold.co/800x1000.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+    };
+    
     return (
         <div
             id="printable-report"
             className="bg-gray-800 text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col justify-between items-center"
+            style={backgroundStyle}
         >
-            <Image src="https://placehold.co/800x1000.png" alt="Soccer player" layout="fill" objectFit="cover" className="opacity-30" data-ai-hint="soccer player action" />
             <div className="absolute inset-0 bg-black/50" />
 
             <header className="text-center z-10 mt-8">
@@ -263,11 +283,22 @@ const SemifinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team,
 };
 
 const FinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+    const [bg, setBg] = useState<string | null>(null);
+    useEffect(() => {
+        setBg(localStorage.getItem('final-flyer-bg'));
+    }, []);
+
+    const backgroundStyle = {
+        backgroundImage: bg ? `url(${bg})` : `url(https://placehold.co/800x1000.png)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'bottom',
+    };
+
     return (
         <div
             id="printable-report"
             className="bg-[#5c0a0a] text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col"
-            style={{ backgroundImage: `url(https://placehold.co/800x1000.png)`, backgroundSize: 'cover', backgroundPosition: 'bottom' }}
+            style={backgroundStyle}
              data-ai-hint="red cracked wall"
         >
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-red-900/30 z-0" />
@@ -318,7 +349,7 @@ const ScheduleReport = () => {
     }, [weeklyMatches]);
     
     return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none relative" style={{ backgroundImage: `url('https://placehold.co/1000x1200.png')`, backgroundSize: 'cover', backgroundPosition: 'center' }} data-ai-hint="soccer field top view">
+        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none relative bg-cover bg-center" style={{ backgroundImage: `url('https://placehold.co/1000x1200.png')` }} data-ai-hint="soccer field top view">
             <div className="absolute inset-0 bg-black/60" />
             <header className="relative z-10 text-center mb-6 text-white">
                 <h1 className="text-4xl font-extrabold uppercase tracking-wider">Partidos Semanales</h1>
