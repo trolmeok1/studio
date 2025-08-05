@@ -59,6 +59,8 @@ export interface VocalPaymentDetails {
     redCardFine: number;
     otherFines: number;
     otherFinesDescription: string;
+    advancePayment: number;
+    includePendingDebt: boolean;
     total: number;
     paymentStatus: 'paid' | 'pending';
 }

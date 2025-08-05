@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -455,30 +456,39 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         onUpdateMatch(updatedMatch);
     }
     
-    const handleVocalPaymentChange = (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: string | number | boolean) => {
+    const handleVocalPaymentChange = (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
         if (!match) return;
-        
+    
         const teamDetails = match.teams[teamKey];
         if (!teamDetails.vocalPaymentDetails) return;
-        
-        const currentPayment = teamDetails.vocalPaymentDetails;
+    
+        const currentPayment = { ...teamDetails.vocalPaymentDetails };
         const updatedPayment = { ...currentPayment, [field]: value };
-        
-        if (field !== 'paymentStatus' && field !== 'otherFinesDescription') {
-            const total = 
-                (Number(updatedPayment.referee) || 0) + 
-                (Number(updatedPayment.fee) || 0) + 
-                (Number(updatedPayment.yellowCardFine) || 0) + 
-                (Number(updatedPayment.redCardFine) || 0) + 
-                (Number(updatedPayment.otherFines) || 0);
-            updatedPayment.total = total;
-        }
-        
+    
+        const calculateTotal = (paymentDetails: VocalPaymentDetailsType) => {
+            const baseTotal = 
+                (Number(paymentDetails.referee) || 0) + 
+                (Number(paymentDetails.fee) || 0) + 
+                (Number(paymentDetails.yellowCardFine) || 0) + 
+                (Number(paymentDetails.redCardFine) || 0) + 
+                (Number(paymentDetails.otherFines) || 0);
+            
+            const pendingValue = getPendingValue(match.teams[teamKey].id, match.id);
+            const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
+            
+            const totalWithPending = baseTotal + pendingAmountToAdd;
+            const finalTotal = totalWithPending - (Number(paymentDetails.advancePayment) || 0);
+
+            return finalTotal;
+        };
+    
+        updatedPayment.total = calculateTotal(updatedPayment);
+    
         const updatedTeamDetails = {
             ...teamDetails,
             vocalPaymentDetails: updatedPayment
         };
-
+    
         const updatedMatch = {
             ...match,
             teams: {
@@ -487,7 +497,20 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             }
         };
         onUpdateMatch(updatedMatch);
-    }
+    };
+
+    const getPendingValue = (teamId: string, currentMatchId: string) => {
+        const matches = getMatchesByTeamId(teamId);
+        const pastMatches = matches.filter(m => m.id !== currentMatchId && isPast(new Date(m.date)));
+        return pastMatches.reduce((total, pastMatch) => {
+            const isHome = pastMatch.teams.home.id === teamId;
+            const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+            if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                return total + (teamDetails.vocalPaymentDetails.total || 0);
+            }
+            return total;
+        }, 0);
+    };
     
     const handleSaveResult = () => {
         if (!match) return;
@@ -516,37 +539,38 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         if (!details) return null;
 
         const teamId = match.teams[teamKey].id;
-        const [pendingValue, setPendingValue] = useState(0);
-
-        useEffect(() => {
-            const matches = getMatchesByTeamId(teamId);
-            const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
-            const totalPending = pastMatches.reduce((total, pastMatch) => {
-                const isHome = pastMatch.teams.home.id === teamId;
-                const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
-                if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
-                    return total + (teamDetails.vocalPaymentDetails.total || 0);
-                }
-                return total;
-            }, 0);
-            setPendingValue(totalPending);
-        }, [match.id, teamId]);
+        const pendingValue = getPendingValue(teamId, match.id);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
 
         const handlePaymentStatusChange = (checked: boolean) => {
              handleVocalPaymentChange(teamKey, 'paymentStatus', checked ? 'paid' : 'pending');
         }
+        
+        const handleIncludePendingDebtChange = (checked: boolean) => {
+            handleVocalPaymentChange(teamKey, 'includePendingDebt', checked);
+        }
 
         return (
             <div className="space-y-2 mt-2 p-3 border rounded-lg">
                 {pendingValue > 0 && (
-                     <div className="p-2 rounded-md bg-destructive/10 border border-destructive text-destructive">
+                     <div className="p-2 rounded-md bg-destructive/10 border border-destructive text-destructive space-y-2">
                          <div className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5" />
                             <h5 className="font-semibold">Valores Pendientes</h5>
                          </div>
                         <p className="text-sm">Este equipo tiene una deuda de <span className="font-bold">${pendingValue.toFixed(2)}</span> de partidos anteriores.</p>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox 
+                                id={`include-pending-${teamKey}`} 
+                                checked={details.includePendingDebt}
+                                onCheckedChange={(checked) => handleIncludePendingDebtChange(Boolean(checked))}
+                                disabled={disabled}
+                            />
+                            <Label htmlFor={`include-pending-${teamKey}`} className="text-sm">
+                                Incluir deuda en el total de hoy
+                            </Label>
+                        </div>
                      </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -580,6 +604,10 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                     <Textarea value={details.otherFinesDescription} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
                     <div/>
                     <Input type="number" value={details.otherFines} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFines', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+
+                    <Label>Abono / Adelanto:</Label>
+                    <Input type="number" value={details.advancePayment || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'advancePayment', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+
 
                     <Label className="font-bold text-base">TOTAL VOCALÍA:</Label>
                     <p className="font-bold text-base text-right pr-2">${details.total.toFixed(2)}</p>

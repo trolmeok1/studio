@@ -276,6 +276,8 @@ const defaultVocalPayment: VocalPaymentDetails = {
     redCardFine: 0,
     otherFines: 0,
     otherFinesDescription: '',
+    advancePayment: 0,
+    includePendingDebt: false,
     total: 13.00,
     paymentStatus: 'paid'
 }
