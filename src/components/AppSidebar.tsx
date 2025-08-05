@@ -11,6 +11,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
   SidebarMenuSkeleton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   Users,
@@ -38,7 +39,8 @@ import {
   LogIn,
   Users2,
   ListOrdered,
-  ScrollText
+  ScrollText,
+  Menu,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -261,6 +263,7 @@ export function AppSidebar() {
 export function BottomNavbar() {
     const pathname = usePathname();
     const { user, isCopaPublic, isAuthLoading } = useAuth();
+    const { setOpenMobile } = useSidebar();
     
     if (isAuthLoading) {
         return (
@@ -292,16 +295,8 @@ export function BottomNavbar() {
       { href: '/schedule', icon: CalendarDays, label: 'Calendario', permission: permissions.schedule.view },
       { href: '/partido', icon: ClipboardList, label: 'Resultados', permission: permissions.partido.view },
     ];
-
-    if (canViewCopa) {
-        navItems.push({ href: '/copa', icon: Trophy, label: 'Copa', permission: true });
-    }
     
-    if (user.role === 'guest' && navItems.length < 5) {
-        navItems.push({ href: '/login', icon: LogIn, label: 'Ingresar', permission: true });
-    }
-    
-    const filteredNavItems = navItems.filter(item => item.permission).slice(0, 5);
+    const filteredNavItems = navItems.filter(item => item.permission).slice(0, 4);
 
 
     return (
@@ -315,6 +310,10 @@ export function BottomNavbar() {
                         </span>
                     </Link>
                 ))}
+                 <button onClick={() => setOpenMobile(true)} className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted group">
+                     <Menu className="w-5 h-5 mb-1 text-muted-foreground group-hover:text-primary" />
+                     <span className="text-xs text-muted-foreground group-hover:text-primary">Menú</span>
+                 </button>
             </div>
         </div>
     );

@@ -53,6 +53,8 @@ import {
   ArrowRight,
   AlertCircle,
   Crown,
+  ImagePlus,
+  Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -60,15 +62,26 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 
-const sliderImages = [
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2', hint: 'soccer ball grass' },
-    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3', hint: 'fans cheering' },
+interface CarouselImage {
+    src: string;
+    alt: string;
+    hint: string;
+    title?: string;
+}
+
+const defaultSliderImages: CarouselImage[] = [
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights', title: 'Bienvenidos a la Liga' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 2', hint: 'soccer ball grass', title: 'La Pasión del Fútbol' },
+    { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 3', hint: 'fans cheering', title: 'Apoya a tu Equipo' },
 ];
 
 function AdminAlerts({ pendingRequests }: { pendingRequests: RequalificationRequest[] }) {
@@ -99,32 +112,131 @@ function AdminAlerts({ pendingRequests }: { pendingRequests: RequalificationRequ
   );
 }
 
-function DashboardCarousel({ images }: { images: {src: string, alt: string, hint: string}[]}) {
+const CarouselManager = ({ images, setImages }: { images: CarouselImage[], setImages: React.Dispatch<React.SetStateAction<CarouselImage[]>> }) => {
+    const { toast } = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const newImage: CarouselImage = {
+                    src: reader.result as string,
+                    alt: `Carousel Image ${images.length + 1}`,
+                    hint: 'custom image',
+                    title: 'Nuevo Título'
+                };
+                setImages(prev => [...prev, newImage]);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleTitleChange = (index: number, newTitle: string) => {
+        const updatedImages = [...images];
+        updatedImages[index].title = newTitle;
+        setImages(updatedImages);
+    };
+
+    const handleRemoveImage = (index: number) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSave = () => {
+        localStorage.setItem('carouselImages', JSON.stringify(images));
+        toast({ title: 'Carrusel Guardado', description: 'Las imágenes del carrusel han sido actualizadas.' });
+    };
+
     return (
-         <Carousel 
-            className="w-full"
-            plugins={[Autoplay({ delay: 5000, stopOnInteraction: true })]}
-            opts={{ loop: true }}
-        >
-            <CarouselContent>
+        <DialogContent className="max-w-3xl">
+            <DialogHeader>
+                <DialogTitle>Gestionar Carrusel de Imágenes</DialogTitle>
+                <DialogDescription>Añade, edita o elimina las imágenes de la página de inicio.</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-4">
                 {images.map((image, index) => (
-                    <CarouselItem key={index}>
-                        <Card className="overflow-hidden">
-                            <Image
-                                src={image.src}
-                                alt={image.alt}
-                                width={1200}
-                                height={400}
-                                className="w-full aspect-[3/1] object-cover"
-                                data-ai-hint={image.hint}
+                    <Card key={index}>
+                        <CardContent className="p-2 space-y-2">
+                            <Image src={image.src} alt={image.alt} width={300} height={100} className="rounded-md w-full aspect-[3/1] object-cover" />
+                            <Input
+                                value={image.title || ''}
+                                onChange={(e) => handleTitleChange(index, e.target.value)}
+                                placeholder="Título de la imagen"
                             />
-                        </Card>
-                    </CarouselItem>
+                            <Button variant="destructive" size="sm" className="w-full" onClick={() => handleRemoveImage(index)}>
+                                <Trash2 className="mr-2" /> Eliminar
+                            </Button>
+                        </CardContent>
+                    </Card>
                 ))}
-            </CarouselContent>
-            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
-            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
-        </Carousel>
+                 <Button variant="outline" className="h-full flex flex-col items-center justify-center" onClick={() => fileInputRef.current?.click()}>
+                    <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                    <span>Añadir Imagen</span>
+                </Button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button onClick={handleSave}>Guardar Cambios</Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    );
+};
+
+
+function DashboardCarousel() {
+    const { user } = useAuth();
+    const [images, setImages] = useState<CarouselImage[]>(defaultSliderImages);
+
+    useEffect(() => {
+        const savedImages = localStorage.getItem('carouselImages');
+        if (savedImages) {
+            setImages(JSON.parse(savedImages));
+        }
+    }, []);
+
+    return (
+        <div className="relative">
+            <Carousel 
+                className="w-full"
+                plugins={[Autoplay({ delay: 5000, stopOnInteraction: true })]}
+                opts={{ loop: true }}
+            >
+                <CarouselContent>
+                    {images.map((image, index) => (
+                        <CarouselItem key={index}>
+                            <Card className="overflow-hidden relative">
+                                <Image
+                                    src={image.src}
+                                    alt={image.alt}
+                                    width={1200}
+                                    height={400}
+                                    className="w-full aspect-[3/1] object-cover"
+                                    data-ai-hint={image.hint}
+                                />
+                                {image.title && (
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-4">
+                                        <h3 className="text-white text-3xl md:text-5xl font-extrabold text-center drop-shadow-lg">{image.title}</h3>
+                                    </div>
+                                )}
+                            </Card>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
+                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+            </Carousel>
+            {user.permissions.dashboard.edit && (
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button className="absolute top-4 right-4" size="sm">Gestionar Carrusel</Button>
+                    </DialogTrigger>
+                    <CarouselManager images={images} setImages={setImages} />
+                </Dialog>
+            )}
+        </div>
     );
 }
 
@@ -343,7 +455,7 @@ export default function DashboardPage() {
             </h2>
         </div>
 
-       <DashboardCarousel images={sliderImages} />
+       <DashboardCarousel />
       
        <AdminAlerts pendingRequests={pendingRequests} />
 
