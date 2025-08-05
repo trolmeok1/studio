@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User } from 'lucide-react';
+import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
 import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatchesData, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId, getSanctions as getAllSanctions, getMatches } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
@@ -320,6 +320,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
+    const [physicalSheetUrl, setPhysicalSheetUrl] = useState<string | null>(match?.physicalSheetUrl || null);
     
     const [events, setEvents] = useState<MatchEvent[]>(match?.events || []);
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -330,6 +331,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
     useEffect(() => {
         setEvents(match?.events || []);
+        setPhysicalSheetUrl(match?.physicalSheetUrl || null);
     }, [match]);
 
     const teamForEventSearch = match?.teams.home.id === selectedTeamId ? match.teams.home : match?.teams.away;
@@ -450,7 +452,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         };
         onUpdateMatch(updatedMatch);
     }
-
+    
     const handleVocalPaymentChange = (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: string | number | boolean) => {
         if (!match) return;
         
@@ -490,6 +492,21 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         onFinishMatch(match.id);
         toast({ title: "Partido Finalizado", description: "El resultado ha sido guardado y el partido marcado como finalizado."});
     }
+
+     const handlePhysicalSheetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && match) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setPhysicalSheetUrl(result);
+                onUpdateMatch({ ...match, physicalSheetUrl: result });
+                toast({ title: "Acta Física Subida", description: "La imagen ha sido guardada con el partido."});
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
 
     const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'home' | 'away' }) => {
         if (!match) return null;
@@ -605,6 +622,31 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             />
                          </div>
                     </div>
+                     <Card>
+                        <CardHeader className="p-4">
+                            <CardTitle className="text-base">Evidencia de Vocalía Física</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                            {physicalSheetUrl ? (
+                                <div className="space-y-2">
+                                    <Image src={physicalSheetUrl} alt="Acta física" width={150} height={200} className="rounded-md border object-contain" />
+                                    <p className="text-sm text-muted-foreground">Imagen del acta física guardada.</p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <Label htmlFor="physical-sheet-upload" className="w-full">
+                                        <Button asChild variant="outline">
+                                            <div>
+                                                <Upload className="mr-2" /> Subir Acta Física
+                                            </div>
+                                        </Button>
+                                    </Label>
+                                    <Input id="physical-sheet-upload" type="file" className="sr-only" onChange={handlePhysicalSheetUpload} accept="image/*" />
+                                    <p className="text-xs text-muted-foreground mt-2">Sube una foto del acta física como evidencia.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                     
                     <div>
                         <Label>Buscar Jugador para Evento</Label>

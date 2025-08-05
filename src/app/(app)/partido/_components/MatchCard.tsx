@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { User, Goal } from 'lucide-react';
+import { User, Goal, Download } from 'lucide-react';
 
 interface MatchCardProps {
     match: Match;
@@ -21,12 +21,13 @@ const getEventBadge = (event: MatchEvent['event']) => {
         case 'goal': return <Badge variant="default" className="bg-green-500">GOL</Badge>;
         case 'yellow_card': return <Badge variant="secondary" className="bg-yellow-400 text-black">T.A.</Badge>;
         case 'red_card': return <Badge variant="destructive">T.R.</Badge>;
+        case 'assist': return <Badge variant="secondary">ASISTENCIA</Badge>;
     }
 }
 
 
 export function MatchCard({ match }: MatchCardProps) {
-    const { teams, score, events, refereeName, vocalName } = match;
+    const { teams, score, events, refereeName, vocalName, physicalSheetUrl } = match;
     const homeTeam = teams.home;
     const awayTeam = teams.away;
 
@@ -85,24 +86,51 @@ export function MatchCard({ match }: MatchCardProps) {
                             Resumen de los datos y eventos registrados en la vocalía digital.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                            <User className="w-5 h-5 text-primary"/>
-                            <div>
-                                <p className="text-muted-foreground">Árbitro</p>
-                                <p className="font-semibold">{refereeName || 'No registrado'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                            <User className="w-5 h-5 text-primary"/>
-                            <div>
-                                <p className="text-muted-foreground">Vocal de Turno</p>
-                                <p className="font-semibold">{vocalName || 'No registrado'}</p>
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Detalles del Partido</CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-sm space-y-2">
+                                <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                                    <User className="w-5 h-5 text-primary"/>
+                                    <div>
+                                        <p className="text-muted-foreground">Árbitro</p>
+                                        <p className="font-semibold">{refereeName || 'No registrado'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                                    <User className="w-5 h-5 text-primary"/>
+                                    <div>
+                                        <p className="text-muted-foreground">Vocal de Turno</p>
+                                        <p className="font-semibold">{vocalName || 'No registrado'}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                             <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Acta Física (Evidencia)</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {physicalSheetUrl ? (
+                                    <div className="space-y-2">
+                                        <Image src={physicalSheetUrl} alt="Acta física del partido" width={300} height={400} className="rounded-md border object-contain" />
+                                        <Button asChild size="sm">
+                                            <a href={physicalSheetUrl} download={`acta_${match.id}.jpg`}>
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Descargar
+                                            </a>
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-10">No se subió imagen del acta física.</p>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
                     <div>
-                        <h4 className="font-semibold mb-2">Eventos del Partido</h4>
+                        <h4 className="font-semibold mb-2 mt-4">Eventos del Partido</h4>
                         <Table>
                              <TableHeader>
                                 <TableRow>

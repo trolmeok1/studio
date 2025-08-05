@@ -97,6 +97,7 @@ export interface Match {
     vocalName?: string;
     field?: number;
     vocalTeam?: Team;
+    physicalSheetUrl?: string;
 }
 
 export interface GeneratedMatch {
