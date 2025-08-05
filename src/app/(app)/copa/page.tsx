@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getTeamsByCategory, Team, Category } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getTeams } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -111,11 +111,12 @@ const CopaBracket = ({ teams }: { teams: Team[] }) => {
 };
 
 const CopaSettingsDialog = ({ onGenerate }: { onGenerate: (settings: { teams: Team[] }) => void }) => {
-    const allTeams = useMemo(() => [
-        ...getTeamsByCategory('Máxima'),
-        ...getTeamsByCategory('Primera'),
-        ...getTeamsByCategory('Segunda'),
-    ], []);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
+    
+    useEffect(() => {
+        getTeams().then(setAllTeams);
+    }, [])
+
     const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
 
     const handleTeamToggle = (teamId: string) => {
@@ -269,25 +270,29 @@ const DrawCopaSettingsDialog = ({ onGenerate }: { onGenerate: (settings: any) =>
 
 export default function CopaPage() {
     const { toast } = useToast();
-    const { user, isCopaPublic, setIsCopaPublic } = useAuth();
+    const { user, isCopaPublic, setIsCopaPublic, isAuthLoading } = useAuth();
     const router = useRouter();
 
     const [copaTeams, setCopaTeams] = useState<Team[]>([]);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
     const [copaMatches, setCopaMatches] = useState<GeneratedMatch[]>([]);
     const [isCopaSettingsDialogOpen, setIsCopaSettingsDialogOpen] = useState(false);
     const [isDrawCopaDialogOpen, setIsDrawCopaDialogOpen] = useState(false);
 
+    useEffect(() => {
+        getTeams().then(setAllTeams);
+    }, []);
+
     // Redirect guests if the cup is not public
     useEffect(() => {
-        if (!user.permissions.copa.edit && !isCopaPublic) {
+        if (!isAuthLoading && !user.permissions.copa.edit && !isCopaPublic) {
             router.push('/dashboard');
         }
-    }, [user, isCopaPublic, router]);
+    }, [user, isCopaPublic, router, isAuthLoading]);
 
     const getTeamName = useCallback((teamId: string) => {
-        const allTeams = [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')];
         return allTeams.find(t => t.id === teamId)?.name || teamId;
-    }, []);
+    }, [allTeams]);
 
     const scheduleCopaMatches = (settings: any) => {
         // Dummy scheduling logic, replace with actual logic
@@ -336,7 +341,7 @@ export default function CopaPage() {
     
     const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
 
-    if (!user.permissions.copa.edit && !isCopaPublic) {
+    if (isAuthLoading || (!user.permissions.copa.edit && !isCopaPublic)) {
         return null; // Or a loading/access denied component
     }
 
