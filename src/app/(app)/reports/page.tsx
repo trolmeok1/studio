@@ -276,7 +276,7 @@ export default function ReportsPage() {
     // Flyer
     const [localTeamId, setLocalTeamId] = useState<string | null>(null);
     const [awayTeamId, setAwayTeamId] = useState<string | null>(null);
-    const [flyerDate, setFlyerDate] = useState<Date | undefined>(new Date());
+    const [flyerDate, setFlyerDate] = useState<Date | undefined>(undefined);
     const [flyerTime, setFlyerTime] = useState<string>('12:00');
     const [flyerDesign, setFlyerDesign] = useState<FlyerDesign>('standard');
     
@@ -286,6 +286,7 @@ export default function ReportsPage() {
         if (typeof window !== 'undefined') {
             setIsClient(true);
             setDateRange({ from: new Date(), to: new Date() });
+            setFlyerDate(new Date());
         }
     }, []);
 
