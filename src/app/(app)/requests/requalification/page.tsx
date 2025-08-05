@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,23 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { getTeams, getPlayersByTeamId, getRequalificationRequests, type Player, type Team, type RequalificationRequest } from '@/lib/mock-data';
+import { getTeams, getPlayersByTeamId, getRequalificationRequests, addRequalificationRequest, type Player, type Team, type RequalificationRequest } from '@/lib/mock-data';
 import { ArrowLeft, Printer, UserPlus, UserX, FileText, BadgeCheck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 type RequestType = 'qualification' | 'requalification';
 
-const RequestHistory = () => {
-    const [requests, setRequests] = useState<RequalificationRequest[]>([]);
+const RequestHistory = ({ requests: initialRequests }: { requests: RequalificationRequest[] }) => {
+    const [requests, setRequests] = useState<RequalificationRequest[]>(initialRequests);
 
     useEffect(() => {
-        async function loadRequests() {
-            const data = await getRequalificationRequests();
-            setRequests(data);
-        }
-        loadRequests();
-    }, []);
+        setRequests(initialRequests);
+    }, [initialRequests]);
 
     const getStatusVariant = (status: string) => {
         switch (status) {
@@ -94,7 +92,9 @@ const RequestHistory = () => {
 
 
 export default function RequalificationPage() {
+    const { toast } = useToast();
     const [allTeams, setAllTeams] = useState<Team[]>([]);
+    const [allRequests, setAllRequests] = useState<RequalificationRequest[]>([]);
     const [step, setStep] = useState(1);
     const [requestType, setRequestType] = useState<RequestType | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
@@ -104,11 +104,12 @@ export default function RequalificationPage() {
     const [documentReady, setDocumentReady] = useState(false);
 
     useEffect(() => {
-        async function loadTeams() {
-            const teamsData = await getTeams();
+        async function loadData() {
+            const [teamsData, requestsData] = await Promise.all([getTeams(), getRequalificationRequests()]);
             setAllTeams(teamsData);
+            setAllRequests(requestsData);
         }
-        loadTeams();
+        loadData();
     }, []);
 
     const handleTeamChange = async (teamId: string) => {
@@ -126,16 +127,35 @@ export default function RequalificationPage() {
         setStep(step + 1);
     };
 
-    const handleGenerateDocument = () => {
+    const handleGenerateDocument = async () => {
         if (!requestType || !selectedTeam || !playerIn.name || !playerIn.idNumber || !playerIn.birthDate) {
-            // Add user feedback here, e.g., a toast notification
+            toast({ title: 'Error', description: 'Por favor, completa todos los campos del jugador entrante.', variant: 'destructive'});
             return;
         }
         if (requestType === 'requalification' && !playerOut) {
-            // Add user feedback here
+            toast({ title: 'Error', description: 'Por favor, selecciona un jugador saliente para la recalificación.', variant: 'destructive'});
             return;
         }
-        setDocumentReady(true);
+
+        const newRequestData: Omit<RequalificationRequest, 'id'> = {
+            teamId: selectedTeam.id,
+            teamName: selectedTeam.name,
+            requestType: requestType,
+            playerInName: playerIn.name,
+            playerOutName: playerOut?.name,
+            date: new Date().toISOString(),
+            status: 'pending',
+        };
+
+        try {
+            const newRequest = await addRequalificationRequest(newRequestData);
+            setAllRequests(prev => [newRequest, ...prev]);
+            setDocumentReady(true);
+            toast({ title: 'Solicitud Guardada', description: 'El registro digital de la solicitud ha sido guardado.' });
+        } catch (error) {
+            console.error("Error saving request:", error);
+            toast({ title: 'Error', description: 'No se pudo guardar la solicitud en la base de datos.', variant: 'destructive'});
+        }
     };
     
      const handlePrint = () => {
@@ -248,7 +268,7 @@ export default function RequalificationPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
                 <div className="lg:col-span-3">
-                    <RequestHistory />
+                    <RequestHistory requests={allRequests} />
                 </div>
                 <div className="lg:col-span-2">
                     <Card>

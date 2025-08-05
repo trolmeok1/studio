@@ -1,23 +1,177 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { Player, Team, Sanction, Match, Standing } from '@/lib/mock-data';
+import { useState, useMemo, useCallback } from 'react';
+import type { Player, Team, Sanction, Match, Standing, Category } from '@/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { addPlayer } from '@/lib/mock-data';
+import type { PlayerPosition } from '@/lib/types';
 
-type ViewMode = 'list' | 'grid';
+
+const AddPlayerDialog = ({ team, onPlayerAdded }: { team: Team, onPlayerAdded: (newPlayer: Player) => void }) => {
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [playerData, setPlayerData] = useState({
+        name: '',
+        idNumber: '',
+        birthDate: '',
+        jerseyNumber: '',
+        position: '' as PlayerPosition | '',
+    });
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setPlayerData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSelectChange = (value: string, field: string) => {
+        setPlayerData(prev => ({ ...prev, [field]: value }));
+    }
+
+    const resetForm = () => {
+        setPlayerData({ name: '', idNumber: '', birthDate: '', jerseyNumber: '', position: '' });
+        setPhotoPreview(null);
+    };
+
+    const handleSave = async () => {
+        if (!playerData.name || !playerData.idNumber || !playerData.birthDate || !playerData.jerseyNumber || !playerData.position || !photoPreview) {
+            toast({
+                title: 'Error de validación',
+                description: 'Por favor, completa todos los campos, incluyendo la foto.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const newPlayerData = {
+                ...playerData,
+                jerseyNumber: parseInt(playerData.jerseyNumber),
+                teamId: team.id,
+                team: team.name,
+                category: team.category,
+            };
+
+            const newPlayer = await addPlayer(newPlayerData, photoPreview);
+
+            toast({
+                title: 'Jugador Agregado',
+                description: `El jugador "${playerData.name}" ha sido agregado al equipo.`,
+            });
+            onPlayerAdded(newPlayer);
+            resetForm();
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Failed to add player:", error);
+            toast({
+                title: 'Error al guardar',
+                description: 'No se pudo agregar el jugador. Por favor, inténtalo de nuevo.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => {
+            if (!open) resetForm();
+            setIsOpen(open);
+        }}>
+            <DialogTrigger asChild>
+                <Button><PlusCircle className="mr-2 h-4 w-4" /> Agregar Jugador</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Agregar Nuevo Jugador a {team.name}</DialogTitle>
+                    <DialogDescription>Completa la información del nuevo integrante.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <div className="space-y-2">
+                        <Label>Foto del Jugador</Label>
+                        <div className="flex items-center gap-4">
+                            <Avatar className="w-24 h-24">
+                                <AvatarImage src={photoPreview || ''} alt="Vista previa del jugador" />
+                                <AvatarFallback className="text-4xl"><UserIcon /></AvatarFallback>
+                            </Avatar>
+                            <Input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nombre Completo</Label>
+                        <Input id="name" value={playerData.name} onChange={handleChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="idNumber">Cédula</Label>
+                        <Input id="idNumber" value={playerData.idNumber} onChange={handleChange} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                        <Input id="birthDate" type="date" value={playerData.birthDate} onChange={handleChange} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="jerseyNumber">Número de Camiseta</Label>
+                            <Input id="jerseyNumber" type="number" value={playerData.jerseyNumber} onChange={handleChange} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="position">Posición</Label>
+                            <Select onValueChange={(value) => handleSelectChange(value, 'position')} value={playerData.position}>
+                                <SelectTrigger><SelectValue placeholder="Elegir..." /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Portero">Portero</SelectItem>
+                                    <SelectItem value="Defensa">Defensa</SelectItem>
+                                    <SelectItem value="Mediocampista">Mediocampista</SelectItem>
+                                    <SelectItem value="Delantero">Delantero</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button onClick={handleSave} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isLoading ? 'Guardando...' : 'Guardar Jugador'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 const InfoRow = ({ icon: Icon, label, person, showContact }: { icon: React.ElementType, label: string, person?: any, showContact: boolean }) => (
     <div className="flex items-start gap-4 p-3 bg-muted/50 rounded-lg">
@@ -274,8 +428,8 @@ const PerformanceChart = ({ teamId, matches }: { teamId: string, matches: Match[
 }
 
 export function TeamDetailsClient({
-  team,
-  players,
+  team: initialTeam,
+  players: initialPlayers,
   matches,
   teamStandings,
   teamSanctions,
@@ -290,39 +444,44 @@ export function TeamDetailsClient({
 }) {
 
   const { user } = useAuth();
+  const [players, setPlayers] = useState(initialPlayers);
   const activePlayers = useMemo(() => players.filter(p => p.status === 'activo'), [players]);
+
+  const handlePlayerAdded = useCallback((newPlayer: Player) => {
+    setPlayers(prev => [...prev, newPlayer]);
+  }, []);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <header className="flex flex-col md:flex-row gap-4 justify-between items-start">
         <div className="flex items-center gap-6">
           <Image
-            src={team.logoUrl}
-            alt={`Logo de ${team.name}`}
+            src={initialTeam.logoUrl}
+            alt={`Logo de ${initialTeam.name}`}
             width={128}
             height={128}
             className="rounded-full border-4 border-primary shadow-lg"
             data-ai-hint="team logo"
           />
           <div>
-            <Badge>{team.category}</Badge>
-            <h2 className="text-4xl font-bold font-headline mt-1">{team.name}</h2>
-            <p className="text-muted-foreground">{team.president?.name || 'Presidente no asignado'}</p>
+            <Badge>{initialTeam.category}</Badge>
+            <h2 className="text-4xl font-bold font-headline mt-1">{initialTeam.name}</h2>
+            <p className="text-muted-foreground">{initialTeam.president?.name || 'Presidente no asignado'}</p>
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" asChild>
-            <Link href={`/teams/${team.id}/roster`}>
+            <Link href={`/teams/${initialTeam.id}/roster`}>
                 <Printer className="mr-2 h-4 w-4" /> Nómina
             </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/teams/${team.id}/info`}>
+            <Link href={`/teams/${initialTeam.id}/info`}>
                 <BadgeInfo className="mr-2 h-4 w-4" /> Directiva
             </Link>
           </Button>
           {user.permissions.teams.edit && (
-            <Button><PlusCircle className="mr-2 h-4 w-4" /> Agregar Jugador</Button>
+            <AddPlayerDialog team={initialTeam} onPlayerAdded={handlePlayerAdded} />
           )}
         </div>
       </header>
@@ -343,7 +502,7 @@ export function TeamDetailsClient({
              <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Rendimiento (Últimos 5)</p>
                  <div className="mt-2 h-8 flex items-center justify-center">
-                     <PerformanceChart teamId={team.id} matches={matches} />
+                     <PerformanceChart teamId={initialTeam.id} matches={matches} />
                 </div>
             </div>
         </CardContent>
@@ -360,7 +519,7 @@ export function TeamDetailsClient({
           <RosterTab players={activePlayers} />
         </TabsContent>
         <TabsContent value="matches" className="mt-4">
-            <MatchesTab teamId={team.id} matches={matches} />
+            <MatchesTab teamId={initialTeam.id} matches={matches} />
         </TabsContent>
         <TabsContent value="sanctions" className="mt-4">
           <SanctionsTab sanctions={teamSanctions} />

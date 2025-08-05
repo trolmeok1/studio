@@ -76,7 +76,7 @@ export const updateUser = async (updatedUser: User) => {
 export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
     const usersCol = collection(db, 'users');
     const docRef = await addDoc(usersCol, newUser);
-    return { id: docRef.id, ...newUser };
+    return { id: docRef.id, ...newUser } as User;
 };
 
 
@@ -122,7 +122,7 @@ export const addTeam = async (teamData: Omit<Team, 'id' | 'logoUrl'>, logoDataUr
     };
 
     const docRef = await addDoc(collection(db, 'teams'), newTeam);
-    return { id: docRef.id, ...newTeam };
+    return { id: docRef.id, ...newTeam } as Team;
 };
 
 export const getTeamById = async (id: string): Promise<Team | undefined> => {
@@ -150,6 +150,24 @@ export const getPlayers = async (): Promise<Player[]> => {
     const playerSnapshot = await getDocs(playersCol);
     return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
 };
+
+export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'status' | 'stats'>, photoDataUri: string): Promise<Player> => {
+    const newPlayerId = `player-${Date.now()}`;
+    const storageRef = ref(storage, `player-photos/${newPlayerId}`);
+    const snapshot = await uploadString(storageRef, photoDataUri, 'data_url');
+    const photoUrl = await getDownloadURL(snapshot.ref);
+
+    const newPlayer: Omit<Player, 'id'> = {
+        ...playerData,
+        photoUrl: photoUrl,
+        status: 'activo',
+        stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
+    };
+
+    const docRef = await addDoc(collection(db, 'players'), newPlayer);
+    return { id: docRef.id, ...newPlayer } as Player;
+};
+
 
 export const getPlayerById = async (id: string): Promise<Player | undefined> => {
     if (!id) return undefined;
@@ -262,6 +280,13 @@ export const getRequalificationRequests = async (): Promise<RequalificationReque
     const requestSnapshot = await getDocs(requestsCol);
     return requestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RequalificationRequest));
 };
+
+export const addRequalificationRequest = async (request: Omit<RequalificationRequest, 'id'>): Promise<RequalificationRequest> => {
+    const requestsCol = collection(db, 'requalificationRequests');
+    const docRef = await addDoc(requestsCol, request);
+    return { id: docRef.id, ...request };
+};
+
 
 // --- Logs ---
 export const getSystemLogs = async (): Promise<LogEntry[]> => {
