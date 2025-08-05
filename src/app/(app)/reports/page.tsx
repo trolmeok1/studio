@@ -161,8 +161,6 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
             
             <Table>
                 <TableBody>
-                    <FinancialRow label="Saldo Inicial" value={0} />
-                    
                     <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Ingresos</TableCell></TableRow>
                     <FinancialRow label="Ingresos por Vocalías" value={income} />
                     {/* Add other income sources if needed */}
@@ -185,7 +183,7 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
     );
 };
 
-const MatchFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+const StandardFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
     return (
         <div
             id="printable-report"
@@ -197,7 +195,7 @@ const MatchFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awa
 
             <header className="text-center z-10">
                 <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={60} height={60} className="mx-auto" data-ai-hint="league logo lion" />
-                <p className="font-bold text-lg mt-2">CLUB DEPORTIVO LEONES</p>
+                <p className="font-bold text-lg mt-2">LIGA LA LUZ</p>
             </header>
 
             <main className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 z-10">
@@ -222,8 +220,51 @@ const MatchFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awa
     );
 };
 
+const SemifinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+    return (
+        <div
+            id="printable-report"
+            className="bg-gray-800 text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col justify-between items-center"
+        >
+            <Image src="https://placehold.co/800x1000.png" alt="Soccer player" layout="fill" objectFit="cover" className="opacity-30" data-ai-hint="soccer player action" />
+            <div className="absolute inset-0 bg-black/50" />
+
+            <header className="text-center z-10 mt-8">
+                <h1 className="text-6xl font-extrabold tracking-tighter">SEMI</h1>
+                <h1 className="text-8xl font-extrabold tracking-tighter text-red-600 -mt-4">FINALES</h1>
+            </header>
+
+            <main className="z-10 w-full flex-grow flex flex-col items-center justify-center">
+                <div className="text-center mb-4">
+                    {date && <p className="text-lg font-bold">{format(date, "dd MMMM", { locale: es }).toLocaleUpperCase()} | {time}</p>}
+                    <p className="text-sm tracking-widest">ESTADIO LIGA LA LUZ</p>
+                </div>
+
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full px-8">
+                    <div className="flex flex-col items-center text-center gap-2">
+                        <Image src={localTeam?.logoUrl || "https://placehold.co/400x400.png"} alt={localTeam?.name || "Equipo Local"} width={100} height={100} data-ai-hint="team logo shield" />
+                        <p className="font-semibold text-base mt-2">{localTeam?.name || "Equipo A"}</p>
+                    </div>
+
+                    <div className="font-extrabold text-5xl text-center italic">VS</div>
+
+                    <div className="flex flex-col items-center text-center gap-2">
+                         <Image src={awayTeam?.logoUrl || "https://placehold.co/400x400.png"} alt={awayTeam?.name || "Equipo Visitante"} width={100} height={100} data-ai-hint="team logo shield" />
+                        <p className="font-semibold text-base mt-2">{awayTeam?.name || "Equipo B"}</p>
+                    </div>
+                </div>
+            </main>
+
+             <footer className="z-10 mb-4">
+                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={40} height={40} className="mx-auto" data-ai-hint="league logo" />
+            </footer>
+        </div>
+    );
+};
+
 
 type ReportType = 'standings' | 'schedule' | 'flyer' | 'finance' | null;
+type FlyerDesign = 'standard' | 'semifinal';
 
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
@@ -237,6 +278,7 @@ export default function ReportsPage() {
     const [awayTeamId, setAwayTeamId] = useState<string | null>(null);
     const [flyerDate, setFlyerDate] = useState<Date | undefined>(new Date());
     const [flyerTime, setFlyerTime] = useState<string>('12:00');
+    const [flyerDesign, setFlyerDesign] = useState<FlyerDesign>('standard');
     
     const [isClient, setIsClient] = useState(false);
 
@@ -275,7 +317,8 @@ export default function ReportsPage() {
                 <div className="mt-4">
                     {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} />}
                     {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
-                    {reportType === 'flyer' && <MatchFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
+                    {reportType === 'flyer' && flyerDesign === 'standard' && <StandardFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
+                    {reportType === 'flyer' && flyerDesign === 'semifinal' && <SemifinalFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                 </div>
                  <style jsx global>{`
                     @media print {
@@ -375,36 +418,52 @@ export default function ReportsPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                         <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <Label htmlFor="local-team">Equipo Local</Label>
-                                <Select onValueChange={setLocalTeamId}>
-                                    <SelectTrigger id="local-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
-                                    <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label htmlFor="away-team">Equipo Visitante</Label>
-                                 <Select onValueChange={setAwayTeamId}>
-                                    <SelectTrigger id="away-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
-                                    <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                             <div className="space-y-1">
-                                <Label htmlFor="flyer-date">Fecha</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {flyerDate ? format(flyerDate, "PPP", { locale: es }) : <span>Elegir fecha</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={flyerDate} onSelect={setFlyerDate} initialFocus /></PopoverContent>
-                                </Popover>
+                         <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <Label htmlFor="local-team">Equipo Local</Label>
+                                    <Select onValueChange={setLocalTeamId}>
+                                        <SelectTrigger id="local-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
+                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="away-team">Equipo Visitante</Label>
+                                    <Select onValueChange={setAwayTeamId}>
+                                        <SelectTrigger id="away-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
+                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                              <div className="space-y-1">
-                                <Label htmlFor="flyer-time">Hora</Label>
-                                <Input id="flyer-time" type="time" value={flyerTime} onChange={e => setFlyerTime(e.target.value)} />
+                                <Label htmlFor="flyer-design">Diseño del Flyer</Label>
+                                <Select value={flyerDesign} onValueChange={(v) => setFlyerDesign(v as FlyerDesign)}>
+                                    <SelectTrigger id="flyer-design">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="standard">Estándar (1 vs 1)</SelectItem>
+                                        <SelectItem value="semifinal">Semifinal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <Label htmlFor="flyer-date">Fecha</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {flyerDate ? format(flyerDate, "PPP", { locale: es }) : <span>Elegir fecha</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={flyerDate} onSelect={setFlyerDate} initialFocus /></PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="flyer-time">Hora</Label>
+                                    <Input id="flyer-time" type="time" value={flyerTime} onChange={e => setFlyerTime(e.target.value)} />
+                                </div>
                             </div>
                         </div>
                         <Button className="w-full mt-4" onClick={() => handleGenerate('flyer')} disabled={!localTeamId || !awayTeamId}>
