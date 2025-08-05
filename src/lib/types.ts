@@ -1,6 +1,5 @@
 
 
-
 export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
