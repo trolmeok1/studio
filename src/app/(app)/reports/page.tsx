@@ -5,10 +5,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Calendar, ShieldAlert, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck } from 'lucide-react';
+import { BarChart2, Calendar, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck, Image as ImageIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { standings as mockStandings, sanctions as mockSanctions, upcomingMatches, teams, expenses as mockExpenses, type Category, type Standing, type Sanction, type Match, type Expense, getReferees } from '@/lib/mock-data';
+import { standings as mockStandings, teams, expenses as mockExpenses, type Category, type Standing, type Match, type Expense, getReferees, type Team } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, addDays } from 'date-fns';
@@ -19,6 +19,7 @@ import type { DateRange } from 'react-day-picker';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from "lucide-react";
+import { Input } from '@/components/ui/input';
 
 // --- Report Components ---
 
@@ -35,7 +36,7 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
         };
     }).sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
 
-    const getRowClass = (rank: number) => {
+    const getRowClass = (rank: number, index: number) => {
         if (rank <= 3) return 'bg-red-800/20'; // Using a darker red for better contrast on white
         return index % 2 === 0 ? 'bg-gray-50' : 'bg-white';
     };
@@ -71,7 +72,7 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
                 </TableHeader>
                 <TableBody>
                     {standings.map((s, index) => (
-                        <TableRow key={s.teamId} className={cn("border-gray-300", getRowClass(index))}>
+                        <TableRow key={s.teamId} className={cn("border-gray-300", getRowClass(s.rank, index))}>
                            <TableCell className="p-0 w-[50px] text-center">
                                 <div className={cn("h-full w-full flex items-center justify-center font-bold text-sm py-3", getPositionClass(s.rank))}>
                                     {s.rank}
@@ -99,116 +100,6 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
     );
 };
 
-const ScheduleReport = ({ matches }: { matches: Match[] }) => {
-    const [isClient, setIsClient] = useState(false);
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    if (!isClient) {
-        return null;
-    }
-    
-    return (
-        <div id="printable-report" className="bg-gray-800 text-white font-headline relative print:border-none aspect-[1/1.414] max-w-2xl mx-auto">
-            <div className="absolute inset-0 z-0">
-                <Image src="/soccer-field-bg.jpg" layout="fill" objectFit="cover" alt="Fondo de estadio" className="opacity-20" data-ai-hint="stadium background" />
-            </div>
-            <div className="relative z-10 p-8 flex flex-col h-full">
-                <header className="text-center mb-8">
-                    <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" className="mx-auto" />
-                    <h1 className="text-3xl font-bold tracking-tight uppercase mt-2">Campeonato Barrial</h1>
-                    <h2 className="text-5xl font-extrabold text-yellow-400 tracking-wider">PROGRAMACIÓN SEMANAL</h2>
-                     <p className="text-md mt-2">
-                        {matches.length > 0 &&
-                            `${format(new Date(matches[0].date), "dd 'de' MMMM", { locale: es })} - ${format(new Date(matches[matches.length - 1].date), "dd 'de' MMMM 'del' yyyy", { locale: es })}`
-                        }
-                    </p>
-                </header>
-
-                <main className="flex-grow space-y-4">
-                    {matches.map(match => {
-                        return (
-                             <div key={match.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/20">
-                                {/* Team A */}
-                                <div className="flex flex-col items-center text-center">
-                                    <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={60} height={60} className="rounded-full border-2 border-white/50" data-ai-hint="team logo" />
-                                    <p className="text-lg font-bold uppercase mt-2">{match.teams.home.name}</p>
-                                    <p className="text-xs text-gray-300 mt-1">Camerino {match.teams.home.vocalPaymentDetails?.otherFinesDescription || 'N/A'}</p>
-                                </div>
-                                
-                                {/* VS */}
-                                <div className="flex flex-col items-center text-center">
-                                    <div className="bg-yellow-400 text-black rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
-                                        VS
-                                    </div>
-                                    <p className="text-xl font-bold text-yellow-400 mt-2">{format(new Date(match.date), 'HH:mm')}</p>
-                                    <p className="text-xs text-gray-300 mt-1">{format(new Date(match.date), "eeee, dd 'de' MMMM", { locale: es })}</p>
-                                </div>
-
-                                {/* Team B */}
-                                <div className="flex flex-col items-center text-center">
-                                    <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={60} height={60} className="rounded-full border-2 border-white/50" data-ai-hint="team logo" />
-                                    <p className="text-lg font-bold uppercase mt-2">{match.teams.away.name}</p>
-                                    <p className="text-xs text-gray-300 mt-1">Camerino {match.teams.away.vocalPaymentDetails?.otherFinesDescription || 'N/A'}</p>
-                                </div>
-                            </div>
-                        )
-                    })}
-                     {matches.length === 0 && (
-                        <div className="flex items-center justify-center h-full">
-                            <p className="text-center text-xl">No hay partidos programados para la próxima semana.</p>
-                        </div>
-                    )}
-                </main>
-
-                <footer className="text-center text-xs text-gray-400 mt-8">
-                    www.ligacontrol.com
-                </footer>
-            </div>
-        </div>
-    );
-};
-
-
-const SanctionsReport = () => {
-    const [isClient, setIsClient] = useState(false);
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
-             <header className="flex flex-col items-center text-center mb-6">
-                <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={100} height={100} data-ai-hint="league logo" />
-                <h1 className="text-2xl font-bold mt-2">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
-                <p className="text-lg font-semibold">REPORTE DE SANCIONES</p>
-                {isClient && <p className="text-md">Fecha: {format(new Date(), 'PPP', { locale: es })}</p>}
-            </header>
-            <Table>
-                <TableHeader>
-                    <TableRow className="bg-gray-200">
-                        <TableHead className="text-black font-bold">Jugador</TableHead>
-                        <TableHead className="text-black font-bold">Equipo</TableHead>
-                        <TableHead className="text-black font-bold">Motivo</TableHead>
-                        <TableHead className="text-center text-black font-bold">Partidos Suspendido</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {mockSanctions.map(sanction => (
-                        <TableRow key={sanction.id}>
-                            <TableCell>{sanction.playerName}</TableCell>
-                            <TableCell>{sanction.teamName}</TableCell>
-                            <TableCell>{sanction.reason}</TableCell>
-                            <TableCell className="text-center font-bold">{sanction.gamesSuspended}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
-    );
-};
-
 const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => {
@@ -217,10 +108,7 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
 
     const filteredMatches = useMemo(() => {
         if (!dateRange?.from) return [];
-        return upcomingMatches.filter(m => {
-            const matchDate = new Date(m.date);
-            return matchDate >= dateRange.from! && matchDate <= (dateRange.to || dateRange.from!);
-        });
+        return [];
     }, [dateRange]);
 
     const filteredExpenses = useMemo(() => {
@@ -232,11 +120,7 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
     }, [dateRange]);
 
     const income = useMemo(() => {
-        return filteredMatches.reduce((acc, match) => {
-            const homeIncome = match.teams.home.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.home.vocalPaymentDetails.total : 0;
-            const awayIncome = match.teams.away.vocalPaymentDetails?.paymentStatus === 'paid' ? match.teams.away.vocalPaymentDetails.total : 0;
-            return acc + homeIncome + awayIncome;
-        }, 0);
+        return filteredMatches.reduce((acc, match) => acc, 0);
     }, [filteredMatches]);
     
     const totalExpenses = useMemo(() => {
@@ -301,14 +185,59 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
     );
 };
 
+const MatchFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awayTeam?: Team, date?: Date, time: string }) => {
+    return (
+        <div
+            id="printable-report"
+            className="bg-[#1a233c] text-white p-8 max-w-2xl mx-auto print:border-none relative overflow-hidden aspect-[4/5] flex flex-col justify-between"
+            style={{ backgroundImage: `url('/textured-background.png')` }}
+        >
+             <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-teal-500/20 to-transparent -translate-x-1/4 -translate-y-1/4 blur-3xl"></div>
+             <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-teal-500/20 to-transparent translate-x-1/4 translate-y-1/4 blur-3xl"></div>
 
-type ReportType = 'standings' | 'schedule' | 'sanctions' | 'finance' | null;
+            <header className="text-center z-10">
+                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={60} height={60} className="mx-auto" data-ai-hint="league logo lion" />
+                <p className="font-bold text-lg mt-2">CLUB DEPORTIVO LEONES</p>
+            </header>
+
+            <main className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 z-10">
+                <div className="flex flex-col items-center text-center gap-2">
+                    <Image src={localTeam?.logoUrl || "https://placehold.co/400x400.png"} alt={localTeam?.name || "Equipo Local"} width={150} height={150} data-ai-hint="wolf logo" />
+                    <p className="font-bold text-xl">{localTeam?.name || "Equipo Local"}</p>
+                </div>
+
+                <div className="font-extrabold text-6xl text-center italic -rotate-6">VS</div>
+
+                <div className="flex flex-col items-center text-center gap-2">
+                    <Image src={awayTeam?.logoUrl || "https://placehold.co/400x400.png"} alt={awayTeam?.name || "Equipo Visitante"} width={150} height={150} data-ai-hint="tiger logo" />
+                    <p className="font-bold text-xl">{awayTeam?.name || "Equipo Visitante"}</p>
+                </div>
+            </main>
+
+            <footer className="text-center z-10">
+                {date && <p className="text-2xl font-bold">{format(date, "eeee dd 'de' MMMM", { locale: es }).toLocaleUpperCase()}</p>}
+                {time && <p className="text-lg">A LAS {time} HRS.</p>}
+            </footer>
+        </div>
+    );
+};
+
+
+type ReportType = 'standings' | 'schedule' | 'flyer' | 'finance' | null;
 
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
+    // Standings
     const [category, setCategory] = useState<Category>('Máxima');
     const [group, setGroup] = useState<'A' | 'B' | 'all'>('all');
+    // Finance
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    // Flyer
+    const [localTeamId, setLocalTeamId] = useState<string | null>(null);
+    const [awayTeamId, setAwayTeamId] = useState<string | null>(null);
+    const [flyerDate, setFlyerDate] = useState<Date | undefined>(new Date());
+    const [flyerTime, setFlyerTime] = useState<string>('12:00');
+    
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -318,17 +247,9 @@ export default function ReportsPage() {
         }
     }, []);
 
-    const weeklyMatches = useMemo(() => {
-        if (!isClient) return [];
-        const today = new Date();
-        const nextWeek = addDays(today, 7);
-        return upcomingMatches
-            .filter(match => {
-                const matchDate = new Date(match.date);
-                return matchDate >= today && matchDate <= nextWeek;
-            })
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, [isClient]);
+    const localTeam = useMemo(() => teams.find(t => t.id === localTeamId), [localTeamId]);
+    const awayTeam = useMemo(() => teams.find(t => t.id === awayTeamId), [awayTeamId]);
+
 
     const handleGenerate = (type: ReportType) => {
         setReportType(type);
@@ -348,14 +269,13 @@ export default function ReportsPage() {
                     </Button>
                     <Button onClick={handlePrint}>
                         <Printer className="mr-2" />
-                        Imprimir Reporte
+                        Imprimir / Descargar
                     </Button>
                 </div>
                 <div className="mt-4">
                     {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} />}
-                    {reportType === 'schedule' && <ScheduleReport matches={weeklyMatches} />}
-                    {reportType === 'sanctions' && <SanctionsReport />}
                     {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
+                    {reportType === 'flyer' && <MatchFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                 </div>
                  <style jsx global>{`
                     @media print {
@@ -402,7 +322,7 @@ export default function ReportsPage() {
                             </div>
                             <div>
                                 <CardTitle>Tabla de Posiciones Oficial</CardTitle>
-                                <CardDescription>Genere un documento PDF con la tabla de posiciones actual de una categoría, listo para imprimir o compartir.</CardDescription>
+                                <CardDescription>Genere un documento PDF con la tabla de posiciones actual de una categoría.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
@@ -441,52 +361,61 @@ export default function ReportsPage() {
                         </Button>
                     </CardContent>
                 </Card>
-
-                 <Card>
+                
+                <Card>
                     <CardHeader>
                         <div className="flex items-start gap-4">
                             <div className="bg-primary/10 text-primary p-3 rounded-full">
-                                <Calendar className="h-6 w-6" />
+                                <ImageIcon className="h-6 w-6" />
                             </div>
                             <div>
-                                <CardTitle>Programación Semanal</CardTitle>
-                                <CardDescription>Cree un reporte con todos los partidos de la próxima semana, incluyendo horarios y canchas.</CardDescription>
+                                <CardTitle>Generador de Flyers de Partidos</CardTitle>
+                                <CardDescription>Cree pósters personalizados para los próximos partidos de la liga.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                         <div className="space-y-2 h-[88px] flex items-center">
-                            <p className="text-sm text-muted-foreground">Este reporte generará automáticamente los partidos para los próximos 7 días.</p>
-                        </div>
-                         <Button className="w-full mt-4" onClick={() => handleGenerate('schedule')}>
-                            <Printer className="mr-2" />
-                            Generar Reporte
-                        </Button>
-                    </CardContent>
-                </Card>
-
-                 <Card>
-                    <CardHeader>
-                        <div className="flex items-start gap-4">
-                            <div className="bg-primary/10 text-primary p-3 rounded-full">
-                                <ShieldAlert className="h-6 w-6" />
+                         <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <Label htmlFor="local-team">Equipo Local</Label>
+                                <Select onValueChange={setLocalTeamId}>
+                                    <SelectTrigger id="local-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
+                                    <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                                </Select>
                             </div>
                             <div>
-                                <CardTitle>Reporte de Sanciones</CardTitle>
-                                <CardDescription>Liste todos los jugadores actualmente sancionados, el motivo de la sanción y los partidos de suspensión.</CardDescription>
+                                <Label htmlFor="away-team">Equipo Visitante</Label>
+                                 <Select onValueChange={setAwayTeamId}>
+                                    <SelectTrigger id="away-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
+                                    <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                             <div className="space-y-1">
+                                <Label htmlFor="flyer-date">Fecha</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {flyerDate ? format(flyerDate, "PPP", { locale: es }) : <span>Elegir fecha</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={flyerDate} onSelect={setFlyerDate} initialFocus /></PopoverContent>
+                                </Popover>
+                            </div>
+                             <div className="space-y-1">
+                                <Label htmlFor="flyer-time">Hora</Label>
+                                <Input id="flyer-time" type="time" value={flyerTime} onChange={e => setFlyerTime(e.target.value)} />
                             </div>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground h-[88px] flex items-center">Este reporte incluirá a todos los jugadores con sanciones activas en todas las categorías.</p>
-                         <Button className="w-full mt-4" onClick={() => handleGenerate('sanctions')}>
+                        <Button className="w-full mt-4" onClick={() => handleGenerate('flyer')} disabled={!localTeamId || !awayTeamId}>
                             <Printer className="mr-2" />
-                            Generar Reporte
+                            Generar Flyer
                         </Button>
                     </CardContent>
                 </Card>
 
-                 <Card>
+
+                 <Card className="md:col-span-2">
                     <CardHeader>
                         <div className="flex items-start gap-4">
                             <div className="bg-primary/10 text-primary p-3 rounded-full">
@@ -494,7 +423,7 @@ export default function ReportsPage() {
                             </div>
                             <div>
                                 <CardTitle>Reporte Financiero Detallado</CardTitle>
-                                <CardDescription>Genere un estado de cuenta completo con ingresos por vocalías, pagos pendientes y multas aplicadas.</CardDescription>
+                                <CardDescription>Genere un estado de cuenta completo con ingresos, gastos y balance final.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
@@ -539,7 +468,7 @@ export default function ReportsPage() {
                         </div>
                          <Button className="w-full mt-4" onClick={() => handleGenerate('finance')}>
                             <Printer className="mr-2" />
-                            Generar Reporte
+                            Generar Reporte Financiero
                         </Button>
                     </CardContent>
                 </Card>
