@@ -1,135 +1,141 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getUserByEmail, updateUser as dbUpdateUser, getUsers } from '@/lib/mock-data';
-import type { User, Permissions, UserRole } from '@/lib/types';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-const defaultGuestUser: User = { 
-    id: 'guest-user', 
-    name: 'Invitado', 
-    email: 'guest@ligacontrol.com', 
-    role: 'guest', 
-    permissions: {
-        dashboard: { view: true, edit: false },
-        players: { view: true, edit: false },
-        schedule: { view: true, edit: false },
-        partido: { view: true, edit: false },
-        copa: { view: true, edit: false },
-        aiCards: { view: false, edit: false },
-        committees: { view: false, edit: false },
-        treasury: { view: false, edit: false },
-        requests: { view: false, edit: false },
-        reports: { view: false, edit: false },
-        teams: { view: true, edit: false },
-        roles: { view: false, edit: false },
-        logs: { view: false, edit: false },
-    }, 
-    avatarUrl: 'https://placehold.co/100x100.png'
+export type UserRole = 'admin' | 'secretary' | 'guest';
+
+export interface Permissions {
+    dashboard: { view: boolean; edit: boolean };
+    players: { view: boolean; edit: boolean };
+    schedule: { view: boolean; edit: boolean };
+    partido: { view: boolean; edit: boolean };
+    copa: { view: boolean; edit: boolean };
+    aiCards: { view: boolean; edit: boolean };
+    committees: { view: boolean; edit: boolean };
+    treasury: { view: boolean; edit: boolean };
+    requests: { view: boolean; edit: boolean };
+    reports: { view: boolean; edit: boolean };
+    teams: { view: boolean; edit: boolean };
+    roles: { view: boolean; edit: boolean };
+    logs: { view: boolean; edit: boolean };
+}
+
+const allPermissionsTrue: Permissions = {
+    dashboard: { view: true, edit: true },
+    players: { view: true, edit: true },
+    schedule: { view: true, edit: true },
+    partido: { view: true, edit: true },
+    copa: { view: true, edit: true },
+    aiCards: { view: true, edit: true },
+    committees: { view: true, edit: true },
+    treasury: { view: true, edit: true },
+    requests: { view: true, edit: true },
+    reports: { view: true, edit: true },
+    teams: { view: true, edit: true },
+    roles: { view: true, edit: true },
+    logs: { view: true, edit: true },
 };
 
+const secretaryPermissions: Permissions = {
+    dashboard: { view: true, edit: false },
+    players: { view: true, edit: true },
+    schedule: { view: true, edit: true },
+    partido: { view: true, edit: true },
+    copa: { view: true, edit: true },
+    aiCards: { view: false, edit: false },
+    committees: { view: true, edit: true },
+    treasury: { view: true, edit: true },
+    requests: { view: true, edit: true },
+    reports: { view: true, edit: false },
+    teams: { view: true, edit: true },
+    roles: { view: false, edit: false },
+    logs: { view: false, edit: false },
+};
+
+const guestPermissions: Permissions = {
+    dashboard: { view: true, edit: false },
+    players: { view: true, edit: false },
+    schedule: { view: true, edit: false },
+    partido: { view: true, edit: false },
+    copa: { view: true, edit: false }, // Guests can view, but visibility is controlled by isCopaPublic
+    aiCards: { view: false, edit: false },
+    committees: { view: false, edit: false },
+    treasury: { view: false, edit: false },
+    requests: { view: false, edit: false },
+    reports: { view: false, edit: false },
+    teams: { view: true, edit: false },
+    roles: { view: false, edit: false },
+    logs: { view: false, edit: false },
+};
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  permissions: Permissions;
+  avatarUrl?: string;
+}
 
 interface AuthContextType {
   user: User;
+  setUser: (user: User) => void;
   users: User[];
   setUsers: (users: User[]) => void;
-  login: (email: string, password?: string) => Promise<boolean>;
-  logout: () => void;
+  loginAs: (role: UserRole) => void;
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
   isAuthLoading: boolean;
 }
 
+const mockUsers: User[] = [
+  { id: 'user-1', name: 'Usuario Admin', email: 'admin@ligacontrol.com', role: 'admin', permissions: allPermissionsTrue, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
+  { id: 'user-2', name: 'Secretario/a', email: 'secretary@ligacontrol.com', role: 'secretary', permissions: secretaryPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
+  { id: 'user-3', name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest', permissions: guestPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
+];
+
+const defaultUser = mockUsers.find(u => u.role === 'guest')!;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [users, setUsersState] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User>(defaultGuestUser);
+  const [users, setUsersState] = useState<User[]>(mockUsers);
+  const [currentUser, setCurrentUser] = useState<User>(defaultUser);
   const [isCopaPublic, setIsCopaPublic] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const syncUser = useCallback((user: User | null) => {
-    if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        setCurrentUser(user);
-    } else {
-        localStorage.removeItem('currentUser');
-        setCurrentUser(defaultGuestUser);
-    }
+  useEffect(() => {
+    // Simulate loading user from session/storage
+    const timer = setTimeout(() => {
+        setIsAuthLoading(false);
+    }, 250); // Small delay to simulate async loading
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    async function loadInitialData() {
-        setIsAuthLoading(true);
-        try {
-            const allUsers = await getUsers();
-            setUsersState(allUsers);
-            const storedUserJson = localStorage.getItem('currentUser');
-            if (storedUserJson) {
-                const storedUser = JSON.parse(storedUserJson);
-                // Optional: Verify user against the fresh list from DB
-                const userExists = allUsers.some(u => u.id === storedUser.id);
-                if (userExists) {
-                    setCurrentUser(storedUser);
-                } else {
-                   syncUser(null);
-                }
-            } else {
-                setCurrentUser(defaultGuestUser);
-            }
-        } catch (error) {
-            console.error("Failed to initialize auth state:", error);
-            syncUser(null);
-        } finally {
-            setIsAuthLoading(false);
-        }
-    }
-    loadInitialData();
-  }, [syncUser]);
 
-
-  const login = async (email: string, password?: string): Promise<boolean> => {
-    setIsAuthLoading(true);
-    try {
-        const userFromDb = await getUserByEmail(email);
-        if (userFromDb && userFromDb.password === password) {
-            syncUser(userFromDb);
-            return true;
-        }
-        return false;
-    } catch(e) {
-        return false;
+  const loginAs = (role: UserRole) => {
+    const userToLogin = users.find(u => u.role === role);
+    if (userToLogin) {
+      setCurrentUser(userToLogin);
     }
-    finally {
-        setIsAuthLoading(false);
-    }
-  };
-
-  const logout = () => {
-    syncUser(null);
   };
   
   const setUsers = (updatedUsers: User[]) => {
       setUsersState(updatedUsers);
-      // find the logged in user from the updated list and update their state
       const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
       if (updatedCurrentUser) {
-          syncUser(updatedCurrentUser);
+          setCurrentUser(updatedCurrentUser);
       }
-      // Persist all changes to the database
-      updatedUsers.forEach(user => {
-         // This is a mock, in a real app you might want to check for changes before updating
-         dbUpdateUser(user);
-      });
   }
 
   const value = {
     user: currentUser,
+    setUser: setCurrentUser,
     users,
     setUsers,
-    login,
-    logout,
+    loginAs,
     isCopaPublic,
     setIsCopaPublic,
     isAuthLoading,
