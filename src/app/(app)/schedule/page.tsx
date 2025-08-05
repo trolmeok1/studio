@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, standings as mockStandings } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { GeneratedMatch } from '@/lib/types';
+import type { GeneratedMatch, Standing } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
@@ -217,8 +217,18 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { al
     const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>();
     const [newDate, setNewDate] = useState<Date | undefined>();
     const [newTime, setNewTime] = useState<string>('');
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
 
-    const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
+    useEffect(() => {
+        const fetchTeams = async () => {
+            const maxima = await getTeamsByCategory('Máxima');
+            const primera = await getTeamsByCategory('Primera');
+            const segunda = await getTeamsByCategory('Segunda');
+            setAllTeams([...maxima, ...primera, ...segunda]);
+        }
+        fetchTeams();
+    }, [])
+
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
     
     const occupiedSlots = useMemo(() => {
@@ -304,13 +314,19 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule }: { al
 
 const ScheduleView = ({ generatedMatches, selectedCategory, groupBy }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupBy: 'date' | 'round' }) => {
     const [isClient, setIsClient] = useState(false);
-    useEffect(() => { setIsClient(true); }, []);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
+
+    useEffect(() => { 
+        setIsClient(true);
+        const fetchTeams = async () => {
+            const maxima = await getTeamsByCategory('Máxima');
+            const primera = await getTeamsByCategory('Primera');
+            const segunda = await getTeamsByCategory('Segunda');
+            setAllTeams([...maxima, ...primera, ...segunda]);
+        }
+        fetchTeams();
+    }, []);
     
-    const allTeams = useMemo(() => [
-        ...getTeamsByCategory('Máxima'),
-        ...getTeamsByCategory('Primera'),
-        ...getTeamsByCategory('Segunda'),
-    ], []);
     const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
 
     const filteredMatches = useMemo(() => {
@@ -384,11 +400,16 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupBy }: { generat
 };
 
 const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
-    const allTeams = useMemo(() => [
-        ...getTeamsByCategory('Máxima'),
-        ...getTeamsByCategory('Primera'),
-        ...getTeamsByCategory('Segunda')
-    ], []);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
+    useEffect(() => {
+        const fetchTeams = async () => {
+            const maxima = await getTeamsByCategory('Máxima');
+            const primera = await getTeamsByCategory('Primera');
+            const segunda = await getTeamsByCategory('Segunda');
+            setAllTeams([...maxima, ...primera, ...segunda]);
+        }
+        fetchTeams();
+    }, [])
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
     const rescheduledMatches = matches.filter(m => m.rescheduled);
 
@@ -415,10 +436,10 @@ const RescheduledMatchesView = ({ matches }: { matches: GeneratedMatch[] }) => {
                                 <TableRow key={`${match.home}-${match.away}-${i}`}>
                                     <TableCell className="font-medium">{getTeamName(match.home)} vs {getTeamName(match.away)}</TableCell>
                                     <TableCell>
-                                        {match.originalDate ? format(match.originalDate, 'PPP, p', { locale: es }) : 'N/A'}
+                                        {match.originalDate ? format(new Date(match.originalDate), 'PPP, p', { locale: es }) : 'N/A'}
                                     </TableCell>
                                     <TableCell>
-                                        {match.date ? format(match.date, 'PPP, p', { locale: es }) : 'N/A'}
+                                        {match.date ? format(new Date(match.date), 'PPP, p', { locale: es }) : 'N/A'}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -463,7 +484,7 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
                     </div>
                 </CardContent>
                 <CardFooter className="p-3 bg-muted/50 text-xs text-muted-foreground">
-                    {match.date ? format(match.date, 'PPP, p', { locale: es }) : 'Fecha y Hora por definir'}
+                    {match.date ? format(new Date(match.date), 'PPP, p', { locale: es }) : 'Fecha y Hora por definir'}
                 </CardFooter>
             </Card>
         )
@@ -559,21 +580,35 @@ export default function SchedulePage() {
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
   const [activeTab, setActiveTab] = useState('general');
   const [finalMatches, setFinalMatches] = useState<GeneratedMatch[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [standings, setStandings] = useState<Standing[]>([]);
+
+  useEffect(() => { 
+      setIsClient(true);
+      const fetchData = async () => {
+        const maxima = await getTeamsByCategory('Máxima');
+        const primera = await getTeamsByCategory('Primera');
+        const segunda = await getTeamsByCategory('Segunda');
+        setAllTeams([...maxima, ...primera, ...segunda]);
+        const standingsData = await getStandings();
+        setStandings(standingsData);
+      }
+      fetchData();
+  }, []);
   
-  const allTeams = useMemo(() => [...getTeamsByCategory('Máxima'), ...getTeamsByCategory('Primera'), ...getTeamsByCategory('Segunda')], []);
   const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
 
 
   const isTournamentGenerated = useMemo(() => generatedMatches.length > 0, [generatedMatches]);
   const areAllMatchesFinished = isTournamentGenerated; 
   
-  useEffect(() => { setIsClient(true) }, []);
 
-  const generateLeagueSchedule = (settings: any) => {
+  const generateLeagueSchedule = async (settings: any) => {
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
-            currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
+            const dummyTeam: Team = { id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group };
+            currentTeams.push(dummyTeam);
         }
 
         const numTeams = currentTeams.length;
@@ -600,20 +635,24 @@ export default function SchedulePage() {
     };
     
     let allMatches: GeneratedMatch[] = [];
-    const categoriesConfig: {category: Category, isGrouped: boolean}[] = [
-        { category: 'Máxima', isGrouped: false },
-        { category: 'Primera', isGrouped: false },
-        { category: 'Segunda', isGrouped: getTeamsByCategory('Segunda').length >= 16 }
+    const maximaTeams = await getTeamsByCategory('Máxima');
+    const primeraTeams = await getTeamsByCategory('Primera');
+    const segundaTeams = await getTeamsByCategory('Segunda');
+    
+    const categoriesConfig: {category: Category; teams: Team[], isGrouped: boolean}[] = [
+        { category: 'Máxima', teams: maximaTeams, isGrouped: false },
+        { category: 'Primera', teams: primeraTeams, isGrouped: false },
+        { category: 'Segunda', teams: segundaTeams, isGrouped: segundaTeams.length >= 16 }
     ];
 
     categoriesConfig.forEach(cat => {
         if(cat.isGrouped) {
-             const groupA = getTeamsByCategory(cat.category, 'A');
-             const groupB = getTeamsByCategory(cat.category, 'B');
+             const groupA = cat.teams.filter(t => t.group === 'A');
+             const groupB = cat.teams.filter(t => t.group === 'B');
              if (groupA.length > 1) allMatches.push(...generateRoundRobinMatches(groupA, cat.category, 'A'));
              if (groupB.length > 1) allMatches.push(...generateRoundRobinMatches(groupB, cat.category, 'B'));
         } else {
-            const teams = getTeamsByCategory(cat.category);
+            const teams = cat.teams;
             if (teams.length > 1) {
                 allMatches.push(...generateRoundRobinMatches(teams, cat.category));
             }
@@ -725,12 +764,11 @@ export default function SchedulePage() {
         let finals: GeneratedMatch[] = [];
 
         const getTopTeams = (category: Category, group?: 'A' | 'B') => {
-            return mockStandings
+            return standings
                 .filter(s => {
                     const team = getTeam(s.teamId);
                     return team?.category === category && (group ? team.group === group : true);
                 })
-                .sort((a,b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
                 .slice(0, 2);
         };
         
@@ -951,3 +989,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    

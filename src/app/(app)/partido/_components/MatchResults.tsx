@@ -1,20 +1,24 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { upcomingMatches as allMatches, type Match, type Category } from '@/lib/mock-data';
+import { getMatches, type Match, type Category } from '@/lib/mock-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MatchCard } from './MatchCard';
 
 export function MatchResults() {
-    const [isClient, setIsClient] = useState(false);
+    const [allMatches, setAllMatches] = useState<Match[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 
     useEffect(() => {
-        setIsClient(true);
+        getMatches().then(data => {
+            setAllMatches(data);
+            setLoading(false);
+        });
     }, []);
 
     const groupedPastMatches = useMemo(() => {
-        if (!isClient) return {};
+        if (loading) return {};
 
         const pastMatches = allMatches
             .filter(m => m.status === 'finished')
@@ -30,10 +34,10 @@ export function MatchResults() {
             return acc;
         }, {} as Record<string, Match[]>);
 
-    }, [isClient, selectedCategory]);
+    }, [loading, allMatches, selectedCategory]);
 
-    if (!isClient) {
-        return null;
+    if (loading) {
+        return <div className="text-center py-8">Cargando resultados...</div>;
     }
 
     return (

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart2, Calendar, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck, Image as ImageIcon, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { standings as mockStandings, teams, expenses as mockExpenses, type Category, type Standing, type Match, type Expense, upcomingMatches } from '@/lib/mock-data';
+import { getStandings, getTeams, getExpenses, getMatches, type Category, type Standing, type Match, type Expense, type Team } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, addDays, isWithinInterval } from 'date-fns';
@@ -23,8 +23,8 @@ import { Input } from '@/components/ui/input';
 
 // --- Report Components ---
 
-const StandingsReport = ({ category, group }: { category: Category, group?: 'A' | 'B' }) => {
-    const standings = mockStandings.filter(s => {
+const StandingsReport = ({ category, group, standings, teams }: { category: Category, group?: 'A' | 'B', standings: Standing[], teams: Team[] }) => {
+    const filteredStandings = standings.filter(s => {
         const team = teams.find(t => t.id === s.teamId);
         return team?.category === category && (group ? team.group === group : true);
     }).map((s, index) => {
@@ -71,7 +71,7 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {standings.map((s, index) => (
+                    {filteredStandings.map((s, index) => (
                         <TableRow key={s.teamId} className={cn("border-gray-300", getRowClass(s.rank, index))}>
                            <TableCell className="p-0 w-[50px] text-center">
                                 <div className={cn("h-full w-full flex items-center justify-center font-bold text-sm py-3", getPositionClass(s.rank))}>
@@ -100,7 +100,7 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
     );
 };
 
-const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) => {
+const FinancialReport = ({ dateRange, expenses, matches }: { dateRange: DateRange | undefined, expenses: Expense[], matches: Match[] }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => {
         setIsClient(true);
@@ -113,11 +113,11 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
 
     const filteredExpenses = useMemo(() => {
         if (!dateRange?.from) return [];
-        return mockExpenses.filter(e => {
+        return expenses.filter(e => {
             const expenseDate = new Date(e.date);
             return expenseDate >= dateRange.from! && expenseDate <= (dateRange.to || dateRange.from!);
         });
-    }, [dateRange]);
+    }, [dateRange, expenses]);
 
     const income = useMemo(() => {
         return filteredMatches.reduce((acc, match) => acc, 0);
@@ -328,7 +328,7 @@ const FinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awa
 };
 
 
-const ScheduleReport = () => {
+const ScheduleReport = ({ matches, teams }: { matches: Match[], teams: Team[] }) => {
     const [bg, setBg] = useState<string | null>(null);
     useEffect(() => {
         setBg(localStorage.getItem('schedule-report-bg'));
@@ -341,10 +341,10 @@ const ScheduleReport = () => {
     const weeklyMatches = useMemo(() => {
         const today = new Date();
         const nextWeek = addDays(today, 7);
-        return upcomingMatches
-            .filter(match => isWithinInterval(new Date(match.date), { start: today, end: nextWeek }))
+        return matches
+            .filter(match => new Date(match.date) > new Date() && isWithinInterval(new Date(match.date), { start: today, end: nextWeek }))
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, []);
+    }, [matches]);
 
     const groupedMatches = useMemo(() => {
         return weeklyMatches.reduce((acc, match) => {
@@ -416,12 +416,36 @@ export default function ReportsPage() {
     const [flyerTime, setFlyerTime] = useState<string>('12:00');
     const [flyerDesign, setFlyerDesign] = useState<FlyerDesign>('standard');
     
+    // Data states
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
+    const [allStandings, setAllStandings] = useState<Standing[]>([]);
+    const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+    const [allMatches, setAllMatches] = useState<Match[]>([]);
+    const [loading, setLoading] = useState(true);
+    
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setIsClient(true);
         }
+        
+        async function loadData() {
+            setLoading(true);
+            const [teamsData, standingsData, expensesData, matchesData] = await Promise.all([
+                getTeams(),
+                getStandings(),
+                getExpenses(),
+                getMatches()
+            ]);
+            setAllTeams(teamsData);
+            setAllStandings(standingsData);
+            setAllExpenses(expensesData);
+            setAllMatches(matchesData);
+            setLoading(false);
+        }
+        loadData();
+
     }, []);
     
     useEffect(() => {
@@ -431,8 +455,8 @@ export default function ReportsPage() {
         }
     }, [isClient]);
 
-    const localTeam = useMemo(() => teams.find(t => t.id === localTeamId), [localTeamId]);
-    const awayTeam = useMemo(() => teams.find(t => t.id === awayTeamId), [awayTeamId]);
+    const localTeam = useMemo(() => allTeams.find(t => t.id === localTeamId), [localTeamId, allTeams]);
+    const awayTeam = useMemo(() => allTeams.find(t => t.id === awayTeamId), [awayTeamId, allTeams]);
 
 
     const handleGenerate = (type: ReportType) => {
@@ -443,6 +467,10 @@ export default function ReportsPage() {
         window.print();
     }
     
+    if (loading) {
+        return <div>Cargando reportes...</div>
+    }
+
     if (reportType) {
         return (
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -457,9 +485,9 @@ export default function ReportsPage() {
                     </Button>
                 </div>
                 <div className="mt-4">
-                    {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} />}
-                    {reportType === 'schedule' && <ScheduleReport />}
-                    {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
+                    {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} standings={allStandings} teams={allTeams} />}
+                    {reportType === 'schedule' && <ScheduleReport matches={allMatches} teams={allTeams} />}
+                    {reportType === 'finance' && <FinancialReport dateRange={dateRange} expenses={allExpenses} matches={allMatches} />}
                     {reportType === 'flyer' && flyerDesign === 'standard' && <StandardFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                     {reportType === 'flyer' && flyerDesign === 'semifinal' && <SemifinalFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                     {reportType === 'flyer' && flyerDesign === 'final' && <FinalFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
@@ -589,14 +617,14 @@ export default function ReportsPage() {
                                     <Label htmlFor="local-team">Equipo Local</Label>
                                     <Select onValueChange={setLocalTeamId}>
                                         <SelectTrigger id="local-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
-                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{allTeams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                                 <div>
                                     <Label htmlFor="away-team">Equipo Visitante</Label>
                                     <Select onValueChange={setAwayTeamId}>
                                         <SelectTrigger id="away-team"><SelectValue placeholder="Elegir..." /></SelectTrigger>
-                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{allTeams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                             </div>

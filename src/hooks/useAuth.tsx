@@ -2,6 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { getUsers, updateUser } from '@/lib/mock-data';
 
 export type UserRole = 'admin' | 'secretary' | 'guest';
 
@@ -90,28 +91,33 @@ interface AuthContextType {
   isAuthLoading: boolean;
 }
 
-const mockUsers: User[] = [
-  { id: 'user-1', name: 'Usuario Admin', email: 'admin@ligacontrol.com', role: 'admin', permissions: allPermissionsTrue, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
-  { id: 'user-2', name: 'Secretario/a', email: 'secretary@ligacontrol.com', role: 'secretary', permissions: secretaryPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
-  { id: 'user-3', name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest', permissions: guestPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
-];
+const defaultGuestUser = { id: 'user-3', name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest', permissions: guestPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' };
 
-const defaultUser = mockUsers.find(u => u.role === 'guest')!;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [users, setUsersState] = useState<User[]>(mockUsers);
-  const [currentUser, setCurrentUser] = useState<User>(defaultUser);
+  const [users, setUsersState] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User>(defaultGuestUser);
   const [isCopaPublic, setIsCopaPublic] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading user from session/storage
-    const timer = setTimeout(() => {
+    async function loadData() {
+        setIsAuthLoading(true);
+        const fetchedUsers = await getUsers();
+        if (fetchedUsers.length > 0) {
+            setUsersState(fetchedUsers as User[]);
+            const guestUser = fetchedUsers.find(u => u.role === 'guest') || defaultGuestUser;
+            setCurrentUser(guestUser as User);
+        } else {
+            // Handle case where there are no users in DB, maybe create initial ones
+            setUsersState([defaultGuestUser]);
+            setCurrentUser(defaultGuestUser);
+        }
         setIsAuthLoading(false);
-    }, 250); // Small delay to simulate async loading
-    return () => clearTimeout(timer);
+    }
+    loadData();
   }, []);
 
 
@@ -128,6 +134,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (updatedCurrentUser) {
           setCurrentUser(updatedCurrentUser);
       }
+      // This is a simplified way to sync back to DB. In a real app, this would be more granular.
+      updatedUsers.forEach(user => updateUser(user));
   }
 
   const value = {

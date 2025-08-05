@@ -1,37 +1,23 @@
 
 
-import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type Match, standings } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, getSanctionsByTeamId, getStandings, getVocalPaymentsByTeamId } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { TeamDetailsClient } from './_components/TeamDetailsClient';
-import { useMemo } from 'react';
 
 export default async function TeamDetailsPage({ params }: { params: { id: string }}) {
   const teamId = params.id;
-  const team = getTeamById(teamId);
+  const team = await getTeamById(teamId);
 
   if (!team) {
     notFound();
   }
 
-  const players = getPlayersByTeamId(teamId);
-  const matches = getMatchesByTeamId(teamId);
-  const teamSanctions = sanctions.filter(s => s.teamId === teamId);
-  const teamStandings = standings.find(s => s.teamId === teamId);
-  
-  const vocalPayments = matches
-    .filter(m => m.status === 'finished')
-    .map(match => {
-        const isHome = match.teams.home.id === teamId;
-        const details = isHome ? match.teams.home.vocalPaymentDetails : match.teams.away.vocalPaymentDetails;
-        const opponent = isHome ? match.teams.away : match.teams.home;
-        return {
-            date: match.date,
-            opponent: opponent.name,
-            opponentId: opponent.id,
-            amount: details?.total || 0,
-            status: details?.paymentStatus || 'pending'
-        };
-  });
+  const players = await getPlayersByTeamId(teamId);
+  const matches = await getMatchesByTeamId(teamId);
+  const teamSanctions = await getSanctionsByTeamId(teamId);
+  const allStandings = await getStandings();
+  const teamStandings = allStandings.find(s => s.teamId === teamId);
+  const vocalPayments = await getVocalPaymentsByTeamId(teamId);
 
   return (
     <TeamDetailsClient
@@ -44,3 +30,5 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
     />
   );
 }
+
+    

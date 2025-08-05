@@ -1,10 +1,10 @@
 
-
-'use client';
-import { players as allPlayers, teams as allTeams, type Category } from '@/lib/mock-data';
+import { getPlayers, getTeams } from '@/lib/mock-data';
 import { PlayerSearch } from './_components/PlayerSearch';
 
-export default function PlayersPage() {
+export default async function PlayersPage() {
+  const allPlayers = await getPlayers();
+  const allTeams = await getTeams();
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

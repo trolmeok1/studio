@@ -1,4 +1,4 @@
-import { getPlayerById, getTeamById } from '@/lib/mock-data';
+import { getPlayerById } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -6,14 +6,12 @@ import { Download, Trophy } from 'lucide-react';
 import { headers } from 'next/headers';
 import { Card } from '@/components/ui/card';
 
-export default function DigitalIdCardPage({ params }: { params: { id: string } }) {
-  const player = getPlayerById(params.id);
+export default async function DigitalIdCardPage({ params }: { params: { id: string } }) {
+  const player = await getPlayerById(params.id);
 
   if (!player) {
     notFound();
   }
-
-  const team = getTeamById(player.teamId);
 
   const host = headers().get('host') || 'localhost:3000';
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';

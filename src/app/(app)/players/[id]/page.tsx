@@ -11,7 +11,7 @@ import { ArrowUpRight, Trophy, Shield, Goal, Handshake, CreditCard, User, Cake, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
-  const player = getPlayerById(params.id);
+  const player = await getPlayerById(params.id);
 
   if (!player) {
     notFound();

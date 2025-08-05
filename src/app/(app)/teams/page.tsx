@@ -1,6 +1,6 @@
 
 'use client';
-import { teams as initialTeams, type Team, type Category } from '@/lib/mock-data';
+import { getTeams, type Team, type Category } from '@/lib/mock-data';
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AddTeam } from './_components/AddTeam';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
@@ -52,12 +52,23 @@ const TeamCard = ({ team }: { team: Team }) => {
 export default function TeamsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Category>('Máxima');
-  const teams = initialTeams.filter(t => t.category !== 'Copa');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getTeams().then(data => {
+      setTeams(data.filter(t => t.category !== 'Copa'));
+      setLoading(false);
+    });
+  }, []);
 
   const filteredTeams = useMemo(() => {
     return teams.filter(team => team.category === activeTab);
   }, [activeTab, teams]);
 
+  if (loading) {
+    return <div>Cargando equipos...</div>
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

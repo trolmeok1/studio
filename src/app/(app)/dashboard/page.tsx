@@ -25,20 +25,21 @@ import {
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
 
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
-  dashboardStats,
-  players,
-  teams,
-  standings,
-  topScorers as initialTopScorers,
-  sanctions,
+  getTopScorers,
+  getTeams,
+  getStandings,
+  getSanctions,
   getRequalificationRequests,
+  getDashboardStats,
   type Category,
   type Standing,
   type RequalificationRequest,
+  type Sanction,
+  type Scorer,
+  type Team
 } from '@/lib/mock-data';
 import {
   Users,
@@ -60,7 +61,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import React, { useMemo, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
 
 const sliderImages = [
     { src: 'https://placehold.co/1200x400.png', alt: 'Slider Image 1', hint: 'stadium lights' },
@@ -125,8 +125,8 @@ function DashboardCarousel({ images }: { images: {src: string, alt: string, hint
     );
 }
 
-function TopScorersCard() {
-  const topFiveScorers = useMemo(() => initialTopScorers.slice(0, 5), []);
+function TopScorersCard({ topScorers, teams }: { topScorers: Scorer[], teams: Team[] }) {
+  const topFiveScorers = useMemo(() => topScorers.slice(0, 5), [topScorers]);
 
   return (
     <Card className="bg-gray-900/70 text-white overflow-hidden" style={{ backgroundImage: `url('/field-bg.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -172,7 +172,7 @@ function TopScorersCard() {
   );
 }
 
-function SanctionsCard() {
+function SanctionsCard({ sanctions }: { sanctions: Sanction[] }) {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -185,7 +185,7 @@ function SanctionsCard() {
             ...s,
             formattedDate: format(new Date(s.date), 'dd/MM/yyyy', { locale: es })
         }));
-    }, [isClient]);
+    }, [isClient, sanctions]);
 
   return (
     <Card neon="yellow">
@@ -232,7 +232,7 @@ function SanctionsCard() {
   );
 }
 
-function BestTeamsCard() {
+function BestTeamsCard({ teams, standings }: { teams: Team[], standings: Standing[] }) {
     const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
     const getTopTeams = (category: Category) => {
@@ -281,7 +281,45 @@ function BestTeamsCard() {
 }
 
 export default function DashboardPage() {
-  const pendingRequests = useMemo(() => getRequalificationRequests().filter(r => r.status === 'pending'), []);
+    const [pendingRequests, setPendingRequests] = useState<RequalificationRequest[]>([]);
+    const [dashboardStats, setDashboardStats] = useState<any>(null);
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [standings, setStandings] = useState<Standing[]>([]);
+    const [topScorers, setTopScorers] = useState<Scorer[]>([]);
+    const [sanctions, setSanctions] = useState<Sanction[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadData() {
+            const [
+                requests,
+                stats,
+                teamsData,
+                standingsData,
+                scorersData,
+                sanctionsData
+            ] = await Promise.all([
+                getRequalificationRequests(),
+                getDashboardStats(),
+                getTeams(),
+                getStandings(),
+                getTopScorers(),
+                getSanctions()
+            ]);
+            setPendingRequests(requests.filter(r => r.status === 'pending'));
+            setDashboardStats(stats);
+            setTeams(teamsData);
+            setStandings(standingsData);
+            setTopScorers(scorersData);
+            setSanctions(sanctionsData);
+            setLoading(false);
+        }
+        loadData();
+    }, []);
+
+    if (loading || !dashboardStats) {
+        return <div>Cargando dashboard...</div>;
+    }
   
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -299,7 +337,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8 space-y-4">
-             <BestTeamsCard />
+             <BestTeamsCard teams={teams} standings={standings} />
              <Card neon="blue">
                 <CardHeader>
                     <CardTitle className="uppercase">TORNEO DE LA LIGA</CardTitle>
@@ -340,11 +378,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="lg:col-span-4 space-y-4">
-             <TopScorersCard />
+             <TopScorersCard topScorers={topScorers} teams={teams} />
         </div>
       </div>
       
-      <SanctionsCard />
+      <SanctionsCard sanctions={sanctions} />
     </div>
   );
 }

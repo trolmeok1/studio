@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, standings as mockStandings, type Category, type Standing } from '@/lib/mock-data';
+import { getTeamsByCategory, type Category, type Standing } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -20,11 +19,14 @@ import {
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MatchResults } from './_components/MatchResults';
+import { useEffect, useState } from 'react';
+import { Team } from '@/lib/types';
+import { getStandings, getTeams } from '@/lib/mock-data';
 
-const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B' }) => {
-    const standings = mockStandings.filter(s => {
-        const team = getTeamsByCategory(category, group).find(t => t.id === s.teamId);
-        return !!team;
+const LeagueView = ({ category, group, standings, teams }: { category: Category; group?: 'A' | 'B', standings: Standing[], teams: Team[] }) => {
+    const categoryStandings = standings.filter(s => {
+        const team = teams.find(t => t.id === s.teamId);
+        return team?.category === category && (group ? team.group === group : true);
     })
     .sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
@@ -70,7 +72,7 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {standings.map((s) => (
+                        {categoryStandings.map((s) => (
                             <TableRow key={s.teamId} className={cn("border-white/10", getRowClass(s.rank))}>
                                 <TableCell className="p-0 w-[50px]">
                                     <div className={cn("h-full w-full flex items-center justify-center font-bold", getPositionClass(s.rank))}>
@@ -80,7 +82,7 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                                 <TableCell>
                                     <Link href={`/teams/${s.teamId}`} className="flex items-center gap-3 hover:text-primary">
                                         <Image
-                                            src={getTeamsByCategory(category, group).find(t => t.id === s.teamId)?.logoUrl || ''}
+                                            src={teams.find(t => t.id === s.teamId)?.logoUrl || ''}
                                             alt={s.teamName}
                                             width={24}
                                             height={24}
@@ -109,6 +111,23 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
 
 
 export default function PartidoPage() {
+    const [standings, setStandings] = useState<Standing[]>([]);
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadData() {
+            const [standingsData, teamsData] = await Promise.all([getStandings(), getTeams()]);
+            setStandings(standingsData);
+            setTeams(teamsData);
+            setLoading(false);
+        }
+        loadData();
+    }, []);
+
+    if (loading) {
+        return <div>Loading...</div>
+    }
     
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -130,15 +149,15 @@ export default function PartidoPage() {
                  <MatchResults />
             </TabsContent>
              <TabsContent value="maxima" className="mt-4">
-                <LeagueView category="Máxima" />
+                <LeagueView category="Máxima" standings={standings} teams={teams} />
             </TabsContent>
             <TabsContent value="primera" className="mt-4">
-                <LeagueView category="Primera" />
+                <LeagueView category="Primera" standings={standings} teams={teams}/>
             </TabsContent>
             <TabsContent value="segunda" className="mt-4 space-y-6">
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <LeagueView category="Segunda" group="A" />
-                    <LeagueView category="Segunda" group="B" />
+                    <LeagueView category="Segunda" group="A" standings={standings} teams={teams} />
+                    <LeagueView category="Segunda" group="B" standings={standings} teams={teams} />
                 </div>
             </TabsContent>
         </Tabs>

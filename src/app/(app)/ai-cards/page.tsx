@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { players, teams, type Category } from '@/lib/mock-data';
+import { getPlayers, getTeams, type Category, type Player, type Team } from '@/lib/mock-data';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useToast } from '@/hooks/use-toast';
@@ -41,21 +41,37 @@ export default function AiCardsPage() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+        const [playersData, teamsData] = await Promise.all([
+            getPlayers(),
+            getTeams()
+        ]);
+        setAllPlayers(playersData);
+        setAllTeams(teamsData.filter(t => t.category !== 'Copa'));
+        setLoading(false);
+    }
+    loadData();
+  }, []);
 
   const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(teams.map((t) => t.category))];
+    const uniqueCategories = [...new Set(allTeams.map((t) => t.category))];
     return uniqueCategories.filter(c => c !== 'Copa') as Category[];
-  }, []);
+  }, [allTeams]);
   
   const filteredTeams = useMemo(() => {
     if (!selection.category) return [];
-    return teams.filter((team) => team.category === selection.category);
-  }, [selection.category]);
+    return allTeams.filter((team) => team.category === selection.category);
+  }, [selection.category, allTeams]);
 
   const selectedTeamPlayers = useMemo(() => {
     if (!selection.teamId) return [];
-    return players.filter((p) => p.teamId === selection.teamId);
-  }, [selection.teamId]);
+    return allPlayers.filter((p) => p.teamId === selection.teamId);
+  }, [selection.teamId, allPlayers]);
     
   const handleDownloadPdf = async () => {
     if (!selection.teamId) return;
@@ -67,6 +83,12 @@ export default function AiCardsPage() {
         const cardHeightMM = 95;
         const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
         const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
+        
+        const selectedTeam = allTeams.find(t => t.id === selection.teamId);
+        if (!selectedTeam) {
+            throw new Error("Selected team not found");
+        }
+
 
         // --- Pre-fetch all assets ---
         const leagueLogoUrl = 'https://placehold.co/100x100.png';
@@ -167,7 +189,7 @@ export default function AiCardsPage() {
             
             pdf.setFontSize(11);
             pdf.setTextColor('#FFFFFF');
-            pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+            pdf.text(selectedTeam.name.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
             
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(10);
@@ -211,7 +233,7 @@ export default function AiCardsPage() {
             pdf.text(player.jerseyNumber.toString(), jerseyX, footerY + itemSize / 2 + 4, { align: 'center' });
         }
 
-        const selectedTeamName = teams.find(t => t.id === selection.teamId)?.name || 'equipo';
+        const selectedTeamName = allTeams.find(t => t.id === selection.teamId)?.name || 'equipo';
         pdf.save(`carnets_${selectedTeamName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
         console.error("Failed to generate PDF:", error);
@@ -231,6 +253,21 @@ export default function AiCardsPage() {
   
   const handleTeamChange = (value: string) => {
       setSelection(prev => ({ ...prev, teamId: value }));
+  }
+  
+  if (loading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="text-center">
+          <h2 className="text-4xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-500 text-transparent bg-clip-text">
+              Generador de Carnets
+            </span>
+          </h2>
+        </div>
+        <p className="text-center text-muted-foreground">Cargando datos...</p>
+      </div>
+    );
   }
 
   return (
@@ -295,3 +332,5 @@ export default function AiCardsPage() {
     </div>
   );
 }
+
+    
