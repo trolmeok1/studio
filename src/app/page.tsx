@@ -139,35 +139,33 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (!isAuthLoading && user.role === 'guest') {
-            redirect('/login');
+            // No redirect, allow guest access
         }
     }, [user, isAuthLoading]);
     
      useEffect(() => {
-        if (user.role !== 'guest') {
-            const fetchData = async () => {
-                setLoading(true);
-                const [statsData, matchesData, scorersData, standingsData] = await Promise.all([
-                    getDashboardStats(),
-                    getMatches(),
-                    getTopScorers(),
-                    getStandings()
-                ]);
-                setStats(statsData);
-                const finishedMatches = matchesData
-                    .filter(m => m.status === 'finished')
-                    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setRecentMatches(finishedMatches);
-                setTopScorers(scorersData);
-                const maximaStandings = standingsData.filter(s => s.rank <= 5); // Assuming getStandings returns sorted by category
-                setStandings(maximaStandings);
-                setLoading(false);
-            };
-            fetchData();
-        }
+        const fetchData = async () => {
+            setLoading(true);
+            const [statsData, matchesData, scorersData, standingsData] = await Promise.all([
+                getDashboardStats(),
+                getMatches(),
+                getTopScorers(),
+                getStandings()
+            ]);
+            setStats(statsData);
+            const finishedMatches = matchesData
+                .filter(m => m.status === 'finished')
+                .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setRecentMatches(finishedMatches);
+            setTopScorers(scorersData);
+            const maximaStandings = standingsData.filter(s => s.rank <= 5); // Assuming getStandings returns sorted by category
+            setStandings(maximaStandings);
+            setLoading(false);
+        };
+        fetchData();
     }, [user]);
 
-    if (isAuthLoading || loading || user.role === 'guest') {
+    if (isAuthLoading || loading) {
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="text-center">
