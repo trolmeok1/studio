@@ -1,8 +1,17 @@
+
 'use client';
-import { players as allPlayers, teams as allTeams, type Category } from '@/lib/mock-data';
+import { getPlayers, getTeams, type Player, type Team } from '@/lib/mock-data';
 import { PlayerSearch } from './_components/PlayerSearch';
+import { useEffect, useState } from 'react';
 
 export default function PlayersPage() {
+    const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
+
+    useEffect(() => {
+        getPlayers().then(setAllPlayers);
+        getTeams().then(setAllTeams);
+    }, []);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

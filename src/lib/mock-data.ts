@@ -1,6 +1,8 @@
 
 
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
+export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
+
 
 const allPermissions: Permissions = {
     dashboard: { view: true, edit: true },
@@ -66,7 +68,7 @@ export let expenses: Expense[] = [
     { id: 'exp-2', date: new Date().toISOString(), description: 'Pago de servicios básicos de la oficina', amount: 120.50 },
 ];
 
-export const getExpenses = (): Expense[] => expenses;
+export const getExpenses = async (): Promise<Expense[]> => Promise.resolve(expenses);
 export const addExpense = (expense: Omit<Expense, 'id'>) => {
     const newExpense: Expense = { id: `exp-${Date.now()}`, ...expense };
     expenses.push(newExpense);

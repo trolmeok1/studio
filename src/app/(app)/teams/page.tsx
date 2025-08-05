@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -38,7 +39,7 @@ const TeamCard = ({ team }: { team: Team }) => (
 export default function TeamsPage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<Category>('Máxima');
+    const [activeTab, setActiveTab] = useState<Category | undefined>(undefined);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -46,23 +47,31 @@ export default function TeamsPage() {
             setLoading(true);
             const allTeams = await getTeams();
             setTeams(allTeams);
+             // Set initial tab to the first category available
+            const uniqueCategories = [...new Set(allTeams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
+            const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
+            const sortedCategories = uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
+            if (sortedCategories.length > 0) {
+                setActiveTab(sortedCategories[0]);
+            }
             setLoading(false);
         }
         loadTeams();
     }, []);
 
-    const filteredTeams = useMemo(() => {
-        return teams
-            .filter(team => team.category === activeTab)
-            .filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [teams, activeTab, searchTerm]);
-    
     const categories: Category[] = useMemo(() => {
        const uniqueCategories = [...new Set(teams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
        // Custom sort order
        const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
        return uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
     }, [teams]);
+
+    const filteredTeams = useMemo(() => {
+        if (!activeTab) return [];
+        return teams
+            .filter(team => team.category === activeTab)
+            .filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [teams, activeTab, searchTerm]);
 
 
     return (

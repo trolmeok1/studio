@@ -1,7 +1,8 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, standings as mockStandings } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings, type Standing } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -720,11 +721,12 @@ export default function SchedulePage() {
     toast({ title: '¡Torneo Finalizado!', description: 'Todos los datos de la temporada han sido reiniciados.'});
   };
 
-   const handleGenerateFinals = () => {
+   const handleGenerateFinals = async () => {
         let finals: GeneratedMatch[] = [];
+        const standings = await getStandings();
 
         const getTopTeams = (category: Category, group?: 'A' | 'B') => {
-            return mockStandings
+            return standings
                 .filter(s => {
                     const team = getTeam(s.teamId);
                     return team?.category === category && (group ? team.group === group : true);

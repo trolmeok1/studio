@@ -130,7 +130,7 @@ function DashboardCarousel({ images }: { images: {src: string, alt: string, hint
 
 function TopScorersCard() {
   const [topScorers, setTopScorers] = useState<Scorer[]>([]);
-  const [teams, setTeamsData] = useState<Team[]>([]);
+  const [teamsData, setTeamsData] = useState<Team[]>([]);
 
 
     useEffect(() => {
@@ -159,7 +159,7 @@ function TopScorersCard() {
                 <div className="w-8 text-center font-bold text-lg">{scorer.rank}</div>
                 <div className="w-10 h-10 flex items-center justify-center">
                     <Image
-                        src={teams.find(t => t.id === scorer.teamId)?.logoUrl || `https://placehold.co/100x100.png`}
+                        src={teamsData.find(t => t.id === scorer.teamId)?.logoUrl || `https://placehold.co/100x100.png`}
                         alt={scorer.teamName}
                         width={28}
                         height={28}
@@ -398,5 +398,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, standings as mockStandings, type Category, type Standing } from '@/lib/mock-data';
+import { getTeamsByCategory, getStandings, type Category, type Standing } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -18,19 +19,28 @@ import {
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MatchResults } from './_components/MatchResults';
+import { useEffect, useState } from 'react';
 
 const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B' }) => {
-    const standings = mockStandings.filter(s => {
-        const team = getTeamsByCategory(category, group).find(t => t.id === s.teamId);
-        return !!team;
-    })
-    .sort((a, b) => {
-        if (b.points !== a.points) return b.points - a.points;
-        const gdA = a.goalsFor - a.goalsAgainst;
-        const gdB = b.goalsFor - a.goalsAgainst;
-        return gdB - gdA;
-    })
-    .map((s, index) => ({ ...s, rank: index + 1 }));
+    const [standings, setStandings] = useState<Standing[]>([]);
+
+    useEffect(() => {
+        getStandings().then(allStandings => {
+            const filteredStandings = allStandings.filter(s => {
+                const teamsInCategory = getTeamsByCategory(category, group);
+                return teamsInCategory.some(t => t.id === s.teamId);
+            })
+            .sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                const gdA = a.goalsFor - a.goalsAgainst;
+                const gdB = b.goalsFor - b.goalsAgainst;
+                return gdB - gdA;
+            })
+            .map((s, index) => ({ ...s, rank: index + 1 }));
+            setStandings(filteredStandings);
+        })
+    }, [category, group]);
+
 
     const getRowClass = (rank: number) => {
         if (rank <= 3) return 'bg-red-500/10';

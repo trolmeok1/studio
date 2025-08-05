@@ -1,16 +1,19 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { upcomingMatches as allMatches, type Match, type Category } from '@/lib/mock-data';
+import { getMatches, type Match, type Category } from '@/lib/mock-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MatchCard } from './MatchCard';
 
 export function MatchResults() {
     const [isClient, setIsClient] = useState(false);
+    const [allMatches, setAllMatches] = useState<Match[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 
     useEffect(() => {
         setIsClient(true);
+        getMatches().then(setAllMatches);
     }, []);
 
     const groupedPastMatches = useMemo(() => {
@@ -30,7 +33,7 @@ export function MatchResults() {
             return acc;
         }, {} as Record<string, Match[]>);
 
-    }, [isClient, selectedCategory]);
+    }, [isClient, selectedCategory, allMatches]);
 
     if (!isClient) {
         return null;
