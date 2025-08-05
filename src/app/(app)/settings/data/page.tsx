@@ -21,6 +21,61 @@ const dataSources: Record<string, any> = {
     expenses
 };
 
+const ResetDialog = ({
+  step,
+  dataType,
+  onStepChange,
+  onConfirm,
+}: {
+  step: number;
+  dataType: DataType | null;
+  onStepChange: (step: number) => void;
+  onConfirm: () => void;
+}) => {
+  if (step === 0 || !dataType) return null;
+
+  const content = [
+    {
+      title: `¿Estás seguro de reiniciar los datos de "${dataType}"?`,
+      description: "Esta acción es irreversible y borrará permanentemente todos los registros seleccionados. No podrás recuperarlos.",
+      confirmText: 'Sí, entiendo, continuar'
+    },
+    {
+      title: "Confirmación Adicional",
+      description: "Estás a un paso de borrar los datos. Esta es la segunda de tres advertencias. ¿Realmente quieres proceder?",
+      confirmText: 'Sí, estoy completamente seguro'
+    },
+    {
+      title: "ÚLTIMA ADVERTENCIA",
+      description: "Al hacer clic en \"BORRAR DEFINITIVAMENTE\", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
+      confirmText: 'BORRAR DEFINITIVAMENTE'
+    }
+  ];
+
+  const currentContent = content[step - 1];
+
+  return (
+    <AlertDialog open={step > 0} onOpenChange={(open) => !open && onStepChange(0)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{currentContent.title}</AlertDialogTitle>
+          <AlertDialogDescription>{currentContent.description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className={cn(step === 3 && buttonVariants({ variant: "destructive" }))}
+            onClick={() => (step < 3 ? onStepChange(step + 1) : onConfirm())}
+          >
+            {currentContent.confirmText}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+
 export default function DataManagementPage() {
     const { toast } = useToast();
     const [dialogStep, setDialogStep] = useState(0);
@@ -104,33 +159,6 @@ export default function DataManagementPage() {
         }
     };
 
-    const getDialogContent = () => {
-        switch (dialogStep) {
-            case 1:
-                return {
-                    title: `¿Estás seguro de que quieres reiniciar los datos de "${dataTypeToReset}"?`,
-                    description: "Esta acción es irreversible y borrará permanentemente todos los registros seleccionados. No podrás recuperarlos.",
-                    confirmText: "Sí, entiendo los riesgos, continuar"
-                };
-            case 2:
-                return {
-                    title: `Confirmación Adicional`,
-                    description: `Estás a un paso de borrar los datos. Esta es la segunda de tres advertencias. ¿Realmente quieres proceder?`,
-                    confirmText: "Sí, estoy completamente seguro"
-                };
-            case 3:
-                return {
-                    title: "ÚLTIMA ADVERTENCIA",
-                    description: `Esta es tu última oportunidad para cancelar. Al hacer clic en "BORRAR DEFINITIVAMENTE", los datos se eliminarán para siempre.`,
-                    confirmText: "BORRAR DEFINITIVAMENTE"
-                };
-            default:
-                return { title: "", description: "", confirmText: "" };
-        }
-    };
-    
-    const { title, description, confirmText } = getDialogContent();
-
     return (
         <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
             <h2 className="text-3xl font-bold tracking-tight font-headline">Gestión de Datos</h2>
@@ -184,23 +212,12 @@ export default function DataManagementPage() {
                 </CardContent>
             </Card>
 
-            <AlertDialog open={dialogStep > 0} onOpenChange={(open) => !open && setDialogStep(0)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{title}</AlertDialogTitle>
-                        <AlertDialogDescription>{description}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDialogStep(0)}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                             className={cn(dialogStep === 3 && buttonVariants({ variant: "destructive" }))}
-                             onClick={() => dialogStep < 3 ? setDialogStep(s => s + 1) : handleReset()}
-                        >
-                            {confirmText}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ResetDialog
+              step={dialogStep}
+              dataType={dataTypeToReset}
+              onStepChange={setDialogStep}
+              onConfirm={handleReset}
+            />
         </div>
     );
 }

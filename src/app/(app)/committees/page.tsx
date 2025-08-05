@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     const playersA = useMemo(() => teamA ? getPlayersByTeamId(teamA.id) : [], [teamA]);
     const playersB = useMemo(() => teamB ? getPlayersByTeamId(teamB.id) : [], [teamB]);
 
-    const calculatePendingValue = useMemo(() => (teamId?: string) => {
+    const calculatePendingValue = useCallback((teamId?: string) => {
         if (!teamId || !match) return 0;
         const pastMatches = getMatchesByTeamId(teamId).filter(m => m.id !== match.id && isPast(new Date(m.date)));
         return pastMatches.reduce((total, pastMatch) => {
@@ -51,8 +51,8 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
         }, 0);
     }, [match]);
 
-    const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, match, calculatePendingValue]);
-    const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, match, calculatePendingValue]);
+    const pendingValueA = useMemo(() => calculatePendingValue(teamA?.id), [teamA, calculatePendingValue]);
+    const pendingValueB = useMemo(() => calculatePendingValue(teamB?.id), [teamB, calculatePendingValue]);
     
     const PlayerRow = ({ player, number }: { player?: Player, number: number }) => {
         const getAge = (birthDateString: string) => {
@@ -701,17 +701,17 @@ export default function CommitteesPage() {
     setIsClient(true);
   }, []);
 
-  const handleUpdateMatch = (updatedMatch: Match) => {
+  const handleUpdateMatch = useCallback((updatedMatch: Match) => {
     updateMatchData(updatedMatch);
     setSelectedMatchId(null);
     setTimeout(() => setSelectedMatchId(updatedMatch.id), 0);
-  }
+  }, []);
   
-  const handleFinishMatch = (matchId: string) => {
+  const handleFinishMatch = useCallback((matchId: string) => {
     setMatchAsFinished(matchId);
     setSelectedMatchId(null);
     setTimeout(() => setSelectedMatchId(matchId), 0);
-  }
+  }, []);
 
   const selectedMatch = useMemo(() => {
     if (!selectedMatchId) return null;

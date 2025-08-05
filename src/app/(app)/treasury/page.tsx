@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DollarSign, Landmark, Ban, AlertTriangle, Printer, PlusCircle, Trash2 } from 'lucide-react';
 import { upcomingMatches, teams, type Category, expenses as mockExpenses, type Expense, addExpense, removeExpense } from '@/lib/mock-data';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -96,15 +96,15 @@ export default function TreasuryPage() {
         setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
     }, []);
     
-    const handleAddExpense = (newExpense: Omit<Expense, 'id'>) => {
+    const handleAddExpense = useCallback((newExpense: Omit<Expense, 'id'>) => {
         const addedExpense = addExpense(newExpense);
         setExpenses(prev => [...prev, addedExpense]);
-    };
+    }, []);
 
-    const handleRemoveExpense = (id: string) => {
+    const handleRemoveExpense = useCallback((id: string) => {
         removeExpense(id);
         setExpenses(prev => prev.filter(e => e.id !== id));
-    };
+    }, []);
 
     const filteredMatches = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return [];

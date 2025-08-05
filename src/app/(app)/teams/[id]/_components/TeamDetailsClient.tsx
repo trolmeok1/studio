@@ -111,42 +111,50 @@ const RosterTab = ({ players }: { players: Player[] }) => {
     );
 };
 
-const MatchesTab = ({ teamId, matches }: { teamId: string, matches: Match[] }) => (
-    <Card>
-        <CardHeader>
-            <CardTitle>Calendario y Resultados</CardTitle>
-            <CardDescription>Próximos partidos y resultados anteriores del equipo.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Oponente</TableHead>
-                        <TableHead>Resultado</TableHead>
-                        <TableHead>Estado</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {matches.map(match => {
-                        const isHome = match.teams.home.id === teamId;
-                        const opponent = isHome ? match.teams.away : match.teams.home;
-                        const score = match.status === 'finished' ? `${match.score?.home} - ${match.score?.away}` : '-';
+const MatchesTab = ({ teamId, matches }: { teamId: string, matches: Match[] }) => {
+    const sortedMatches = useMemo(() => 
+        [...matches].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        [matches]
+    );
 
-                        return (
-                             <TableRow key={match.id}>
-                                <TableCell>{format(new Date(match.date), 'dd/MM/yyyy HH:mm')}</TableCell>
-                                <TableCell>{opponent.name}</TableCell>
-                                <TableCell className="font-semibold">{score}</TableCell>
-                                <TableCell><Badge variant={match.status === 'finished' ? 'secondary' : 'default'}>{match.status}</Badge></TableCell>
-                            </TableRow>
-                        )
-                    })}
-                </TableBody>
-            </Table>
-        </CardContent>
-    </Card>
-);
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Calendario y Resultados</CardTitle>
+                <CardDescription>Próximos partidos y resultados anteriores del equipo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Oponente</TableHead>
+                            <TableHead>Resultado</TableHead>
+                            <TableHead>Estado</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sortedMatches.map(match => {
+                            const isHome = match.teams.home.id === teamId;
+                            const opponent = isHome ? match.teams.away : match.teams.home;
+                            const score = match.status === 'finished' ? `${match.score?.home} - ${match.score?.away}` : '-';
+                            const matchDate = useMemo(() => format(new Date(match.date), 'dd/MM/yyyy HH:mm', { locale: es }), [match.date]);
+
+                            return (
+                                 <TableRow key={match.id}>
+                                    <TableCell>{matchDate}</TableCell>
+                                    <TableCell>{opponent.name}</TableCell>
+                                    <TableCell className="font-semibold">{score}</TableCell>
+                                    <TableCell><Badge variant={match.status === 'finished' ? 'secondary' : 'default'}>{match.status}</Badge></TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+};
 
 const SanctionsTab = ({ sanctions }: { sanctions: Sanction[] }) => (
     <Card>
@@ -174,7 +182,7 @@ const SanctionsTab = ({ sanctions }: { sanctions: Sanction[] }) => (
                             </TableCell>
                             <TableCell>{sanction.reason}</TableCell>
                             <TableCell className="text-center">{sanction.gamesSuspended}</TableCell>
-                            <TableCell>{format(new Date(sanction.date), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>{format(new Date(sanction.date), 'dd/MM/yyyy', { locale: es })}</TableCell>
                         </TableRow>
                     )) : (
                         <TableRow>
@@ -207,7 +215,7 @@ const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
                 <TableBody>
                     {vocalPayments.map((payment, i) => (
                         <TableRow key={i}>
-                            <TableCell>{format(new Date(payment.date), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>{format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}</TableCell>
                             <TableCell>
                                 <Link href={`/teams/${payment.opponentId}`} className="hover:underline text-primary">
                                     {payment.opponent}
@@ -226,11 +234,11 @@ const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
 );
 
 const PerformanceChart = ({ matches }: { matches: Match[] }) => {
-    const lastFive = matches
+    const lastFive = useMemo(() => matches
         .filter(m => m.status === 'finished')
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 5)
-        .reverse();
+        .reverse(), [matches]);
 
     return (
         <div className="flex items-center justify-center gap-2">
@@ -268,8 +276,6 @@ export function TeamDetailsClient({
   matches,
   teamStandings,
   teamSanctions,
-  futureMatches,
-  finishedMatches,
   vocalPayments
 }: {
   team: Team;
@@ -277,8 +283,6 @@ export function TeamDetailsClient({
   matches: Match[];
   teamStandings?: Standing;
   teamSanctions: Sanction[];
-  futureMatches: Match[];
-  finishedMatches: Match[];
   vocalPayments: any[];
 }) {
 

@@ -3,6 +3,7 @@
 import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, sanctions, type Player, type Team, type Match, standings } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { TeamDetailsClient } from './_components/TeamDetailsClient';
+import { useMemo } from 'react';
 
 export default async function TeamDetailsPage({ params }: { params: { id: string }}) {
   const teamId = params.id;
@@ -16,9 +17,6 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
   const matches = getMatchesByTeamId(teamId);
   const teamSanctions = sanctions.filter(s => s.teamId === teamId);
   const teamStandings = standings.find(s => s.teamId === teamId);
-
-  const futureMatches = matches.filter(m => m.status === 'future' || m.status === 'in-progress');
-  const finishedMatches = matches.filter(m => m.status === 'finished');
   
   const vocalPayments = matches
     .filter(m => m.status === 'finished')
@@ -42,8 +40,6 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
         matches={matches}
         teamStandings={teamStandings}
         teamSanctions={teamSanctions}
-        futureMatches={futureMatches}
-        finishedMatches={finishedMatches}
         vocalPayments={vocalPayments}
     />
   );

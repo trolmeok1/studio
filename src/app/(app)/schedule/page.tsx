@@ -494,6 +494,59 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
     );
 };
 
+const ResetDialog = ({
+  step,
+  onStepChange,
+  onConfirm,
+}: {
+  step: number;
+  onStepChange: (step: number) => void;
+  onConfirm: () => void;
+}) => {
+  if (step === 0) return null;
+
+  const content = [
+    {
+      title: '¿Estás seguro de finalizar el torneo?',
+      description: 'Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada y no se puede deshacer.',
+      confirmText: 'Sí, entiendo los riesgos',
+    },
+    {
+      title: 'Confirmación Adicional',
+      description: 'Estás a un paso de realizar una acción irreversible. Esta es tu segunda advertencia.',
+      confirmText: 'Sí, estoy completamente seguro',
+    },
+    {
+      title: 'ÚLTIMA ADVERTENCIA',
+      description: 'Al hacer clic en "FINALIZAR TORNEO", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.',
+      confirmText: 'FINALIZAR TORNEO',
+    },
+  ];
+
+  const currentContent = content[step - 1];
+
+  return (
+    <AlertDialog open={step > 0} onOpenChange={(open) => !open && onStepChange(0)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{currentContent.title}</AlertDialogTitle>
+          <AlertDialogDescription>{currentContent.description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className={cn(step === 3 && buttonVariants({ variant: 'destructive' }))}
+            onClick={() => (step < 3 ? onStepChange(step + 1) : onConfirm())}
+          >
+            {currentContent.confirmText}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+
 export default function SchedulePage() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -703,52 +756,6 @@ export default function SchedulePage() {
         setActiveTab('finals');
         toast({ title: 'Fase Final Generada', description: 'Los partidos de las finales han sido creados.' });
     };
-
-
-    const ResetDialog = ({ step, onStepChange, onConfirm }: { step: number, onStepChange: (step: number) => void, onConfirm: () => void }) => {
-        if (step === 0) return null;
-        
-        const content = [
-            {
-                title: "¿Estás seguro de finalizar el torneo?",
-                description: "Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada y no se puede deshacer.",
-                confirmText: "Sí, entiendo los riesgos"
-            },
-            {
-                title: "Confirmación Adicional",
-                description: "Estás a un paso de realizar una acción irreversible. Esta es tu segunda advertencia.",
-                confirmText: "Sí, estoy completamente seguro"
-            },
-            {
-                title: "ÚLTIMA ADVERTENCIA",
-                description: "Al hacer clic en \"FINALIZAR TORNEO\", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
-                confirmText: "FINALIZAR TORNEO"
-            }
-        ];
-        
-        const currentContent = content[step - 1];
-        
-        return (
-             <AlertDialog open={step > 0} onOpenChange={(open) => !open && onStepChange(0)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{currentContent.title}</AlertDialogTitle>
-                        <AlertDialogDescription>{currentContent.description}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                            className={cn(step === 3 && buttonVariants({ variant: "destructive" }))}
-                            onClick={() => step < 3 ? onStepChange(step + 1) : onConfirm()}
-                        >
-                            {currentContent.confirmText}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        )
-    };
-
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
