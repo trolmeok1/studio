@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { systemLogs, type LogEntry } from '@/lib/mock-data';
+import { getSystemLogs, type LogEntry } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FilePlus, FilePen, Trash2, DollarSign, Printer, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,8 +29,19 @@ const getIconForAction = (action: LogEntry['action']) => {
 
 
 export default function LogsPage() {
-    const [logs] = useState<LogEntry[]>(systemLogs);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
+
+    useEffect(() => {
+        const fetchLogs = async () => {
+            setLoading(true);
+            const logsData = await getSystemLogs();
+            setLogs(logsData);
+            setLoading(false);
+        };
+        fetchLogs();
+    }, []);
 
     const filteredLogs = useMemo(() => {
         if (activeTab === 'all') {
@@ -38,6 +49,10 @@ export default function LogsPage() {
         }
         return logs.filter(log => log.category === activeTab);
     }, [logs, activeTab]);
+
+    if (loading) {
+        return <div className="p-8">Cargando registro de actividad...</div>
+    }
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -83,6 +98,9 @@ export default function LogsPage() {
                                 </div>
                             </div>
                         ))}
+                         {filteredLogs.length === 0 && (
+                            <p className="text-center text-muted-foreground py-4">No hay registros en esta categoría.</p>
+                        )}
                     </div>
                 </CardContent>
             </Card>

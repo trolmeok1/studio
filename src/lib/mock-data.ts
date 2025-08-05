@@ -1,7 +1,8 @@
 
+
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
-import type { Player, Team, Standing, Sanction, Scorer, Match, Expense, RequalificationRequest, VocalPaymentDetails } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Match, Expense, RequalificationRequest, VocalPaymentDetails, LogEntry } from './types';
 import { get } from 'http';
 
 // Firestore collection references
@@ -13,6 +14,7 @@ const matchesCollection = collection(db, 'matches');
 const expensesCollection = collection(db, 'expenses');
 const requalificationRequestsCollection = collection(db, 'requalificationRequests');
 const usersCollection = collection(db, 'users');
+const logsCollection = collection(db, 'logs');
 
 // Helper to convert Firestore snapshot to array
 const snapshotToArray = <T>(snapshot: any): (T & { id: string })[] => {
@@ -201,6 +203,14 @@ export const updateUser = async (user: any) => {
      const userRef = doc(db, 'users', user.id);
      await updateDoc(userRef, { ...user });
 }
+
+// --- Logs ---
+export const getSystemLogs = async (): Promise<LogEntry[]> => {
+    const snapshot = await getDocs(logsCollection);
+    const logs = snapshotToArray<LogEntry>(snapshot);
+    return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
 
 // --- Dashboard data would be derived/aggregated in a real app ---
 export const getDashboardStats = async () => {
