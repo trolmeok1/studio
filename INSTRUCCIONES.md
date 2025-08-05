@@ -48,7 +48,7 @@ Dentro de la nueva carpeta, crea los archivos y carpetas para que coincidan con 
 
 ### 4. Instala las dependencias
 
-Una vez que tengas el archivo `package.json` en tu carpeta, puedes instalar todas las librerías y herramientas que hemos usado. En tu terminal, ejecuta:
+Once you have the `package.json` file in your folder, you can install all the libraries and tools we've used. In your terminal, run:
 
 ```bash
 npm install
@@ -94,7 +94,4 @@ Es una excelente práctica guardar tu código en un repositorio de control de ve
     git remote add origin TU_URL_DE_REPOSITORIO_AQUI.git
 
     # Sube tu código a la rama "main" de tu repositorio en GitHub
-    git push -u origin main
-    ```
-
-¡Y listo! Con estos pasos tendrás una réplica exacta de la aplicación funcionando en tu propia computadora y respaldada en GitHub, lista para que continúes desarrollándola.
+    git push -
