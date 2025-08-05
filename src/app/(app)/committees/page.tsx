@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getMatchesByTeamId, getSanctions, getMatches } from '@/lib/mock-data';
+import { players as allPlayersData, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getMatchesByTeamId, getSanctions, getMatches } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,26 +29,36 @@ import { Switch } from '@/components/ui/switch';
 import type { MatchEvent, MatchEventType } from '@/lib/types';
 import { isToday, isFuture, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 
 const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 
-    const teamA = useMemo(() => match?.teams.home, [match]);
-    const teamB = useMemo(() => match?.teams.away, [match]);
+    const [teamA, setTeamA] = useState<any>(null);
+    const [teamB, setTeamB] = useState<any>(null);
     const [playersA, setPlayersA] = useState<Player[]>([]);
     const [playersB, setPlayersB] = useState<Player[]>([]);
 
     useEffect(() => {
-        if (teamA) {
-            setPlayersA(getPlayersByTeamId(teamA.id));
-        } else {
-            setPlayersA([]);
-        }
-        if (teamB) {
-            setPlayersB(getPlayersByTeamId(teamB.id));
-        } else {
-            setPlayersB([]);
-        }
+        if (match?.teams.home) setTeamA(match.teams.home);
+        if (match?.teams.away) setTeamB(match.teams.away);
+    }, [match]);
+
+    useEffect(() => {
+        const fetchPlayers = async () => {
+            if (teamA?.id) {
+                setPlayersA(await getPlayersByTeamId(teamA.id));
+            } else {
+                setPlayersA([]);
+            }
+            if (teamB?.id) {
+                setPlayersB(await getPlayersByTeamId(teamB.id));
+            } else {
+                setPlayersB([]);
+            }
+        };
+        fetchPlayers();
     }, [teamA, teamB]);
 
     const usePendingValue = (teamId?: string) => {
@@ -59,17 +69,20 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
                 return;
             };
 
-            const matches = getMatchesByTeamId(teamId);
-            const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
-            const total = pastMatches.reduce((total, pastMatch) => {
-                const isHome = pastMatch.teams.home.id === teamId;
-                const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
-                if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
-                    return total + (teamDetails.vocalPaymentDetails.total || 0);
-                }
-                return total;
-            }, 0);
-            setValue(total);
+            const calculatePending = async () => {
+                const matches = await getMatchesByTeamId(teamId);
+                const pastMatches = matches.filter(m => m.id !== match.id && isPast(new Date(m.date)));
+                const total = pastMatches.reduce((total, pastMatch) => {
+                    const isHome = pastMatch.teams.home.id === teamId;
+                    const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+                    if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                        return total + (teamDetails.vocalPaymentDetails.total || 0);
+                    }
+                    return total;
+                }, 0);
+                setValue(total);
+            }
+            calculatePending();
         }, [teamId, match]);
         return value;
     }
@@ -329,7 +342,10 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     
     useEffect(() => {
-        setAllPlayers(allPlayersData);
+        const fetchPlayers = async () => {
+            setAllPlayers(await allPlayersData());
+        }
+        fetchPlayers();
     }, []);
 
     useEffect(() => {
@@ -339,13 +355,13 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
     const teamForEventSearch = match?.teams.home.id === selectedTeamId ? match.teams.home : match?.teams.away;
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         if (!selectedTeamId || !playerNumber) {
             toast({ title: "Información incompleta", description: "Por favor, selecciona equipo y número de camiseta.", variant: "destructive" });
             return;
         }
-        const results = allPlayers.filter(p => 
-            p.teamId === selectedTeamId &&
+        const playersOfTeam = await getPlayersByTeamId(selectedTeamId);
+        const results = playersOfTeam.filter(p => 
             p.jerseyNumber.toString() === playerNumber
         );
 
@@ -355,7 +371,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         setSearchResults(results);
     };
 
-    const addEvent = (player: Player, eventType: MatchEventType) => {
+    const addEvent = async (player: Player, eventType: MatchEventType) => {
         if (!match) return;
         const newEvent: MatchEvent = {
             id: `evt-${Date.now()}`,
@@ -367,7 +383,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const updatedEvents = [newEvent, ...events];
         setEvents(updatedEvents);
 
-        onUpdateMatch({ ...match, events: updatedEvents });
+        await onUpdateMatch({ ...match, events: updatedEvents });
 
         const statsUpdate = {
             goals: eventType === 'goal' ? 1 : 0,
@@ -375,7 +391,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             yellowCards: eventType === 'yellow_card' ? 1 : 0,
             redCards: eventType === 'red_card' ? 1 : 0,
         };
-        updatePlayerStats(player.id, statsUpdate);
+        await updatePlayerStats(player.id, statsUpdate);
         
         let toastMessage = '';
         if (eventType === 'goal') toastMessage = `Gol registrado para ${player.name}!`;
@@ -383,8 +399,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         if (eventType === 'yellow_card') toastMessage = `Tarjeta amarilla para ${player.name}.`;
         if (eventType === 'red_card') {
             toastMessage = `Tarjeta ROJA para ${player.name}. ¡Será suspendido!`;
-            addSanction({
-                id: `sanc-${Date.now()}`,
+            await addSanction({
                 playerId: player.id,
                 playerName: player.name,
                 playerPhotoUrl: player.photoUrl,
@@ -404,7 +419,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         setSearchResults([]);
     };
     
-    const removeEvent = (eventId: string) => {
+    const removeEvent = async (eventId: string) => {
         if(!match) return;
 
         const eventToRemove = events.find(e => e.id === eventId);
@@ -416,11 +431,11 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             yellowCards: eventToRemove.event === 'yellow_card' ? -1 : 0,
             redCards: eventToRemove.event === 'red_card' ? -1 : 0,
         };
-        updatePlayerStats(eventToRemove.playerId, statsUpdate);
+        await updatePlayerStats(eventToRemove.playerId, statsUpdate);
         
         const updatedEvents = events.filter((e) => e.id !== eventId);
         setEvents(updatedEvents);
-        onUpdateMatch({ ...match, events: updatedEvents });
+        await onUpdateMatch({ ...match, events: updatedEvents });
 
         toast({
             title: "Evento Eliminado",
@@ -455,8 +470,21 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         };
         onUpdateMatch(updatedMatch);
     }
+
+    const getPendingValue = useCallback(async (teamId: string, currentMatchId: string) => {
+        const matches = await getMatchesByTeamId(teamId);
+        const pastMatches = matches.filter(m => m.id !== currentMatchId && isPast(new Date(m.date)));
+        return pastMatches.reduce((total, pastMatch) => {
+            const isHome = pastMatch.teams.home.id === teamId;
+            const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
+            if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
+                return total + (teamDetails.vocalPaymentDetails.total || 0);
+            }
+            return total;
+        }, 0);
+    }, []);
     
-    const handleVocalPaymentChange = (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
+    const handleVocalPaymentChange = useCallback(async (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
         if (!match) return;
     
         const teamDetails = match.teams[teamKey];
@@ -465,7 +493,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const currentPayment = { ...teamDetails.vocalPaymentDetails };
         const updatedPayment = { ...currentPayment, [field]: value };
     
-        const calculateTotal = (paymentDetails: VocalPaymentDetailsType) => {
+        const calculateTotal = async (paymentDetails: VocalPaymentDetailsType) => {
             const baseTotal = 
                 (Number(paymentDetails.referee) || 0) + 
                 (Number(paymentDetails.fee) || 0) + 
@@ -473,7 +501,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 (Number(paymentDetails.redCardFine) || 0) + 
                 (Number(paymentDetails.otherFines) || 0);
             
-            const pendingValue = getPendingValue(match.teams[teamKey].id, match.id);
+            const pendingValue = await getPendingValue(match.teams[teamKey].id, match.id);
             const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
             
             const totalWithPending = baseTotal + pendingAmountToAdd;
@@ -482,7 +510,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             return finalTotal;
         };
     
-        updatedPayment.total = calculateTotal(updatedPayment);
+        updatedPayment.total = await calculateTotal(updatedPayment);
     
         const updatedTeamDetails = {
             ...teamDetails,
@@ -497,20 +525,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             }
         };
         onUpdateMatch(updatedMatch);
-    };
-
-    const getPendingValue = (teamId: string, currentMatchId: string) => {
-        const matches = getMatchesByTeamId(teamId);
-        const pastMatches = matches.filter(m => m.id !== currentMatchId && isPast(new Date(m.date)));
-        return pastMatches.reduce((total, pastMatch) => {
-            const isHome = pastMatch.teams.home.id === teamId;
-            const teamDetails = isHome ? pastMatch.teams.home : pastMatch.teams.away;
-            if (teamDetails.vocalPaymentDetails?.paymentStatus === 'pending') {
-                return total + (teamDetails.vocalPaymentDetails.total || 0);
-            }
-            return total;
-        }, 0);
-    };
+    }, [match, onUpdateMatch, getPendingValue]);
     
     const handleSaveResult = () => {
         if (!match) return;
@@ -518,28 +533,39 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         toast({ title: "Partido Finalizado", description: "El resultado ha sido guardado y el partido marcado como finalizado."});
     }
 
-     const handlePhysicalSheetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const handlePhysicalSheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && match) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-                setPhysicalSheetUrl(result);
-                onUpdateMatch({ ...match, physicalSheetUrl: result });
+            try {
+                const storageRef = ref(storage, `physical-sheets/${match.id}-${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                
+                setPhysicalSheetUrl(downloadURL);
+                onUpdateMatch({ ...match, physicalSheetUrl: downloadURL });
                 toast({ title: "Acta Física Subida", description: "La imagen ha sido guardada con el partido."});
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                 toast({ title: "Error al subir imagen", description: "No se pudo subir la imagen a Firebase Storage.", variant: "destructive"});
+                 console.error("Error uploading to Firebase Storage:", error);
+            }
         }
     };
 
 
     const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'home' | 'away' }) => {
+        const [pendingValue, setPendingValue] = useState(0);
+        
+        const teamId = match?.teams[teamKey].id;
+
+        useEffect(() => {
+            if (teamId && match) {
+                getPendingValue(teamId, match.id).then(setPendingValue);
+            }
+        }, [teamId, match]);
+
         if (!match) return null;
         const details = match.teams[teamKey].vocalPaymentDetails;
         if (!details) return null;
-
-        const teamId = match.teams[teamKey].id;
-        const pendingValue = getPendingValue(teamId, match.id);
         
         const disabled = !canEdit || !match.teams[teamKey].attended;
 
@@ -811,6 +837,7 @@ export default function CommitteesPage() {
   const [allMatches, setAllMatches] = useState<Match[]>([]);
 
   useEffect(() => {
+    setIsClient(true);
     getMatches().then(setAllMatches);
   }, []);
 
@@ -818,23 +845,15 @@ export default function CommitteesPage() {
   const handlePrint = () => {
     window.print();
   };
-  
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const handleUpdateMatch = useCallback((updatedMatch: Match) => {
     updateMatchData(updatedMatch);
-    // Force re-render of component by briefly unsetting and resetting the ID
-    setSelectedMatchId(null);
-    setTimeout(() => setSelectedMatchId(updatedMatch.id), 0);
+    setAllMatches(prevMatches => prevMatches.map(m => m.id === updatedMatch.id ? updatedMatch : m));
   }, []);
   
   const handleFinishMatch = useCallback((matchId: string) => {
     setMatchAsFinished(matchId);
-     // Force re-render of component by briefly unsetting and resetting the ID
-    setSelectedMatchId(null);
-    setTimeout(() => setSelectedMatchId(matchId), 0);
+    setAllMatches(prevMatches => prevMatches.map(m => m.id === matchId ? { ...m, status: 'finished' } : m));
   }, []);
 
   const selectedMatch = useMemo(() => {
@@ -920,7 +939,7 @@ export default function CommitteesPage() {
         </div>
       </div>
 
-       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setSelectedMatchId(null); }} defaultValue="digital" className="space-y-4">
+       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); }} defaultValue="digital" className="space-y-4">
           <TabsContent value="physical" className="mt-0 space-y-4">
             <Card className="print:hidden">
                 <CardHeader>

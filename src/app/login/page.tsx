@@ -1,30 +1,47 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { Trophy, User } from "lucide-react";
+import { Trophy, User, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { loginAs } = useAuth();
+    const { loginAs, logout } = useAuth();
+    const { toast } = useToast();
+    const [email, setEmail] = useState('admin@ligacontrol.com');
+    const [password, setPassword] = useState('password');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Here you would typically handle real authentication (e.g. call an API)
-        // For this demo, we'll assume the credentials are correct for an admin
-        loginAs('admin');
-        router.push('/dashboard');
+        setIsLoading(true);
+        setError('');
+        
+        // In a real app, you would also check the password.
+        // For this demo, we are only checking the email via getUserByEmail.
+        const success = await loginAs(email);
+
+        if (success) {
+            toast({ title: 'Inicio de Sesión Exitoso', description: 'Bienvenido de nuevo.' });
+            router.push('/dashboard');
+        } else {
+            setError('Credenciales incorrectas. Por favor, inténtalo de nuevo.');
+        }
+        setIsLoading(false);
     }
 
     const handleGuestLogin = () => {
-        loginAs('guest');
+        logout(); // Ensure any existing session is cleared
         router.push('/dashboard');
     }
 
@@ -41,10 +58,15 @@ export default function LoginPage() {
             <CardDescription>Inicio de sesion para administradores</CardDescription>
         </CardHeader>
         <CardContent>
+             {error && (
+                <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
             <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="email">Correo Electrónico</Label>
-                    <Input id="email" type="email" placeholder="admin@ligacontrol.com" required defaultValue="admin@ligacontrol.com" />
+                    <Input id="email" type="email" placeholder="admin@ligacontrol.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -53,10 +75,10 @@ export default function LoginPage() {
                             ¿Olvidaste tu contraseña?
                         </Link>
                     </div>
-                    <Input id="password" type="password" required defaultValue="password" />
+                    <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" className="w-full">
-                    Ingresar
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Ingresando...' : 'Ingresar'}
                 </Button>
             </form>
 

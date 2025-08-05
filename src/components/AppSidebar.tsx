@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -55,7 +54,7 @@ import React from 'react';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, isCopaPublic, isAuthLoading } = useAuth();
+  const { user, isCopaPublic, isAuthLoading, logout } = useAuth();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
 
@@ -64,6 +63,7 @@ export function AppSidebar() {
   };
 
   const handleLogout = () => {
+    logout();
     router.push('/login');
   };
   
@@ -228,10 +228,12 @@ export function AppSidebar() {
             ) : (
                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
+                       {user.avatarUrl && (
                         <Avatar className="h-10 w-10">
                             <AvatarImage src={user.avatarUrl} data-ai-hint="user avatar" alt={user.name} />
                             <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
+                        )}
                         <div className="flex flex-col">
                             <span className="font-semibold text-sm">{user.name}</span>
                             <span className="text-xs text-muted-foreground">{user.email}</span>

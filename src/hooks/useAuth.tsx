@@ -2,24 +2,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { getUserByEmail, getUsers, type User, type UserRole, type Permissions } from '@/lib/mock-data';
 
-export type UserRole = 'admin' | 'secretary' | 'guest';
-
-export interface Permissions {
-    dashboard: { view: boolean; edit: boolean };
-    players: { view: boolean; edit: boolean };
-    schedule: { view: boolean; edit: boolean };
-    partido: { view: boolean; edit: boolean };
-    copa: { view: boolean; edit: boolean };
-    aiCards: { view: boolean; edit: boolean };
-    committees: { view: boolean; edit: boolean };
-    treasury: { view: boolean; edit: boolean };
-    requests: { view: boolean; edit: boolean };
-    reports: { view: boolean; edit: boolean };
-    teams: { view: boolean; edit: boolean };
-    roles: { view: boolean; edit: boolean };
-    logs: { view: boolean; edit: boolean };
-}
+export type { User, UserRole, Permissions };
 
 const allPermissionsTrue: Permissions = {
     dashboard: { view: true, edit: true },
@@ -69,64 +54,79 @@ const guestPermissions: Permissions = {
     logs: { view: false, edit: false },
 };
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password?: string;
-  role: UserRole;
-  permissions: Permissions;
-  avatarUrl?: string;
-}
+const defaultGuestUser: User = {
+  id: 'guest-user',
+  name: 'Invitado',
+  email: '',
+  role: 'guest',
+  permissions: guestPermissions,
+  avatarUrl: 'https://placehold.co/100x100.png'
+};
+
 
 interface AuthContextType {
   user: User;
   setUser: (user: User) => void;
   users: User[];
   setUsers: (users: User[]) => void;
-  loginAs: (role: UserRole) => void;
+  loginAs: (email: string) => Promise<boolean>;
+  logout: () => void;
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
   isAuthLoading: boolean;
 }
 
-const mockUsers: User[] = [
-  { id: 'user-1', name: 'Usuario Admin', email: 'admin@ligacontrol.com', role: 'admin', permissions: allPermissionsTrue, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
-  { id: 'user-2', name: 'Secretario/a', email: 'secretary@ligacontrol.com', role: 'secretary', permissions: secretaryPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
-  { id: 'user-3', name: 'Invitado', email: 'guest@ligacontrol.com', role: 'guest', permissions: guestPermissions, avatarUrl: 'https://placehold.co/100x100.png', password: 'password' },
-];
-
-const defaultUser = mockUsers.find(u => u.role === 'guest')!;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [users, setUsersState] = useState<User[]>(mockUsers);
-  const [currentUser, setCurrentUser] = useState<User>(defaultUser);
+  const [users, setUsersState] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User>(defaultGuestUser);
   const [isCopaPublic, setIsCopaPublic] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading user from session/storage
-    const timer = setTimeout(() => {
+    async function loadInitialData() {
+        setIsAuthLoading(true);
+        const storedUser = sessionStorage.getItem('currentUser');
+        const allUsers = await getUsers();
+        setUsersState(allUsers);
+
+        if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            // Re-fetch user from DB to ensure permissions are up to date
+            const freshUser = allUsers.find(u => u.id === parsedUser.id);
+            setCurrentUser(freshUser || defaultGuestUser);
+        } else {
+            setCurrentUser(defaultGuestUser);
+        }
         setIsAuthLoading(false);
-    }, 250); // Small delay to simulate async loading
-    return () => clearTimeout(timer);
+    }
+    loadInitialData();
   }, []);
 
 
-  const loginAs = (role: UserRole) => {
-    const userToLogin = users.find(u => u.role === role);
+  const loginAs = async (email: string) => {
+    const userToLogin = await getUserByEmail(email);
     if (userToLogin) {
       setCurrentUser(userToLogin);
+      sessionStorage.setItem('currentUser', JSON.stringify(userToLogin));
+      return true;
     }
+    return false;
   };
   
+  const logout = () => {
+    setCurrentUser(defaultGuestUser);
+    sessionStorage.removeItem('currentUser');
+  };
+
   const setUsers = (updatedUsers: User[]) => {
       setUsersState(updatedUsers);
       const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
       if (updatedCurrentUser) {
           setCurrentUser(updatedCurrentUser);
+          sessionStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
       }
   }
 
@@ -136,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     users,
     setUsers,
     loginAs,
+    logout,
     isCopaPublic,
     setIsCopaPublic,
     isAuthLoading,
