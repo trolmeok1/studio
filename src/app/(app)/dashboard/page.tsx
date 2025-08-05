@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -28,17 +29,19 @@ import Autoplay from "embla-carousel-autoplay"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
-  dashboardStats,
-  players,
-  teams,
-  standings,
+  getDashboardStats,
   getTopScorers,
-  sanctions,
+  getSanctions,
   getRequalificationRequests,
+  getTeams,
+  getStandings,
   type Category,
   type Standing,
   type RequalificationRequest,
   type Scorer,
+  type DashboardStats,
+  type Sanction,
+  type Team
 } from '@/lib/mock-data';
 import {
   Users,
@@ -127,13 +130,19 @@ function DashboardCarousel({ images }: { images: {src: string, alt: string, hint
 
 function TopScorersCard() {
   const [topScorers, setTopScorers] = useState<Scorer[]>([]);
+  const [teams, setTeamsData] = useState<Team[]>([]);
+
 
     useEffect(() => {
-        async function loadScorers() {
-            const scorersData = await getTopScorers();
+        async function loadData() {
+            const [scorersData, teamsData] = await Promise.all([
+                getTopScorers(),
+                getTeams()
+            ]);
             setTopScorers(scorersData.slice(0, 5));
+            setTeamsData(teamsData);
         }
-        loadScorers();
+        loadData();
     }, []);
 
   return (
@@ -181,19 +190,25 @@ function TopScorersCard() {
 }
 
 function SanctionsCard() {
+    const [sanctions, setSanctions] = useState<Sanction[]>([]);
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
+        async function loadSanctions() {
+            const data = await getSanctions();
+            setSanctions(data);
+        }
+        loadSanctions();
     }, []);
 
     const formattedSanctions = useMemo(() => {
-        if (!isClient) return sanctions;
+        if (!isClient) return [];
         return sanctions.map(s => ({
             ...s,
             formattedDate: s.date ? format(new Date(s.date), 'dd/MM/yyyy', { locale: es }) : 'N/A'
         }));
-    }, [isClient]);
+    }, [isClient, sanctions]);
 
   return (
     <Card neon="yellow">
@@ -242,6 +257,20 @@ function SanctionsCard() {
 
 function BestTeamsCard() {
     const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [standings, setStandings] = useState<Standing[]>([]);
+
+    useEffect(() => {
+        async function loadData() {
+            const [teamsData, standingsData] = await Promise.all([
+                getTeams(),
+                getStandings()
+            ]);
+            setTeams(teamsData);
+            setStandings(standingsData);
+        }
+        loadData();
+    }, []);
 
     const getTopTeams = (category: Category) => {
         const categoryTeams = teams.filter(t => t.category === category);
@@ -290,13 +319,18 @@ function BestTeamsCard() {
 
 export default function DashboardPage() {
   const [pendingRequests, setPendingRequests] = useState<RequalificationRequest[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
     useEffect(() => {
-        async function loadRequests() {
-            const allRequests = await getRequalificationRequests();
-            setPendingRequests(allRequests.filter(r => r.status === 'pending'));
+        async function loadData() {
+            const [requestsData, statsData] = await Promise.all([
+                getRequalificationRequests(),
+                getDashboardStats()
+            ]);
+            setPendingRequests(requestsData.filter(r => r.status === 'pending'));
+            setDashboardStats(statsData);
         }
-        loadRequests();
+        loadData();
     }, []);
   
   return (
@@ -325,28 +359,28 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-3">
                             <Users className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font-bold">{dashboardStats.players.approved}</p>
+                                <p className="text-2xl font-bold">{dashboardStats?.players.approved ?? '...'}</p>
                                 <p className="text-sm text-muted-foreground">Jugadores</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <Shield className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font-bold">{dashboardStats.teams.approved}</p>
+                                <p className="text-2xl font-bold">{dashboardStats?.teams.approved ?? '...'}</p>
                                 <p className="text-sm text-muted-foreground">Equipos</p>
                             </div>
                         </div>
                          <div className="flex items-center gap-3">
                             <Swords className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font-bold">{dashboardStats.matchesPlayed}</p>
+                                <p className="text-2xl font-bold">{dashboardStats?.matchesPlayed ?? '...'}</p>
                                 <p className="text-sm text-muted-foreground">Partidos</p>
                             </div>
                         </div>
                          <div className="flex items-center gap-3">
                             <Goal className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font-bold">{dashboardStats.goalsScored}</p>
+                                <p className="text-2xl font-bold">{dashboardStats?.goalsScored ?? '...'}</p>
                                 <p className="text-sm text-muted-foreground">Goles</p>
                             </div>
                         </div>
@@ -364,3 +398,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
