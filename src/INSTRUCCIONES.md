@@ -52,7 +52,10 @@ En resumen: **Crear y editar no cuesta. Usar los servicios a gran escala, sí.**
 
 ## Cómo "instalar" la aplicación en un teléfono (¡Importante!)
 
-Este proyecto es una **Aplicación Web Progresiva (PWA)**, no una aplicación nativa de Android. Esto significa que **no se genera un archivo APK** y no se usa Android Studio. La "instalación" se hace directamente desde el navegador web.
+Este proyecto es una **Aplicación Web Progresiva (PWA)**. Esto significa dos cosas muy importantes:
+
+1.  **No se genera un archivo APK directamente:** El proyecto está construido con tecnología web (Next.js/React), por lo que no puedes abrirlo en Android Studio para compilar un `.apk` tradicional. Las instrucciones que encuentres sobre generar APKs en Android Studio no aplican aquí.
+2.  **La "instalación" se hace desde el navegador web:** Esta es la forma moderna y recomendada. Es más simple para ti y para tus usuarios.
 
 ### Pasos para el usuario final:
 
@@ -64,7 +67,11 @@ Una vez que hayas desplegado tu aplicación en Firebase Hosting y tengas una URL
 4.  Seleccionar la opción **"Instalar aplicación"** o **"Añadir a pantalla de inicio"**.
 5.  Confirmar la acción.
 
-¡Y listo! Un ícono de la aplicación aparecerá en el menú del teléfono, y se abrirá como una aplicación normal, sin la barra de direcciones del navegador.
+¡Y listo! Un ícono de la aplicación aparecerá en el menú del teléfono y se abrirá como una aplicación normal, sin la barra de direcciones del navegador.
+
+### ¿Y si REALMENTE necesito un APK para la Play Store?
+
+Si tu objetivo final es publicar en Google Play, la información que encontraste sobre **Bubblewrap** y **TWA (Trusted Web Activity)** es correcta. Es una herramienta de línea de comandos que "envuelve" tu PWA en un APK. Sin embargo, es un proceso avanzado que debes realizar manualmente en tu computadora local y está fuera del alcance de lo que podemos hacer juntos en este entorno. Te recomendamos empezar con el método de instalación directa y solo explorar Bubblewrap si la publicación en la Play Store es un requisito indispensable para ti.
 
 ---
 ## (Opcional) Sube tu proyecto a GitHub
