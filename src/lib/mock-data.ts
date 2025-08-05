@@ -5,6 +5,23 @@ export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardSt
 import { db, storage } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch, setDoc } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import type { CarouselImage } from '@/app/(app)/dashboard/page';
+
+
+// --- Settings ---
+export const getCarouselImages = async (): Promise<CarouselImage[]> => {
+    const settingsRef = doc(db, 'settings', 'carousel');
+    const docSnap = await getDoc(settingsRef);
+    if (docSnap.exists()) {
+        return docSnap.data().images || [];
+    }
+    return [];
+};
+
+export const saveCarouselImages = async (images: CarouselImage[]) => {
+    const settingsRef = doc(db, 'settings', 'carousel');
+    await setDoc(settingsRef, { images });
+};
 
 
 // --- Users ---
@@ -117,14 +134,13 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
         vocal: { name: '' },
         delegates: [],
     };
-    
-    // Conditionally add group property
+
     if (teamData.category === 'Segunda') {
         newTeamData.group = 'A';
     }
 
-    const newTeamRef = await addDoc(collection(db, 'teams'), newTeamData);
-    const newTeamId = newTeamRef.id;
+    const docRef = await addDoc(collection(db, 'teams'), newTeamData);
+    const newTeamId = docRef.id;
 
     let logoUrl = 'https://placehold.co/100x100.png';
     if (logoDataUri) {
@@ -133,10 +149,10 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
         logoUrl = await getDownloadURL(snapshot.ref);
     }
 
-    await updateDoc(newTeamRef, { logoUrl: logoUrl });
+    await updateDoc(docRef, { logoUrl: logoUrl });
 
-    const finalTeamDoc = await getDoc(newTeamRef);
-    return { id: newTeamId, ...finalTeamDoc.data() } as Team;
+    const finalDoc = await getDoc(docRef);
+    return { id: newTeamId, logoUrl, ...finalDoc.data() } as Team;
 };
 
 
@@ -167,12 +183,11 @@ export const getPlayers = async (): Promise<Player[]> => {
 };
 
 export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'status' | 'stats' | 'careerHistory'>, photoDataUri: string): Promise<Player> => {
-    // 1. Create player doc to get ID
     const newPlayerRef = doc(collection(db, 'players'));
     
     const initialPlayerData: Omit<Player, 'id' | 'photoUrl'> = {
         ...playerData,
-        photoUrl: '', // To be updated
+        photoUrl: '', 
         status: 'activo',
         stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
         careerHistory: [{
@@ -183,7 +198,6 @@ export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'st
     await setDoc(newPlayerRef, initialPlayerData);
     const newPlayerId = newPlayerRef.id;
 
-    // 2. Upload photo with the new ID
     let photoUrl = 'https://placehold.co/200x200.png';
     if (photoDataUri) {
         try {
@@ -197,10 +211,8 @@ export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'st
         }
     }
 
-    // 3. Update player doc with photo URL
     await updateDoc(newPlayerRef, { photoUrl: photoUrl });
 
-    // 4. Return final player object
     const finalPlayerDoc = await getDoc(newPlayerRef);
     return { id: newPlayerId, ...finalPlayerDoc.data() } as Player;
 };

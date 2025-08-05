@@ -41,7 +41,9 @@ import {
   type Scorer,
   type DashboardStats,
   type Sanction,
-  type Team
+  type Team,
+  getCarouselImages,
+  saveCarouselImages
 } from '@/lib/mock-data';
 import {
   Users,
@@ -55,6 +57,7 @@ import {
   Crown,
   ImagePlus,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -71,7 +74,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 
 
-interface CarouselImage {
+export interface CarouselImage {
     src: string;
     alt: string;
     hint: string;
@@ -115,6 +118,7 @@ function AdminAlerts({ pendingRequests }: { pendingRequests: RequalificationRequ
 const CarouselManager = ({ images, setImages }: { images: CarouselImage[], setImages: React.Dispatch<React.SetStateAction<CarouselImage[]>> }) => {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -143,9 +147,17 @@ const CarouselManager = ({ images, setImages }: { images: CarouselImage[], setIm
         setImages(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSave = () => {
-        localStorage.setItem('carouselImages', JSON.stringify(images));
-        toast({ title: 'Carrusel Guardado', description: 'Las imágenes del carrusel han sido actualizadas.' });
+    const handleSave = async () => {
+        setIsLoading(true);
+        try {
+            await saveCarouselImages(images);
+            toast({ title: 'Carrusel Guardado', description: 'Las imágenes del carrusel han sido actualizadas.' });
+        } catch (error) {
+            console.error("Failed to save carousel images:", error);
+            toast({ title: 'Error', description: 'No se pudieron guardar las imágenes en la base de datos.', variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -177,8 +189,11 @@ const CarouselManager = ({ images, setImages }: { images: CarouselImage[], setIm
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             </div>
             <DialogFooter>
-                <DialogClose asChild>
-                    <Button onClick={handleSave}>Guardar Cambios</Button>
+                 <DialogClose asChild>
+                    <Button onClick={handleSave} disabled={isLoading}>
+                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Guardar Cambios
+                    </Button>
                 </DialogClose>
             </DialogFooter>
         </DialogContent>
@@ -188,14 +203,23 @@ const CarouselManager = ({ images, setImages }: { images: CarouselImage[], setIm
 
 function DashboardCarousel() {
     const { user } = useAuth();
-    const [images, setImages] = useState<CarouselImage[]>(defaultSliderImages);
+    const [images, setImages] = useState<CarouselImage[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
 
     useEffect(() => {
-        const savedImages = localStorage.getItem('carouselImages');
-        if (savedImages) {
-            setImages(JSON.parse(savedImages));
-        }
+        const fetchImages = async () => {
+            setIsLoading(true);
+            const fetchedImages = await getCarouselImages();
+            setImages(fetchedImages.length > 0 ? fetchedImages : defaultSliderImages);
+            setIsLoading(false);
+        };
+        fetchImages();
     }, []);
+
+    if (isLoading) {
+        return <Skeleton className="w-full aspect-[3/1]" />;
+    }
 
     return (
         <div className="relative">
