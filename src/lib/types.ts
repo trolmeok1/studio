@@ -1,7 +1,5 @@
 
 
-
-
 export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -230,4 +228,32 @@ export interface RequalificationRequest {
     playerOutName?: string;
     date: string;
     status: 'pending' | 'approved' | 'rejected';
+}
+
+export type UserRole = 'admin' | 'secretary' | 'guest';
+
+export interface Permissions {
+    dashboard: { view: boolean; edit: boolean };
+    players: { view: boolean; edit: boolean };
+    schedule: { view: boolean; edit: boolean };
+    partido: { view: boolean; edit: boolean };
+    copa: { view: boolean; edit: boolean };
+    aiCards: { view: boolean; edit: boolean };
+    committees: { view: boolean; edit: boolean };
+    treasury: { view: boolean; edit: boolean };
+    requests: { view: boolean; edit: boolean };
+    reports: { view: boolean; edit: boolean };
+    teams: { view: boolean; edit: boolean };
+    roles: { view: boolean; edit: boolean };
+    logs: { view: boolean; edit: boolean };
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  permissions: Permissions;
+  avatarUrl?: string;
 }

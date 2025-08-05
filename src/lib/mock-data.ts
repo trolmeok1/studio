@@ -2,7 +2,7 @@
 
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
-import type { Player, Team, Standing, Sanction, Scorer, Match, Expense, RequalificationRequest, VocalPaymentDetails, LogEntry } from './types';
+import type { Player, Team, Standing, Sanction, Scorer, Match, Expense, RequalificationRequest, VocalPaymentDetails, LogEntry, User } from './types';
 import { get } from 'http';
 
 // Firestore collection references
@@ -158,7 +158,7 @@ export const getExpenses = async (): Promise<Expense[]> => {
     return snapshotToArray<Expense>(snapshot);
 };
 
-export const addExpense = async (expense: Omit<Expense, 'id'>) => {
+export const addExpense = async (expense: Omit<Expense, 'id'>): Promise<Expense> => {
     const docRef = await addDoc(expensesCollection, expense);
     return { id: docRef.id, ...expense };
 };
@@ -194,12 +194,22 @@ export const getRequalificationRequests = async (): Promise<RequalificationReque
 };
 
 // --- USERS (for auth roles) ---
-export const getUsers = async (): Promise<any[]> => {
+export const getUsers = async (): Promise<User[]> => {
     const snapshot = await getDocs(usersCollection);
-    return snapshotToArray<any>(snapshot);
+    return snapshotToArray<User>(snapshot);
 }
 
-export const updateUser = async (user: any) => {
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+    const q = query(usersCollection, where("email", "==", email));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return null;
+    }
+    const userDoc = snapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() } as User;
+}
+
+export const updateUser = async (user: User) => {
      const userRef = doc(db, 'users', user.id);
      await updateDoc(userRef, { ...user });
 }
