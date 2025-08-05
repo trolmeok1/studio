@@ -239,17 +239,17 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
         }, 0);
     }, [filteredMatches]);
     
-    const expenses = useMemo(() => {
+    const totalExpenses = useMemo(() => {
         return filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
     }, [filteredExpenses]);
 
-    const finalBalance = income - expenses;
+    const finalBalance = income - totalExpenses;
 
-    const ReconciliationRow = ({ label, value, isTotal = false, isNegative = false }: { label: string, value: number, isTotal?: boolean, isNegative?: boolean }) => (
-        <div className={cn("flex justify-between py-1 px-2", isTotal && "font-bold border-t border-black mt-1 pt-1")}>
-            <span>{label}</span>
-            <span className={cn(isNegative && "text-red-600")}>${value.toFixed(2)}</span>
-        </div>
+    const FinancialRow = ({ label, value, isSubtotal = false, isTotal = false, isNegative = false }: { label: string, value: number, isSubtotal?: boolean, isTotal?: boolean, isNegative?: boolean }) => (
+        <TableRow className={cn(isSubtotal && "bg-gray-200 font-semibold", isTotal && "bg-gray-800 text-white font-bold")}>
+            <TableCell>{label}</TableCell>
+            <TableCell className={cn("text-right", isNegative && "text-red-600")}>${value.toFixed(2)}</TableCell>
+        </TableRow>
     );
 
     if (!isClient) {
@@ -258,50 +258,43 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
 
     return (
         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none font-sans">
-             <header className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-2">
+             <header className="flex justify-between items-center mb-6 border-b-2 pb-4 border-black">
+                <div className="flex items-center gap-4">
                     <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} data-ai-hint="league logo" />
                     <div>
-                        <h1 className="text-lg font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
-                        <p className="text-xs">En confianza.</p>
+                        <h1 className="text-2xl font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
                     </div>
                 </div>
                  <div className="text-right">
-                    <h2 className="text-xl font-bold">ESTADO DE CUENTA</h2>
-                    <p className="text-xs">Página 1 de 1</p>
+                    <h2 className="text-xl font-semibold">REPORTE FINANCIERO</h2>
+                     {dateRange?.from && (
+                         <p className="text-sm">
+                             Del {format(dateRange.from, 'dd/MM/yyyy')} al {dateRange.to ? format(dateRange.to, 'dd/MM/yyyy') : format(dateRange.from, 'dd/MM/yyyy')}
+                         </p>
+                     )}
                  </div>
             </header>
             
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="border p-2 text-xs">
-                    <p className="font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</p>
-                    <p>RUC: 1790000000001</p>
-                    <p>QUITO, ECUADOR</p>
-                </div>
-                 <div className="border p-2 text-xs">
-                    <div className="flex justify-between">
-                        <span>FECHA INICIO REPORTE:</span>
-                        <span className="font-semibold">{dateRange?.from ? format(dateRange.from, 'dd-MM-yyyy') : 'N/A'}</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span>FECHA FIN REPORTE:</span>
-                        <span className="font-semibold">{dateRange?.to ? format(dateRange.to, 'dd-MM-yyyy') : 'N/A'}</span>
-                    </div>
-                </div>
-            </div>
+            <Table>
+                <TableBody>
+                    <FinancialRow label="Saldo Inicial" value={0} />
+                    
+                    <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Ingresos</TableCell></TableRow>
+                    <FinancialRow label="Ingresos por Vocalías" value={income} />
+                    {/* Add other income sources if needed */}
+                    <FinancialRow label="Suma Ingresos" value={income} isSubtotal />
 
-            <div className="border p-2">
-                 <h3 className="font-bold text-center bg-gray-200 py-1 mb-2">CONCILIACIÓN</h3>
-                 <div className="space-y-1 text-sm">
-                    <ReconciliationRow label="SALDO ANTERIOR" value={0} />
-                    <ReconciliationRow label="(+) DEPÓSITOS / CRÉDITOS (Vocalías)" value={income} />
-                    <ReconciliationRow label="(-) CHEQUES / DÉBITOS (Gastos)" value={expenses} isNegative />
-                    <ReconciliationRow label="INTERÉS PERIODO" value={0} />
-                    <ReconciliationRow label="SALDO ACTUAL" value={finalBalance} isTotal />
-                 </div>
-            </div>
+                    <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Gastos</TableCell></TableRow>
+                    {filteredExpenses.map(expense => (
+                        <FinancialRow key={expense.id} label={expense.description} value={expense.amount} isNegative />
+                    ))}
+                    <FinancialRow label="Suma Gastos" value={totalExpenses} isSubtotal isNegative />
 
-            <footer className="text-center text-xs text-gray-500 mt-8">
+                    <FinancialRow label="TOTAL TESORERÍA" value={finalBalance} isTotal isNegative={finalBalance < 0} />
+                </TableBody>
+            </Table>
+            
+            <footer className="text-center text-xs text-gray-500 mt-8 pt-4 border-t">
                 Generado por Liga Control.
             </footer>
         </div>
