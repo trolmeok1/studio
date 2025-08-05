@@ -69,11 +69,14 @@ export default function AiCardsPage() {
         const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
         // --- Pre-fetch all assets ---
-        const leagueLogoUrl = 'https://placehold.co/100x100.png';
+        const leagueLogoUrl = localStorage.getItem('league-logo') || 'https://placehold.co/100x100.png';
         const defaultBackgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
         
         let backgroundImageBase64 = localStorage.getItem('card-background-image');
-        if (!backgroundImageBase64) {
+        if (backgroundImageBase64 && !backgroundImageBase64.startsWith('data:image')) {
+            // It's a URL from Firebase, convert it to data URI
+            backgroundImageBase64 = await toDataURL(backgroundImageBase64);
+        } else if (!backgroundImageBase64) {
             backgroundImageBase64 = await toDataURL(defaultBackgroundImageUrl);
         }
 

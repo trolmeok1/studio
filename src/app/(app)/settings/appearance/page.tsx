@@ -1,28 +1,37 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { storage } from '@/lib/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
-type FlyerType = 'standard-flyer-bg' | 'semifinal-flyer-bg' | 'final-flyer-bg' | 'card-background-image' | 'schedule-report-bg';
+
+type AssetType = 'league-logo' | 'city-logo' | 'card-background-image' | 'standard-flyer-bg' | 'semifinal-flyer-bg' | 'final-flyer-bg' | 'schedule-report-bg';
 
 export default function AppearancePage() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
-  const [leagueLogo, setLeagueLogo] = useState('https://placehold.co/200x200.png');
-  const [cityLogo, setCityLogo] = useState('https://placehold.co/200x200.png');
-  const [cardBackground, setCardBackground] = useState<string | null>(null);
-  const [standardFlyerBg, setStandardFlyerBg] = useState<string | null>(null);
-  const [semifinalFlyerBg, setSemifinalFlyerBg] = useState<string | null>(null);
-  const [finalFlyerBg, setFinalFlyerBg] = useState<string | null>(null);
-  const [scheduleReportBg, setScheduleReportBg] = useState<string | null>(null);
-  
-  const fileInputRefs = {
+  const [assetPreviews, setAssetPreviews] = useState<Record<AssetType, string | null>>({
+    'league-logo': null,
+    'city-logo': null,
+    'card-background-image': null,
+    'standard-flyer-bg': null,
+    'semifinal-flyer-bg': null,
+    'final-flyer-bg': null,
+    'schedule-report-bg': null,
+  });
+
+  const fileInputRefs: Record<AssetType, React.RefObject<HTMLInputElement>> = {
+    'league-logo': useRef<HTMLInputElement>(null),
+    'city-logo': useRef<HTMLInputElement>(null),
     'card-background-image': useRef<HTMLInputElement>(null),
     'standard-flyer-bg': useRef<HTMLInputElement>(null),
     'semifinal-flyer-bg': useRef<HTMLInputElement>(null),
@@ -30,61 +39,77 @@ export default function AppearancePage() {
     'schedule-report-bg': useRef<HTMLInputElement>(null),
   };
 
-  const stateSetters = {
-    'card-background-image': setCardBackground,
-    'standard-flyer-bg': setStandardFlyerBg,
-    'semifinal-flyer-bg': setSemifinalFlyerBg,
-    'final-flyer-bg': setFinalFlyerBg,
-    'schedule-report-bg': setScheduleReportBg,
-  };
-
   useEffect(() => {
     // Load saved images from localStorage on mount
-    setCardBackground(localStorage.getItem('card-background-image'));
-    setStandardFlyerBg(localStorage.getItem('standard-flyer-bg'));
-    setSemifinalFlyerBg(localStorage.getItem('semifinal-flyer-bg'));
-    setFinalFlyerBg(localStorage.getItem('final-flyer-bg'));
-    setScheduleReportBg(localStorage.getItem('schedule-report-bg'));
+    Object.keys(assetPreviews).forEach(key => {
+        const storedValue = localStorage.getItem(key as AssetType);
+        if (storedValue) {
+            setAssetPreviews(prev => ({...prev, [key]: storedValue}));
+        }
+    })
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: FlyerType) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: AssetType) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        stateSetters[type](reader.result as string);
+        setAssetPreviews(prev => ({...prev, [type]: reader.result as string}));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSave = () => {
-    if (cardBackground) localStorage.setItem('card-background-image', cardBackground);
-    if (standardFlyerBg) localStorage.setItem('standard-flyer-bg', standardFlyerBg);
-    if (semifinalFlyerBg) localStorage.setItem('semifinal-flyer-bg', semifinalFlyerBg);
-    if (finalFlyerBg) localStorage.setItem('final-flyer-bg', finalFlyerBg);
-    if (scheduleReportBg) localStorage.setItem('schedule-report-bg', scheduleReportBg);
-    
-    toast({
-        title: "Apariencia Guardada",
-        description: "Tus cambios han sido guardados exitosamente.",
-    });
+  const handleSave = async () => {
+    setIsLoading(true);
+    toast({ title: "Guardando cambios...", description: "Subiendo imágenes a la nube. Esto puede tardar un momento." });
+
+    const uploadPromises = Object.entries(assetPreviews)
+        .filter(([key, value]) => value && value.startsWith('data:image')) // Only upload new base64 images
+        .map(async ([key, value]) => {
+            const storageRef = ref(storage, `app-appearance/${key}`);
+            try {
+                const snapshot = await uploadString(storageRef, value!, 'data_url');
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                localStorage.setItem(key as AssetType, downloadURL); // Save the cloud URL
+                setAssetPreviews(prev => ({...prev, [key]: downloadURL})); // Update state with cloud URL
+            } catch (error) {
+                console.error(`Failed to upload ${key}:`, error);
+                throw new Error(`No se pudo subir la imagen para ${key}.`);
+            }
+        });
+
+    try {
+        await Promise.all(uploadPromises);
+        toast({
+            title: "Apariencia Guardada",
+            description: "Tus cambios han sido guardados exitosamente en la nube.",
+        });
+    } catch (error: any) {
+        toast({
+            title: "Error al guardar",
+            description: error.message || "Algunas imágenes no se pudieron guardar.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const ImageUploadCard = ({
     title,
     description,
-    imageSrc,
     type,
     hint,
+    aspectRatio = 'aspect-[2/3]',
   }: {
     title: string;
     description: string;
-    imageSrc: string | null;
-    type: FlyerType;
+    type: AssetType;
     hint: string;
+    aspectRatio?: string;
   }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start p-6 border rounded-lg">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center p-6 border rounded-lg">
       <div className="space-y-2">
         <Label className="text-lg font-semibold">{title}</Label>
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -104,11 +129,11 @@ export default function AppearancePage() {
       </div>
       <div className="flex justify-center">
         <Image
-          src={imageSrc || 'https://placehold.co/630x950.png'}
+          src={assetPreviews[type] || 'https://placehold.co/400x400.png'}
           alt={`Vista previa de ${title}`}
-          width={126}
-          height={190}
-          className="rounded-md object-cover border bg-muted p-2"
+          width={150}
+          height={150}
+          className={`rounded-md object-contain border bg-muted p-2 ${aspectRatio}`}
           data-ai-hint={hint}
         />
       </div>
@@ -133,56 +158,25 @@ export default function AppearancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start p-6 border rounded-lg">
-            <div className="space-y-2">
-              <Label className="text-lg font-semibold">Logo Principal de la Liga</Label>
-              <p className="text-sm text-muted-foreground">
-                Este logo aparecerá en la mayoría de los encabezados de los documentos.
-              </p>
-              <div className="flex items-center gap-2 pt-2">
-                <Input id="leagueLogo" type="file" className="flex-grow" />
-                <Button variant="outline" size="icon"><Upload className="h-5 w-5"/></Button>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <Image
-                src={leagueLogo}
-                alt="Logo de la Liga"
-                width={150}
-                height={150}
-                className="rounded-md object-contain border bg-muted p-2"
-                data-ai-hint="league logo"
-              />
-            </div>
-          </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start p-6 border rounded-lg">
-            <div className="space-y-2">
-              <Label className="text-lg font-semibold">Logo Secundario (Ciudad/Organización)</Label>
-               <p className="text-sm text-muted-foreground">
-                Logo opcional para documentos que requieren una afiliación o logo de la ciudad.
-              </p>
-              <div className="flex items-center gap-2 pt-2">
-                <Input id="cityLogo" type="file" className="flex-grow" />
-                <Button variant="outline" size="icon"><Upload className="h-5 w-5"/></Button>
-              </div>
-            </div>
-             <div className="flex justify-center">
-               <Image
-                src={cityLogo}
-                alt="Logo de la Ciudad"
-                width={150}
-                height={150}
-                className="rounded-md object-contain border bg-muted p-2"
-                data-ai-hint="city logo"
-              />
-            </div>
-          </div>
+           <ImageUploadCard
+              title="Logo Principal de la Liga"
+              description="Este logo aparecerá en la mayoría de los encabezados de los documentos."
+              type="league-logo"
+              hint="league logo"
+              aspectRatio="aspect-square"
+            />
+            
+           <ImageUploadCard
+              title="Logo Secundario (Ciudad/Organización)"
+              description="Logo opcional para documentos que requieren una afiliación o logo de la ciudad."
+              type="city-logo"
+              hint="city logo"
+              aspectRatio="aspect-square"
+            />
           
            <ImageUploadCard
               title="Fondo de Carnets"
               description="Sube una imagen de fondo personalizada para los carnets generados en PDF."
-              imageSrc={cardBackground}
               type="card-background-image"
               hint="card background"
             />
@@ -190,7 +184,6 @@ export default function AppearancePage() {
             <ImageUploadCard
               title="Fondo para Reporte de Programación"
               description="Fondo para el reporte imprimible de los partidos semanales."
-              imageSrc={scheduleReportBg}
               type="schedule-report-bg"
               hint="soccer field top view"
             />
@@ -198,7 +191,6 @@ export default function AppearancePage() {
             <ImageUploadCard
               title="Fondo para Flyer Estándar"
               description="Fondo para el diseño de partido 1 vs 1."
-              imageSrc={standardFlyerBg}
               type="standard-flyer-bg"
               hint="flyer background"
             />
@@ -206,7 +198,6 @@ export default function AppearancePage() {
             <ImageUploadCard
               title="Fondo para Flyer de Semifinal"
               description="Fondo para el diseño de semifinales."
-              imageSrc={semifinalFlyerBg}
               type="semifinal-flyer-bg"
               hint="flyer background action"
             />
@@ -214,14 +205,16 @@ export default function AppearancePage() {
             <ImageUploadCard
               title="Fondo para Flyer de Gran Final"
               description="Fondo para el diseño de la gran final."
-              imageSrc={finalFlyerBg}
               type="final-flyer-bg"
               hint="flyer background epic"
             />
 
 
            <div className="flex justify-end">
-                <Button onClick={handleSave}>Guardar Cambios</Button>
+                <Button onClick={handleSave} disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Guardar Cambios
+                </Button>
            </div>
         </CardContent>
       </Card>

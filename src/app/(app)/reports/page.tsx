@@ -49,7 +49,7 @@ const StandingsReport = ({ category, group }: { category: Category, group?: 'A' 
     return (
         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none">
             <header className="flex flex-col items-center text-center mb-6 bg-black/50 text-white p-4 rounded-lg">
-                <Image src="https://placehold.co/150x150.png" alt="Logo Liga" width={80} height={80} data-ai-hint="league logo" className="bg-white rounded-full p-1" />
+                <Image src={localStorage.getItem('league-logo') || "https://placehold.co/150x150.png"} alt="Logo Liga" width={80} height={80} data-ai-hint="league logo" className="bg-white rounded-full p-1" />
                 <h1 className="text-3xl font-bold mt-2 tracking-widest uppercase">Tabla de Posiciones</h1>
                  <div className="bg-white text-gray-800 font-bold py-1 px-4 rounded-md w-fit mx-auto mt-2 text-lg">
                     {category} {group ? `- Grupo ${group}` : ''}
@@ -144,7 +144,7 @@ const FinancialReport = ({ dateRange }: { dateRange: DateRange | undefined }) =>
         <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none font-sans">
              <header className="flex justify-between items-center mb-6 border-b-2 pb-4 border-black">
                 <div className="flex items-center gap-4">
-                    <Image src="https://placehold.co/100x100.png" alt="Logo Liga" width={60} height={60} data-ai-hint="league logo" />
+                    <Image src={localStorage.getItem('league-logo') || "https://placehold.co/100x100.png"} alt="Logo Liga" width={60} height={60} data-ai-hint="league logo" />
                     <div>
                         <h1 className="text-2xl font-bold">LIGA DEPORTIVA BARRIAL "LA LUZ"</h1>
                     </div>
@@ -203,7 +203,7 @@ const StandardFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, 
              <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-teal-500/20 to-transparent translate-x-1/4 translate-y-1/4 blur-3xl"></div>
 
             <header className="text-center z-10">
-                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={60} height={60} className="mx-auto" data-ai-hint="league logo lion" />
+                <Image src={localStorage.getItem('league-logo') || "https://placehold.co/100x100.png"} alt="Logo de la Liga" width={60} height={60} className="mx-auto" data-ai-hint="league logo lion" />
                 <p className="font-bold text-lg mt-2">LIGA LA LUZ</p>
             </header>
 
@@ -276,7 +276,7 @@ const SemifinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team,
             </main>
 
              <footer className="z-10 mb-4">
-                <Image src="https://placehold.co/100x100.png" alt="Logo de la Liga" width={40} height={40} className="mx-auto" data-ai-hint="league logo" />
+                <Image src={localStorage.getItem('league-logo') || "https://placehold.co/100x100.png"} alt="Logo de la Liga" width={40} height={40} className="mx-auto" data-ai-hint="league logo" />
             </footer>
         </div>
     );
