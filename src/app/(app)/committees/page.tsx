@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -17,14 +18,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, matchData as initialMatchData, type VocalPaymentDetails as VocalPaymentDetailsType, upcomingMatches as allMatchesData, getPlayersByTeamId, updateMatchData, getMatchById, setMatchAsFinished, getMatchesByTeamId, getSanctions as getAllSanctions, getMatches } from '@/lib/mock-data';
+import { players as allPlayersData, teams, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getMatchesByTeamId, getSanctions as getAllSanctions, getMatches } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
+import type { MatchEvent, MatchEventType } from '@/lib/types';
 import { isToday, isFuture, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -315,7 +316,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
 const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void, onFinishMatch: (matchId: string) => void }) => {
     const { user } = useAuth();
     const { toast } = useToast();
-    const canEdit = user.role === 'admin' || user.role === 'secretary';
+    const canEdit = user.permissions.committees.edit;
 
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
     const [playerNumber, setPlayerNumber] = useState('');
@@ -326,7 +327,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     
     useEffect(() => {
-        allPlayersData().then(setAllPlayers);
+        setAllPlayers(allPlayersData);
     }, []);
 
     useEffect(() => {
