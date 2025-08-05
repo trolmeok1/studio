@@ -453,11 +453,13 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
                      <div className="flex flex-col items-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-bold">{homeTeam?.name}</p>
+                        <p className="text-xs text-muted-foreground">Camerino {match.homeDressingRoom || 'N/A'}</p>
                     </div>
                     <span className="text-2xl font-bold text-muted-foreground">VS</span>
                      <div className="flex flex-col items-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-bold">{awayTeam?.name}</p>
+                        <p className="text-xs text-muted-foreground">Camerino {match.awayDressingRoom || 'N/A'}</p>
                     </div>
                 </CardContent>
                 <CardFooter className="p-3 bg-muted/50 text-xs text-muted-foreground">
