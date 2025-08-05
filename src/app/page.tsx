@@ -114,7 +114,7 @@ const StandingsWidget = ({ standings }: {standings: Standing[]}) => (
                             <TableCell className="font-bold">{i + 1}</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                     <Image src={s.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={s.teamName} width={20} height={20} className="rounded-full" data-ai-hint="team logo"/>
+                                     <Image src={s.teamLogoUrl || 'https://placehold.co/100x100.png'} alt={s.teamName || 'Logo del equipo'} width={20} height={20} className="rounded-full" data-ai-hint="team logo"/>
                                     <span className="font-medium truncate">{s.teamName}</span>
                                 </div>
                             </TableCell>
