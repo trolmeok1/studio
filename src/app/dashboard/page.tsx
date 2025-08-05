@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import {
@@ -387,5 +385,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
