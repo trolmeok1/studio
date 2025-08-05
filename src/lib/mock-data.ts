@@ -1,8 +1,10 @@
 
+
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
-import { db } from './firebase';
+import { db, storage } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 
 // --- Users ---
@@ -102,6 +104,25 @@ export const getTeams = async (): Promise<Team[]> => {
     const teamsCol = collection(db, 'teams');
     const teamSnapshot = await getDocs(teamsCol);
     return teamSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+};
+
+export const addTeam = async (teamData: Omit<Team, 'id' | 'logoUrl'>, logoDataUri: string | null): Promise<Team> => {
+    let logoUrl = 'https://placehold.co/100x100.png'; // default logo
+    const newTeamId = `team-${Date.now()}`;
+
+    if (logoDataUri) {
+        const storageRef = ref(storage, `team-logos/${newTeamId}`);
+        const snapshot = await uploadString(storageRef, logoDataUri, 'data_url');
+        logoUrl = await getDownloadURL(snapshot.ref);
+    }
+    
+    const newTeam = {
+        ...teamData,
+        logoUrl
+    };
+
+    const docRef = await addDoc(collection(db, 'teams'), newTeam);
+    return { id: docRef.id, ...newTeam };
 };
 
 export const getTeamById = async (id: string): Promise<Team | undefined> => {

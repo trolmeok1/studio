@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,14 +16,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Upload } from 'lucide-react';
-import type { Category } from '@/lib/types';
+import { PlusCircle, Upload, Loader2 } from 'lucide-react';
+import type { Category, Team } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { addTeam } from '@/lib/mock-data';
 
-export function AddTeam() {
+export function AddTeam({ onTeamAdded }: { onTeamAdded: (newTeam: Team) => void }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -37,23 +40,56 @@ export function AddTeam() {
       reader.readAsDataURL(file);
     }
   };
-  
-  const handleSave = () => {
-    // In a real app, you would handle the form submission, e.g., send to an API.
-    console.log({ teamName, category, logo: logoPreview });
-    toast({
-        title: 'Equipo Agregado',
-        description: `El equipo "${teamName}" ha sido creado en la categoría ${category}.`,
-    });
-    setIsOpen(false);
-    // Reset form
+
+  const resetForm = () => {
     setTeamName('');
     setCategory('');
     setLogoPreview(null);
   };
+  
+  const handleSave = async () => {
+    if (!teamName || !category) {
+        toast({
+            title: 'Error de validación',
+            description: 'Por favor, completa el nombre y la categoría del equipo.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    
+    setIsLoading(true);
+
+    try {
+        const newTeamData = { name: teamName, category };
+        const newTeam = await addTeam(newTeamData, logoPreview);
+        
+        toast({
+            title: 'Equipo Agregado',
+            description: `El equipo "${teamName}" ha sido creado en la categoría ${category}.`,
+        });
+
+        onTeamAdded(newTeam); // Callback to update parent state
+        resetForm();
+        setIsOpen(false);
+    } catch (error) {
+        console.error("Failed to add team:", error);
+        toast({
+            title: 'Error al guardar',
+            description: 'No se pudo agregar el equipo. Por favor, inténtalo de nuevo.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        if (!open) {
+            resetForm();
+        }
+        setIsOpen(open);
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2" />
@@ -108,7 +144,10 @@ export function AddTeam() {
           <DialogClose asChild>
             <Button variant="outline">Cancelar</Button>
           </DialogClose>
-          <Button onClick={handleSave} disabled={!teamName || !category}>Guardar Equipo</Button>
+          <Button onClick={handleSave} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? 'Guardando...' : 'Guardar Equipo'}
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

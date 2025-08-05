@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,21 +42,28 @@ export default function TeamsPage() {
     const [activeTab, setActiveTab] = useState<Category | undefined>(undefined);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        async function loadTeams() {
-            setLoading(true);
-            const allTeams = await getTeams();
-            setTeams(allTeams);
-             // Set initial tab to the first category available
-            const uniqueCategories = [...new Set(allTeams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
-            const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
-            const sortedCategories = uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
-            if (sortedCategories.length > 0) {
-                setActiveTab(sortedCategories[0]);
-            }
-            setLoading(false);
+    const loadTeams = useCallback(async () => {
+        setLoading(true);
+        const allTeams = await getTeams();
+        setTeams(allTeams);
+        // Set initial tab to the first category available
+        const uniqueCategories = [...new Set(allTeams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
+        const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
+        const sortedCategories = uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
+        if (!activeTab && sortedCategories.length > 0) {
+            setActiveTab(sortedCategories[0]);
         }
+        setLoading(false);
+    }, [activeTab]);
+
+    useEffect(() => {
         loadTeams();
+    }, [loadTeams]);
+
+    const handleTeamAdded = useCallback((newTeam: Team) => {
+        setTeams(prevTeams => [...prevTeams, newTeam]);
+        // Optionally switch to the new team's category
+        setActiveTab(newTeam.category);
     }, []);
 
     const categories: Category[] = useMemo(() => {
@@ -83,7 +90,7 @@ export default function TeamsPage() {
                         Gestiona los equipos de la liga, su información y sus jugadores.
                     </p>
                 </div>
-                <AddTeam />
+                <AddTeam onTeamAdded={handleTeamAdded} />
             </div>
             
             <Card>
