@@ -70,7 +70,7 @@ const TopScorersTable = ({ scorers }: { scorers: Scorer[] }) => (
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {scorers.map(scorer => (
+                    {scorers.filter(scorer => scorer.playerName).map(scorer => (
                         <TableRow key={scorer.playerId}>
                             <TableCell>
                                 <div className="flex items-center gap-3">
