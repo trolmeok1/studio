@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-type FlyerType = 'standard-flyer-bg' | 'semifinal-flyer-bg' | 'final-flyer-bg' | 'card-background-image';
+type FlyerType = 'standard-flyer-bg' | 'semifinal-flyer-bg' | 'final-flyer-bg' | 'card-background-image' | 'schedule-report-bg';
 
 export default function AppearancePage() {
   const { toast } = useToast();
@@ -22,12 +22,14 @@ export default function AppearancePage() {
   const [standardFlyerBg, setStandardFlyerBg] = useState<string | null>(null);
   const [semifinalFlyerBg, setSemifinalFlyerBg] = useState<string | null>(null);
   const [finalFlyerBg, setFinalFlyerBg] = useState<string | null>(null);
+  const [scheduleReportBg, setScheduleReportBg] = useState<string | null>(null);
   
   const fileInputRefs = {
     'card-background-image': useRef<HTMLInputElement>(null),
     'standard-flyer-bg': useRef<HTMLInputElement>(null),
     'semifinal-flyer-bg': useRef<HTMLInputElement>(null),
     'final-flyer-bg': useRef<HTMLInputElement>(null),
+    'schedule-report-bg': useRef<HTMLInputElement>(null),
   };
 
   const stateSetters = {
@@ -35,6 +37,7 @@ export default function AppearancePage() {
     'standard-flyer-bg': setStandardFlyerBg,
     'semifinal-flyer-bg': setSemifinalFlyerBg,
     'final-flyer-bg': setFinalFlyerBg,
+    'schedule-report-bg': setScheduleReportBg,
   };
 
   useEffect(() => {
@@ -43,6 +46,7 @@ export default function AppearancePage() {
     setStandardFlyerBg(localStorage.getItem('standard-flyer-bg'));
     setSemifinalFlyerBg(localStorage.getItem('semifinal-flyer-bg'));
     setFinalFlyerBg(localStorage.getItem('final-flyer-bg'));
+    setScheduleReportBg(localStorage.getItem('schedule-report-bg'));
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: FlyerType) => {
@@ -61,6 +65,7 @@ export default function AppearancePage() {
     if (standardFlyerBg) localStorage.setItem('standard-flyer-bg', standardFlyerBg);
     if (semifinalFlyerBg) localStorage.setItem('semifinal-flyer-bg', semifinalFlyerBg);
     if (finalFlyerBg) localStorage.setItem('final-flyer-bg', finalFlyerBg);
+    if (scheduleReportBg) localStorage.setItem('schedule-report-bg', scheduleReportBg);
     
     toast({
         title: "Apariencia Guardada",
@@ -182,6 +187,14 @@ export default function AppearancePage() {
               imageSrc={cardBackground}
               type="card-background-image"
               hint="card background"
+            />
+            
+            <ImageUploadCard
+              title="Fondo para Reporte de Programación"
+              description="Fondo para el reporte imprimible de los partidos semanales."
+              imageSrc={scheduleReportBg}
+              type="schedule-report-bg"
+              hint="soccer field top view"
             />
 
             <ImageUploadCard

@@ -329,6 +329,15 @@ const FinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awa
 
 
 const ScheduleReport = () => {
+    const [bg, setBg] = useState<string | null>(null);
+    useEffect(() => {
+        setBg(localStorage.getItem('schedule-report-bg'));
+    }, []);
+
+    const backgroundStyle = bg
+        ? { backgroundImage: `url(${bg})` }
+        : { backgroundImage: `url('https://placehold.co/1000x1200.png')` };
+
     const weeklyMatches = useMemo(() => {
         const today = new Date();
         const nextWeek = addDays(today, 7);
@@ -349,7 +358,7 @@ const ScheduleReport = () => {
     }, [weeklyMatches]);
     
     return (
-        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none relative bg-cover bg-center" style={{ backgroundImage: `url('https://placehold.co/1000x1200.png')` }} data-ai-hint="soccer field top view">
+        <div id="printable-report" className="bg-white text-black p-8 max-w-4xl mx-auto border border-gray-300 print:border-none relative bg-cover bg-center" style={backgroundStyle} data-ai-hint="soccer field top view">
             <div className="absolute inset-0 bg-black/60" />
             <header className="relative z-10 text-center mb-6 text-white">
                 <h1 className="text-4xl font-extrabold uppercase tracking-wider">Partidos Semanales</h1>
