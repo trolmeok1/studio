@@ -77,7 +77,7 @@ const TopScorersTable = ({ scorers }: { scorers: Scorer[] }) => (
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={scorer.playerPhotoUrl} alt={scorer.playerName} data-ai-hint="player portrait" />
-                                        <AvatarFallback>{scorer.playerName?.charAt(0)}</AvatarFallback>
+                                        <AvatarFallback>{scorer.playerName.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div>
                                         <p className="font-medium">{scorer.playerName}</p>
