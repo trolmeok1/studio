@@ -41,11 +41,6 @@ const ResetDialog = ({
       confirmText: 'Sí, entiendo, continuar'
     },
     {
-      title: "Confirmación Adicional",
-      description: "Estás a un paso de borrar los datos. Esta es la segunda de tres advertencias. ¿Realmente quieres proceder?",
-      confirmText: 'Sí, estoy completamente seguro'
-    },
-    {
       title: "ÚLTIMA ADVERTENCIA",
       description: "Al hacer clic en \"BORRAR DEFINITIVAMENTE\", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.",
       confirmText: 'BORRAR DEFINITIVAMENTE'
@@ -64,8 +59,8 @@ const ResetDialog = ({
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            className={cn(step === 3 && buttonVariants({ variant: "destructive" }))}
-            onClick={() => (step < 3 ? onStepChange(step + 1) : onConfirm())}
+            className={cn(step === 2 && buttonVariants({ variant: "destructive" }))}
+            onClick={() => (step < 2 ? onStepChange(step + 1) : onConfirm())}
           >
             {currentContent.confirmText}
           </AlertDialogAction>

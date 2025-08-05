@@ -517,11 +517,6 @@ const ResetDialog = ({
       confirmText: 'Sí, entiendo los riesgos',
     },
     {
-      title: 'Confirmación Adicional',
-      description: 'Estás a un paso de realizar una acción irreversible. Esta es tu segunda advertencia.',
-      confirmText: 'Sí, estoy completamente seguro',
-    },
-    {
       title: 'ÚLTIMA ADVERTENCIA',
       description: 'Al hacer clic en "FINALIZAR TORNEO", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.',
       confirmText: 'FINALIZAR TORNEO',
@@ -540,8 +535,8 @@ const ResetDialog = ({
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            className={cn(step === 3 && buttonVariants({ variant: 'destructive' }))}
-            onClick={() => (step < 3 ? onStepChange(step + 1) : onConfirm())}
+            className={cn(step === 2 && buttonVariants({ variant: 'destructive' }))}
+            onClick={() => (step < 2 ? onStepChange(step + 1) : onConfirm())}
           >
             {currentContent.confirmText}
           </AlertDialogAction>
