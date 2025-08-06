@@ -68,7 +68,7 @@ export default function TeamsPage() {
     const filteredTeamsByCategory = (category: Category) => {
         return teams
             .filter(team => team.category === category)
-            .filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            .filter(team => team.name && team.name.toLowerCase().includes(searchTerm.toLowerCase()));
     };
 
     const TeamList = ({ teamsToShow }: { teamsToShow: Team[] }) => {
