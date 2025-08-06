@@ -12,6 +12,33 @@ import type { CarouselImage } from '@/app/(app)/dashboard/page';
 export const ADMIN_EMAIL = 'alejandroespin2021@gmail.com';
 
 
+// --- Copa ---
+export const saveCopa = async (teams: Team[], matches: Match[]) => {
+    const docRef = doc(db, 'settings', 'copa');
+    await setDoc(docRef, { teams, matches });
+};
+
+export const getCopa = async (): Promise<{ teams: Team[], matches: Match[] }> => {
+    const docRef = doc(db, 'settings', 'copa');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Firestore Timestamps need to be converted back to Dates
+        const matches = (data.matches || []).map((m: any) => ({
+            ...m,
+            date: m.date?.toDate ? m.date.toDate() : null,
+        }));
+        return { teams: data.teams || [], matches };
+    }
+    return { teams: [], matches: [] };
+};
+
+export const deleteCopa = async () => {
+    const docRef = doc(db, 'settings', 'copa');
+    await deleteDoc(docRef);
+};
+
+
 // --- Settings ---
 export const getCarouselImages = async (): Promise<CarouselImage[]> => {
     const settingsRef = doc(db, 'settings', 'carousel');
@@ -282,11 +309,15 @@ export const getStandings = async (): Promise<Standing[]> => {
 };
 
 export const resetAllStandings = async (): Promise<void> => {
-    const standingsCol = collection(db, 'standings');
-    const standingsSnapshot = await getDocs(standingsCol);
+    const allTeams = await getTeams();
     const batch = writeBatch(db);
-    standingsSnapshot.forEach(doc => {
-        batch.update(doc.ref, {
+
+    for (const team of allTeams) {
+        const standingRef = doc(db, 'standings', team.id);
+        const standingData: Partial<Standing> = {
+            teamName: team.name,
+            teamLogoUrl: team.logoUrl,
+            group: team.group,
             played: 0,
             wins: 0,
             draws: 0,
@@ -294,8 +325,10 @@ export const resetAllStandings = async (): Promise<void> => {
             points: 0,
             goalsFor: 0,
             goalsAgainst: 0,
-        });
-    });
+        };
+        batch.set(standingRef, standingData, { merge: true });
+    }
+    
     await batch.commit();
 };
 

@@ -1,9 +1,10 @@
 
+
 'use server';
 
 import { db } from './firebase';
 import { collection, getDocs, doc, writeBatch, Timestamp, query, deleteDoc, getDoc } from 'firebase/firestore';
-import type { GeneratedMatch } from './types';
+import type { GeneratedMatch, Match, Team } from './types';
 
 
 const SCHEDULE_COLLECTION = 'schedules';
@@ -38,11 +39,11 @@ const convertTimestampsToDates = (matches: any[]): GeneratedMatch[] => {
     });
 };
 
-export const saveSchedule = async (matches: GeneratedMatch[], finals: GeneratedMatch[]) => {
+export const saveSchedule = async (matches: Match[], finals: Match[]) => {
     const docRef = doc(db, SCHEDULE_COLLECTION, CURRENT_SCHEDULE_DOC_ID);
     const dataToSave = {
-        matches: convertDatesToTimestamps(matches),
-        finals: convertDatesToTimestamps(finals),
+        matches: convertDatesToTimestamps(matches as unknown as GeneratedMatch[]),
+        finals: convertDatesToTimestamps(finals as unknown as GeneratedMatch[]),
         createdAt: Timestamp.now(),
     };
     await writeBatch(db).set(docRef, dataToSave).commit();

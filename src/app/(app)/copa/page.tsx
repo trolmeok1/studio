@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getTeamsByCategory, Team, Category, getTeams } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getTeams, getCopa, saveCopa } from '@/lib/mock-data';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -279,9 +280,16 @@ export default function CopaPage() {
     const [isCopaSettingsDialogOpen, setIsCopaSettingsDialogOpen] = useState(false);
     const [isDrawCopaDialogOpen, setIsDrawCopaDialogOpen] = useState(false);
 
+    const loadCopaData = useCallback(async () => {
+        const { teams: savedTeams, matches: savedMatches } = await getCopa();
+        setCopaTeams(savedTeams);
+        setCopaMatches(savedMatches);
+    }, []);
+
     useEffect(() => {
         getTeams().then(setAllTeams);
-    }, []);
+        loadCopaData();
+    }, [loadCopaData]);
 
     // Redirect guests if the cup is not public
     useEffect(() => {
@@ -294,7 +302,7 @@ export default function CopaPage() {
         return allTeams.find(t => t.id === teamId)?.name || teamId;
     }, [allTeams]);
 
-    const scheduleCopaMatches = (settings: any) => {
+    const scheduleCopaMatches = async (settings: any) => {
         // Dummy scheduling logic, replace with actual logic
         const scheduled = copaMatches.filter(m => !m.date).map((match, index) => {
             const date = addDays(new Date(settings.startDate), Math.floor(index / settings.gameTimes.length));
@@ -309,33 +317,33 @@ export default function CopaPage() {
             }
         });
         
-        setCopaMatches(prev => {
-            const updated = [...prev];
-            scheduled.forEach(sMatch => {
-                const index = updated.findIndex(uMatch => uMatch.home === sMatch.home && uMatch.away === sMatch.away && uMatch.leg === sMatch.leg);
-                if (index !== -1) {
-                    updated[index] = sMatch;
-                }
-            });
-            return updated;
+        const updatedMatches = [...copaMatches];
+        scheduled.forEach(sMatch => {
+            const index = updatedMatches.findIndex(uMatch => uMatch.home === sMatch.home && uMatch.away === sMatch.away && uMatch.leg === sMatch.leg);
+            if (index !== -1) {
+                updatedMatches[index] = sMatch;
+            }
         });
+        setCopaMatches(updatedMatches);
+        await saveCopa(copaTeams, updatedMatches);
 
         setIsDrawCopaDialogOpen(false);
         toast({ title: "Partidos de Copa Programados", description: "El calendario de la copa ha sido generado." });
     }
 
-    const handleCopaSettings = ({ teams }: { teams: Team[] }) => {
+    const handleCopaSettings = async ({ teams }: { teams: Team[] }) => {
         setCopaTeams(teams);
         let shuffledTeams = [...teams].sort(() => 0.5 - Math.random());
 
         let matches: GeneratedMatch[] = [];
         for (let i = 0; i < shuffledTeams.length; i += 2) {
             if (shuffledTeams[i + 1]) {
-                matches.push({ home: shuffledTeams[i].id, away: shuffledTeams[i + 1].id, category: 'Copa', leg: 'Ida', round: 1 });
-                matches.push({ home: shuffledTeams[i + 1].id, away: shuffledTeams[i].id, category: 'Copa', leg: 'Vuelta', round: 1 });
+                matches.push({ home: shuffledTeams[i].id, away: shuffledTeams[i + 1].id, category: 'Copa', leg: 'Ida', round: 1 } as unknown as GeneratedMatch);
+                matches.push({ home: shuffledTeams[i + 1].id, away: shuffledTeams[i].id, category: 'Copa', leg: 'Vuelta', round: 1 } as unknown as GeneratedMatch);
             }
         }
         setCopaMatches(matches);
+        await saveCopa(teams, matches);
         setIsCopaSettingsDialogOpen(false);
     }
     

@@ -3,7 +3,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData, resetAllStandings, clearAllSanctions } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData, resetAllStandings, clearAllSanctions, deleteCopa } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -679,7 +679,8 @@ export default function SchedulePage() {
     // 3. Clear all sanctions
     await clearAllSanctions();
 
-    // 4. TODO: Clear Copa teams (if stored separately)
+    // 4. Clear Copa teams
+    await deleteCopa();
 
     // 5. Update local state
     setGeneratedMatches([]);
