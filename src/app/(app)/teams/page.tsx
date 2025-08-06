@@ -11,6 +11,7 @@ import { Search, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
 import { AddTeam } from './_components/AddTeam';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const TeamCard = ({ team }: { team: Team }) => (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -37,6 +38,7 @@ const TeamCard = ({ team }: { team: Team }) => (
 );
 
 export default function TeamsPage() {
+    const { user } = useAuth();
     const [teams, setTeams] = useState<Team[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<Category | undefined>(undefined);

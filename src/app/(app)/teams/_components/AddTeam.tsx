@@ -21,14 +21,18 @@ import type { Category, Team } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { addTeam } from '@/lib/mock-data';
+import { useAuth } from '@/hooks/useAuth';
 
 export function AddTeam({ onTeamAdded }: { onTeamAdded: (newTeam: Team) => void }) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const canAddTeam = user.permissions.teams.edit;
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,7 +97,7 @@ export function AddTeam({ onTeamAdded }: { onTeamAdded: (newTeam: Team) => void 
         setIsOpen(open);
     }}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={!canAddTeam}>
           <PlusCircle className="mr-2" />
           Agregar Equipo
         </Button>

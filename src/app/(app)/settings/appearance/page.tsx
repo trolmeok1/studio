@@ -11,12 +11,14 @@ import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { storage } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { useAuth } from '@/hooks/useAuth';
 
 
 type AssetType = 'league-logo' | 'city-logo' | 'card-background-image' | 'standard-flyer-bg' | 'semifinal-flyer-bg' | 'final-flyer-bg' | 'schedule-report-bg';
 
 export default function AppearancePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   const [assetPreviews, setAssetPreviews] = useState<Record<AssetType, string | null>>({
@@ -211,7 +213,7 @@ export default function AppearancePage() {
 
 
            <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={isLoading}>
+                <Button onClick={handleSave} disabled={isLoading || user.role === 'guest'}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Guardar Cambios
                 </Button>

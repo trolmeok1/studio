@@ -387,5 +387,3 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
-
-    
