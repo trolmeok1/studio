@@ -488,8 +488,6 @@ export const setMatchAsFinished = async (matchId: string) => {
             throw "El documento del partido no existe.";
         }
         const match = matchDoc.data() as Match;
-        
-        transaction.update(matchRef, { status: 'finished' });
 
         const homeTeamId = match.teams.home.id;
         const awayTeamId = match.teams.away.id;
@@ -514,40 +512,41 @@ export const setMatchAsFinished = async (matchId: string) => {
         let homeResult: 'W' | 'D' | 'L';
         let awayResult: 'W' | 'D' | 'L';
         
-        const newHomeStandings: Standing = { ...homeStandings };
-        const newAwayStandings: Standing = { ...awayStandings };
+        const newHomeStandings: Standing = JSON.parse(JSON.stringify(homeStandings));
+        const newAwayStandings: Standing = JSON.parse(JSON.stringify(awayStandings));
 
         if (homeScore > awayScore) {
-            newHomeStandings.wins = (homeStandings.wins || 0) + 1;
-            newHomeStandings.points = (homeStandings.points || 0) + 3;
-            newAwayStandings.losses = (awayStandings.losses || 0) + 1;
+            newHomeStandings.wins = (newHomeStandings.wins || 0) + 1;
+            newHomeStandings.points = (newHomeStandings.points || 0) + 3;
+            newAwayStandings.losses = (newAwayStandings.losses || 0) + 1;
             homeResult = 'W';
             awayResult = 'L';
         } else if (homeScore < awayScore) {
-            newAwayStandings.wins = (awayStandings.wins || 0) + 1;
-            newAwayStandings.points = (awayStandings.points || 0) + 3;
-            newHomeStandings.losses = (homeStandings.losses || 0) + 1;
+            newAwayStandings.wins = (newAwayStandings.wins || 0) + 1;
+            newAwayStandings.points = (newAwayStandings.points || 0) + 3;
+            newHomeStandings.losses = (newHomeStandings.losses || 0) + 1;
             homeResult = 'L';
             awayResult = 'W';
         } else {
-            newHomeStandings.draws = (homeStandings.draws || 0) + 1;
-            newAwayStandings.draws = (awayStandings.draws || 0) + 1;
-            newHomeStandings.points = (homeStandings.points || 0) + 1;
-            newAwayStandings.points = (awayStandings.points || 0) + 1;
+            newHomeStandings.draws = (newHomeStandings.draws || 0) + 1;
+            newAwayStandings.draws = (newAwayStandings.draws || 0) + 1;
+            newHomeStandings.points = (newHomeStandings.points || 0) + 1;
+            newAwayStandings.points = (newAwayStandings.points || 0) + 1;
             homeResult = 'D';
             awayResult = 'D';
         }
 
-        newHomeStandings.played = (homeStandings.played || 0) + 1;
-        newHomeStandings.goalsFor = (homeStandings.goalsFor || 0) + homeScore;
-        newHomeStandings.goalsAgainst = (homeStandings.goalsAgainst || 0) + awayScore;
-        newHomeStandings.form = ((homeStandings.form || '') + homeResult).slice(-5);
+        newHomeStandings.played = (newHomeStandings.played || 0) + 1;
+        newHomeStandings.goalsFor = (newHomeStandings.goalsFor || 0) + homeScore;
+        newHomeStandings.goalsAgainst = (newHomeStandings.goalsAgainst || 0) + awayScore;
+        newHomeStandings.form = ((newHomeStandings.form || '') + homeResult).slice(-5);
         
-        newAwayStandings.played = (awayStandings.played || 0) + 1;
-        newAwayStandings.goalsFor = (awayStandings.goalsFor || 0) + awayScore;
-        newAwayStandings.goalsAgainst = (awayStandings.goalsAgainst || 0) + homeScore;
-        newAwayStandings.form = ((awayStandings.form || '') + awayResult).slice(-5);
+        newAwayStandings.played = (newAwayStandings.played || 0) + 1;
+        newAwayStandings.goalsFor = (newAwayStandings.goalsFor || 0) + awayScore;
+        newAwayStandings.goalsAgainst = (newAwayStandings.goalsAgainst || 0) + homeScore;
+        newAwayStandings.form = ((newAwayStandings.form || '') + awayResult).slice(-5);
 
+        transaction.update(matchRef, { status: 'finished' });
         transaction.set(homeStandingsRef, newHomeStandings);
         transaction.set(awayStandingsRef, newAwayStandings);
     });
