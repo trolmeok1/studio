@@ -123,7 +123,7 @@ const AddPlayerDialog = ({ team, onPlayerAdded }: { team: Team, onPlayerAdded: (
                         <Label>Foto del Jugador</Label>
                         <div className="flex items-center gap-4">
                             <Avatar className="w-24 h-24">
-                                <AvatarImage src={photoPreview || ''} alt="Vista previa del jugador" />
+                                {photoPreview && <AvatarImage src={photoPreview} alt="Vista previa del jugador" />}
                                 <AvatarFallback className="text-4xl"><UserIcon /></AvatarFallback>
                             </Avatar>
                             <Input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} />
@@ -205,7 +205,7 @@ const PlayerCard = ({ player }: { player: Player }) => (
 );
 
 const RosterTab = ({ players }: { players: Player[] }) => {
-    const [viewMode, setViewMode] = useState<ViewMode>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     return (
         <Card>
