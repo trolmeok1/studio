@@ -432,12 +432,17 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    // State is now managed entirely inside the dialog
     const [teamData, setTeamData] = useState<Team>(team);
     const [logoPreview, setLogoPreview] = useState<string | null>(team.logoUrl);
 
+    // This effect updates the dialog's internal state only when it opens.
+    // This prevents re-renders from the parent from wiping out user input.
     useEffect(() => {
-        setTeamData(team);
-        setLogoPreview(team.logoUrl);
+        if (isOpen) {
+            setTeamData(team);
+            setLogoPreview(team.logoUrl);
+        }
     }, [team, isOpen]);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -458,7 +463,7 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
         if (subField) {
             setTeamData(prev => ({
                 ...prev,
-                [field]: { ...(prev as any)[field], [subField]: value }
+                [field]: { ...((prev as any)[field] || {}), [subField]: value }
             }));
         } else {
             setTeamData(prev => ({ ...prev, [field]: value }));
@@ -614,7 +619,7 @@ export function TeamDetailsClient({
             <p className="text-muted-foreground">{team.president?.name || 'Presidente no asignado'}</p>
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap">
           <Button variant="outline" asChild>
             <Link href={`/teams/${team.id}/roster`}>
                 <Printer className="mr-2 h-4 w-4" /> Nómina
