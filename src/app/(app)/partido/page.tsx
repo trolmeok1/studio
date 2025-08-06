@@ -9,7 +9,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Goal, User, Home, Calendar as CalendarIcon, Shield } from 'lucide-react';
+import { Goal, User, Home, Calendar as CalendarIcon, Shield, TrendingUp, TrendingDown, Minus, Check, X } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,7 +20,29 @@ import {
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MatchResults } from './_components/MatchResults';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+
+const PerformanceIndicator = ({ form }: { form: string }) => (
+    <div className="flex items-center justify-center gap-1">
+        {form.split('').map((result, index) => {
+            let Icon = Minus;
+            let color = 'text-gray-500 bg-gray-200';
+            if (result === 'W') {
+                Icon = Check;
+                color = 'text-green-600 bg-green-100';
+            } else if (result === 'L') {
+                Icon = X;
+                color = 'text-red-600 bg-red-100';
+            }
+            return (
+                <div key={index} className={cn("h-5 w-5 flex items-center justify-center rounded-full", color)}>
+                    <Icon className="h-3 w-3" />
+                </div>
+            );
+        })}
+    </div>
+);
+
 
 const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B' }) => {
     const [standings, setStandings] = useState<Standing[]>([]);
@@ -71,13 +93,13 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                             <TableHead className="w-[50px] text-center text-muted-foreground">POS</TableHead>
                             <TableHead className="text-muted-foreground">EQUIPO</TableHead>
                             <TableHead className="text-center text-muted-foreground">PTS</TableHead>
-                            <TableHead className="text-center text-muted-foreground">PJ</TableHead>
                             <TableHead className="text-center text-muted-foreground">G</TableHead>
                             <TableHead className="text-center text-muted-foreground">E</TableHead>
                             <TableHead className="text-center text-muted-foreground">P</TableHead>
                             <TableHead className="text-center text-muted-foreground">GF</TableHead>
                             <TableHead className="text-center text-muted-foreground">GC</TableHead>
                             <TableHead className="text-center text-muted-foreground">DG</TableHead>
+                            <TableHead className="text-center text-muted-foreground">Últimos 5</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -102,13 +124,15 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                                     </Link>
                                 </TableCell>
                                 <TableCell className="text-center font-bold text-lg">{s.points}</TableCell>
-                                <TableCell className="text-center">{s.played}</TableCell>
                                 <TableCell className="text-center">{s.wins}</TableCell>
                                 <TableCell className="text-center">{s.draws}</TableCell>
                                 <TableCell className="text-center">{s.losses}</TableCell>
                                 <TableCell className="text-center">{s.goalsFor}</TableCell>
                                 <TableCell className="text-center">{s.goalsAgainst}</TableCell>
                                 <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
+                                <TableCell className="text-center">
+                                    {s.form && <PerformanceIndicator form={s.form} />}
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

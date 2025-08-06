@@ -3,7 +3,7 @@
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
 import { db, storage, auth } from './firebase';
-import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch, setDoc, runTransaction, Timestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import type { CarouselImage } from '@/app/(app)/dashboard/page';
@@ -376,6 +376,7 @@ export const resetAllStandings = async (): Promise<void> => {
             points: 0,
             goalsFor: 0,
             goalsAgainst: 0,
+            form: '',
         };
         batch.set(standingRef, standingData, { merge: true });
     }
@@ -468,14 +469,88 @@ export const getMatchById = async (id: string): Promise<Match | undefined> => {
 
 export const updateMatchData = async (matchId: string, updatedData: Partial<Match>) => {
     const matchRef = doc(db, 'matches', matchId);
+    if(updatedData.date && !updatedData.originalDate) {
+        const currentMatch = await getMatchById(matchId);
+        if(currentMatch?.date) {
+            updatedData.originalDate = currentMatch.date;
+        }
+    }
     await updateDoc(matchRef, updatedData);
     await addSystemLog('update', 'match', `Actualizó los datos del partido con ID: ${matchId}.`);
 };
 
 export const setMatchAsFinished = async (matchId: string) => {
     const matchRef = doc(db, 'matches', matchId);
-    await updateDoc(matchRef, { status: 'finished' });
-    await addSystemLog('update', 'match', `Finalizó el partido con ID: ${matchId}.`);
+    
+    await runTransaction(db, async (transaction) => {
+        const matchDoc = await transaction.get(matchRef);
+        if (!matchDoc.exists()) {
+            throw "El documento del partido no existe.";
+        }
+        const match = matchDoc.data() as Match;
+        
+        // Update match status
+        transaction.update(matchRef, { status: 'finished' });
+
+        const homeTeamId = match.teams.home.id;
+        const awayTeamId = match.teams.away.id;
+        const homeScore = match.score?.home ?? 0;
+        const awayScore = match.score?.away ?? 0;
+
+        const homeStandingsRef = doc(db, 'standings', homeTeamId);
+        const awayStandingsRef = doc(db, 'standings', awayTeamId);
+        
+        const [homeStandingsDoc, awayStandingsDoc] = await Promise.all([
+            transaction.get(homeStandingsRef),
+            transaction.get(awayStandingsRef)
+        ]);
+
+        if (!homeStandingsDoc.exists() || !awayStandingsDoc.exists()) {
+            throw "Uno o ambos documentos de la tabla de posiciones no existen.";
+        }
+
+        const homeStandings = homeStandingsDoc.data() as Standing;
+        const awayStandings = awayStandingsDoc.data() as Standing;
+        
+        let homeResult: 'W' | 'D' | 'L';
+        let awayResult: 'W' | 'D' | 'L';
+        
+        if (homeScore > awayScore) {
+            homeStandings.wins = (homeStandings.wins || 0) + 1;
+            homeStandings.points = (homeStandings.points || 0) + 3;
+            awayStandings.losses = (awayStandings.losses || 0) + 1;
+            homeResult = 'W';
+            awayResult = 'L';
+        } else if (homeScore < awayScore) {
+            awayStandings.wins = (awayStandings.wins || 0) + 1;
+            awayStandings.points = (awayStandings.points || 0) + 3;
+            homeStandings.losses = (homeStandings.losses || 0) + 1;
+            homeResult = 'L';
+            awayResult = 'W';
+        } else {
+            homeStandings.draws = (homeStandings.draws || 0) + 1;
+            awayStandings.draws = (awayStandings.draws || 0) + 1;
+            homeStandings.points = (homeStandings.points || 0) + 1;
+            awayStandings.points = (awayStandings.points || 0) + 1;
+            homeResult = 'D';
+            awayResult = 'D';
+        }
+
+        homeStandings.played = (homeStandings.played || 0) + 1;
+        homeStandings.goalsFor = (homeStandings.goalsFor || 0) + homeScore;
+        homeStandings.goalsAgainst = (homeStandings.goalsAgainst || 0) + awayScore;
+        homeStandings.form = ((homeStandings.form || '') + homeResult).slice(-5);
+        
+        awayStandings.played = (awayStandings.played || 0) + 1;
+        awayStandings.goalsFor = (awayStandings.goalsFor || 0) + awayScore;
+        awayStandings.goalsAgainst = (awayStandings.goalsAgainst || 0) + homeScore;
+        awayStandings.form = ((awayStandings.form || '') + awayResult).slice(-5);
+
+        transaction.set(homeStandingsRef, homeStandings);
+        transaction.set(awayStandingsRef, awayStandings);
+    });
+
+    await addSystemLog('update', 'match', `Finalizó el partido con ID: ${matchId} y actualizó la tabla de posiciones.`);
 };
 
 

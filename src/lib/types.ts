@@ -103,6 +103,7 @@ export interface Match {
     field?: number;
     vocalTeam?: Team;
     physicalSheetUrl?: string;
+    originalDate?: string;
 }
 
 export interface GeneratedMatch {
@@ -156,6 +157,7 @@ export interface Standing {
   points: number;
   goalsFor: number;
   goalsAgainst: number;
+  form?: string; // e.g., 'WWLDW'
 }
 
 export interface Sanction {
