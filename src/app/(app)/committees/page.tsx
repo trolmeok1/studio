@@ -640,7 +640,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
 
                     <Label className="font-bold text-base">TOTAL VOCALÍA:</Label>
-                    <p className="font-bold text-base text-right pr-2">${details.total.toFixed(2)}</p>
+                    <p className="font-bold text-base text-right pr-2">${(details.total || 0).toFixed(2)}</p>
                 </div>
             </div>
         )
