@@ -472,51 +472,51 @@ const FinalsView = ({ finals, getTeam }: { finals: Match[], getTeam: (id: string
     );
 };
 
-const ResetDialog = ({
-  step,
-  onStepChange,
-  onConfirm,
-}: {
-  step: number;
-  onStepChange: (step: number) => void;
-  onConfirm: () => void;
-}) => {
-  if (step === 0) return null;
+const FinalizeStep1Dialog = ({ open, onOpenChange, onConfirm }: { open: boolean; onOpenChange: (open: boolean) => void; onConfirm: () => void }) => {
+    return (
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro de finalizar el torneo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada y no se puede deshacer.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onConfirm}>
+                        Sí, entiendo los riesgos
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+};
 
-  const content = [
-    {
-      title: '¿Estás seguro de finalizar el torneo?',
-      description: 'Esta acción reiniciará todo el estado del torneo, incluyendo calendarios y equipos de copa. Es ideal para empezar una nueva temporada y no se puede deshacer.',
-      confirmText: 'Sí, entiendo los riesgos',
-    },
-    {
-      title: 'ÚLTIMA ADVERTENCIA',
-      description: 'Al hacer clic en "FINALIZAR TORNEO", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.',
-      confirmText: 'FINALIZAR TORNEO',
-    },
-  ];
-
-  const currentContent = content[step - 1];
-
-  return (
-    <AlertDialog open={step > 0} onOpenChange={(open) => !open && onStepChange(0)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{currentContent.title}</AlertDialogTitle>
-          <AlertDialogDescription>{currentContent.description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => onStepChange(0)}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            className={cn(step === 2 && buttonVariants({ variant: 'destructive' }))}
-            onClick={() => (step < 2 ? onStepChange(step + 1) : onConfirm())}
-          >
-            {currentContent.confirmText}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+const FinalizeStep2Dialog = ({ open, onOpenChange, onConfirm, isFinalizing }: { open: boolean; onOpenChange: (open: boolean) => void; onConfirm: () => void; isFinalizing: boolean }) => {
+    return (
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>ÚLTIMA ADVERTENCIA</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Al hacer clic en "FINALIZAR TORNEO", los datos se eliminarán para siempre. Esta es tu última oportunidad para cancelar.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className={cn(buttonVariants({ variant: 'destructive' }))}
+                        onClick={onConfirm}
+                        disabled={isFinalizing}
+                    >
+                         {isFinalizing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isFinalizing ? 'Finalizando...' : 'FINALIZAR TORNEO'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
 };
 
 
@@ -528,7 +528,8 @@ export default function SchedulePage() {
   const [isDrawFinalsDialogOpen, setIsDrawFinalsDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
+  const [isFinalizeStep1Open, setIsFinalizeStep1Open] = useState(false);
+  const [isFinalizeStep2Open, setIsFinalizeStep2Open] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const [finalMatches, setFinalMatches] = useState<Match[]>([]);
@@ -680,17 +681,19 @@ export default function SchedulePage() {
             description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.',
         });
         
+        setGeneratedMatches([]);
+        setFinalMatches([]);
         await loadData();
 
     } catch (error) {
-        console.error("Failed to finalize tournament:", error);
+        console.error("Error al finalizar el torneo:", error);
         toast({
             title: 'Error al Finalizar Torneo',
             description: 'No se pudo reiniciar la temporada. Revisa la consola para más detalles.',
             variant: 'destructive',
         });
     } finally {
-        setFinalizeAlertStep(0);
+        setIsFinalizeStep2Open(false);
         setIsFinalizing(false);
     }
   };
@@ -801,7 +804,7 @@ export default function SchedulePage() {
                             <CalendarPlus className="mr-2" />
                             Reagendar Partido
                         </Button>
-                        <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)} disabled={isFinalizing}>
+                        <Button variant="destructive" onClick={() => setIsFinalizeStep1Open(true)} disabled={isFinalizing}>
                             {isFinalizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2" />}
                             {isFinalizing ? 'Finalizando...' : 'Finalizar Torneo'}
                         </Button>
@@ -914,7 +917,20 @@ export default function SchedulePage() {
             </AlertDialogContent>
         </AlertDialog>
         
-        <ResetDialog step={finalizeAlertStep} onStepChange={setFinalizeAlertStep} onConfirm={handleFinalizeTournament} />
+        <FinalizeStep1Dialog 
+            open={isFinalizeStep1Open}
+            onOpenChange={setIsFinalizeStep1Open}
+            onConfirm={() => {
+                setIsFinalizeStep1Open(false);
+                setIsFinalizeStep2Open(true);
+            }}
+        />
+        <FinalizeStep2Dialog
+            open={isFinalizeStep2Open}
+            onOpenChange={setIsFinalizeStep2Open}
+            onConfirm={handleFinalizeTournament}
+            isFinalizing={isFinalizing}
+        />
 
     </div>
   );
