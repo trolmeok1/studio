@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2, Edit } from 'lucide-react';
+import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -18,12 +18,14 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addPlayer, updateTeam } from '@/lib/mock-data';
+import { addPlayer, updateTeam, deleteTeam } from '@/lib/mock-data';
 import type { PlayerPosition, Person } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 
 const AddPlayerDialog = ({ team, onPlayerAdded }: { team: Team, onPlayerAdded: (newPlayer: Player) => void }) => {
@@ -428,8 +430,9 @@ const PerformanceChart = ({ teamId, matches }: { teamId: string, matches: Match[
     )
 }
 
-const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (updatedTeam: Team) => void }) => {
+const EditTeamDialog = ({ team, onTeamUpdated, onTeamDeleted }: { team: Team, onTeamUpdated: (updatedTeam: Team) => void, onTeamDeleted: (teamId: string) => void }) => {
     const { toast } = useToast();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [teamData, setTeamData] = useState<Team>(team);
@@ -437,7 +440,6 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
 
     useEffect(() => {
         if (isOpen) {
-            // Deep copy to prevent mutations of the parent state
             setTeamData(JSON.parse(JSON.stringify(team)));
             setLogoPreview(team.logoUrl);
         }
@@ -467,6 +469,10 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
             setTeamData(prev => ({ ...prev, [field]: value }));
         }
     };
+    
+    const handleCategoryChange = (value: Category) => {
+        setTeamData(prev => ({ ...prev, category: value }));
+    };
 
     const handleDelegateChange = (index: number, field: 'name' | 'phone', value: string) => {
         setTeamData(prev => {
@@ -494,6 +500,29 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
             toast({
                 title: 'Error al actualizar',
                 description: 'No se pudo guardar la información del equipo.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleDelete = async () => {
+        setIsLoading(true);
+        try {
+            await deleteTeam(team.id);
+            toast({
+                title: 'Equipo Eliminado',
+                description: `El equipo "${team.name}" y todos sus jugadores han sido eliminados.`,
+            });
+            onTeamDeleted(team.id);
+            setIsOpen(false);
+            router.push('/teams');
+        } catch (error) {
+            console.error("Failed to delete team:", error);
+            toast({
+                title: 'Error al eliminar',
+                description: 'No se pudo eliminar el equipo.',
                 variant: 'destructive',
             });
         } finally {
@@ -536,6 +565,20 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
                         <Label htmlFor="name">Nombre del Equipo</Label>
                         <Input id="name" value={teamData.name} onChange={handleChange} className="col-span-2" />
                     </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                         <Label htmlFor="category">Categoría</Label>
+                         <div className="col-span-2">
+                            <Select value={teamData.category} onValueChange={handleCategoryChange}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Máxima">Máxima</SelectItem>
+                                    <SelectItem value="Primera">Primera</SelectItem>
+                                    <SelectItem value="Segunda">Segunda</SelectItem>
+                                </SelectContent>
+                            </Select>
+                         </div>
+                    </div>
+                    
                     <DirectiveInput id="president" label="Presidente/a" person={teamData.president} />
                     <DirectiveInput id="vicePresident" label="Vicepresidente/a" person={teamData.vicePresident} />
                     <DirectiveInput id="secretary" label="Secretario/a" person={teamData.secretary} />
@@ -556,12 +599,35 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
                     </div>
 
                 </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                    <Button onClick={handleSave} disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Cambios
-                    </Button>
+                <DialogFooter className="justify-between">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isLoading}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar Equipo
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. Esto eliminará permanentemente el equipo
+                                    y todos sus jugadores asociados.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <div className="flex gap-2">
+                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                        <Button onClick={handleSave} disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar Cambios
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -575,7 +641,8 @@ export function TeamDetailsClient({
   matches,
   teamStandings,
   teamSanctions,
-  vocalPayments
+  vocalPayments,
+  onTeamDeleted
 }: {
   team: Team;
   players: Player[];
@@ -583,6 +650,7 @@ export function TeamDetailsClient({
   teamStandings?: Standing;
   teamSanctions: Sanction[];
   vocalPayments: any[];
+  onTeamDeleted: (teamId: string) => void;
 }) {
 
   const { user } = useAuth();
@@ -630,7 +698,7 @@ export function TeamDetailsClient({
           </Button>
           {user.permissions.teams.edit && (
             <>
-              <EditTeamDialog team={team} onTeamUpdated={handleTeamUpdated} />
+              <EditTeamDialog team={team} onTeamUpdated={handleTeamUpdated} onTeamDeleted={onTeamDeleted} />
               <AddPlayerDialog team={team} onPlayerAdded={handlePlayerAdded} />
             </>
           )}

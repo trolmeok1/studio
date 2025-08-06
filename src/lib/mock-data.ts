@@ -157,6 +157,27 @@ export const updateTeam = async (teamId: string, teamData: Partial<Team>, logoDa
     return { id: updatedDoc.id, ...updatedDoc.data() } as Team;
 };
 
+export const deleteTeam = async (teamId: string): Promise<void> => {
+    if (!teamId) throw new Error("Team ID is required for deletion.");
+    const batch = writeBatch(db);
+
+    // Delete the team itself
+    const teamRef = doc(db, 'teams', teamId);
+    batch.delete(teamRef);
+
+    // Find and delete all players associated with the team
+    const playersRef = collection(db, 'players');
+    const q = query(playersRef, where("teamId", "==", teamId));
+    const playersSnapshot = await getDocs(q);
+    playersSnapshot.forEach(playerDoc => {
+        batch.delete(playerDoc.ref);
+    });
+
+    // Commit the batch delete
+    await batch.commit();
+};
+
+
 export const getTeamById = async (id: string): Promise<Team | undefined> => {
     if (!id) return undefined;
     const teamRef = doc(db, 'teams', id);
