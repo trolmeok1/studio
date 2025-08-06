@@ -68,7 +68,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (firebaseUser && firebaseUser.email) {
                 let appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email!.toLowerCase());
                 
-                // If user exists in Firebase Auth but not in our Firestore DB
                 if (!appUser && firebaseUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
                     console.log("Admin user not found in Firestore DB, creating now...");
                     const adminUserPayload: Omit<User, 'id'> = {
@@ -87,7 +86,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         avatarUrl: 'https://placehold.co/100x100.png'
                     };
                     appUser = await addUser(adminUserPayload);
-                    // Refresh users list
                     allUsers = await getUsers();
                     setUsersState(allUsers);
                 }
@@ -95,8 +93,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (appUser) {
                     setCurrentUser(appUser);
                 } else {
-                    // This is not the admin, and they don't have a profile in our db.
-                    // Log them out of Firebase Auth and treat them as a guest.
                     await signOut(auth);
                     setCurrentUser(defaultGuestUser);
                 }
@@ -117,7 +113,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         return true;
-    } catch (error) {
+    } catch (error: any) {
+        // If the admin user does not exist in Firebase Auth, create it.
+        if (error.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+            try {
+                console.log("Admin user not found in Firebase Auth, creating now...");
+                await createUserWithEmailAndPassword(auth, email, password);
+                // After creating, signIn again. The onAuthStateChanged listener will handle the rest.
+                await signInWithEmailAndPassword(auth, email, password);
+                return true;
+            } catch (creationError) {
+                console.error("Firebase admin creation error:", creationError);
+                return false;
+            }
+        }
         console.error("Firebase login error:", error);
         return false;
     }
