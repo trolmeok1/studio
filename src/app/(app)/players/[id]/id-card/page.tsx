@@ -1,26 +1,43 @@
+
+'use client';
+
 import { getPlayerById, getTeamById } from '@/lib/mock-data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Download, Trophy } from 'lucide-react';
-import { headers } from 'next/headers';
 import { Card } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
 
-export default function DigitalIdCardPage({ params }: { params: { id: string } }) {
-  const player = getPlayerById(params.id);
+export default function DigitalIdCardPage() {
+  const params = useParams();
+  const playerId = typeof params.id === 'string' ? params.id : '';
+  const [player, setPlayer] = useState<Awaited<ReturnType<typeof getPlayerById>>>(null);
+  const [team, setTeam] = useState<Awaited<ReturnType<typeof getTeamById>>>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
 
-  if (!player) {
-    notFound();
+  useEffect(() => {
+    if (playerId) {
+      getPlayerById(playerId).then(p => {
+        if (!p) {
+          notFound();
+        } else {
+          setPlayer(p);
+          getTeamById(p.teamId).then(setTeam);
+          
+          const host = window.location.host;
+          const protocol = window.location.protocol;
+          const profileUrl = `${protocol}//${host}/players/${p.id}`;
+          setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(profileUrl)}`);
+        }
+      });
+    }
+  }, [playerId]);
+
+  if (!player || !team) {
+    // You can return a loading state here
+    return <div className="min-h-screen bg-muted/30 flex items-center justify-center"><p>Cargando carnet...</p></div>;
   }
-
-  const team = getTeamById(player.teamId);
-
-  const host = headers().get('host') || 'localhost:3000';
-  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-  const profileUrl = `${protocol}://${host}/players/${player.id}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-    profileUrl
-  )}`;
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
@@ -32,7 +49,7 @@ export default function DigitalIdCardPage({ params }: { params: { id: string } }
           </div>
           <div className="flex items-center gap-4 pt-4">
             <Image
-              src={player.photoUrl}
+              src={player.photoUrl || 'https://placehold.co/128x128.png'}
               alt={`ID de ${player.name}`}
               width={128}
               height={128}
@@ -48,13 +65,15 @@ export default function DigitalIdCardPage({ params }: { params: { id: string } }
           </div>
           <div className="border-t border-accent/20 my-4"></div>
           <div className="flex items-center gap-4">
-             <Image
-              src={qrCodeUrl}
-              alt="Código QR del Perfil del Jugador"
-              width={100}
-              height={100}
-              className="rounded-lg bg-white p-1"
-            />
+            {qrCodeUrl && (
+              <Image
+                src={qrCodeUrl}
+                alt="Código QR del Perfil del Jugador"
+                width={100}
+                height={100}
+                className="rounded-lg bg-white p-1"
+              />
+            )}
             <div className="text-sm">
                 <p><strong className="text-accent">Categoría:</strong> {player.category}</p>
                 <p><strong className="text-accent">ID:</strong> P-{player.id}</p>
