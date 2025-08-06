@@ -106,6 +106,7 @@ export interface Match {
 }
 
 export interface GeneratedMatch {
+    id: string;
     home: string; // teamId
     away: string; // teamId
     category: Category;

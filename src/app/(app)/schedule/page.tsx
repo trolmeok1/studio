@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
+import { saveSchedule, getSchedule, deleteSchedule } from '@/lib/schedule';
 
 
 const CategoryMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
@@ -232,7 +232,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
 
     const handleConfirmReschedule = () => {
         if (!selectedMatchId || !newDate || !newTime) return;
-        const matchToReschedule = allMatches.find(m => `${m.home}-${m.away}-${m.leg}` === selectedMatchId);
+        const matchToReschedule = allMatches.find(m => m.id === selectedMatchId);
         if (matchToReschedule) {
             const [hours, minutes] = newTime.split(':').map(Number);
             const finalDate = setMinutes(setHours(startOfDay(newDate), hours), minutes);
@@ -257,7 +257,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
                             </SelectTrigger>
                             <SelectContent>
                                 {allMatches.map((match) => (
-                                    <SelectItem key={`${match.home}-${match.away}-${match.leg}`} value={`${match.home}-${match.away}-${match.leg}`}>
+                                    <SelectItem key={match.id} value={match.id}>
                                         {getTeamName(match.home)} vs {getTeamName(match.away)} ({match.leg})
                                     </SelectItem>
                                 ))}
@@ -364,8 +364,8 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupBy, allTeams }:
                     <div key={groupKey}>
                         <h3 className="text-lg font-semibold mb-2 text-muted-foreground">{groupKey}</h3>
                          <div className={`grid grid-cols-1 ${gridColsClass} gap-4`}>
-                            {matchesInGroup.map((match, index) => 
-                                <CardComponent key={`${match.home}-${match.away}-${index}`} match={match} getTeam={getTeam} />
+                            {matchesInGroup.map((match) => 
+                                <CardComponent key={match.id} match={match} getTeam={getTeam} />
                             )}
                         </div>
                     </div>
@@ -401,8 +401,8 @@ const RescheduledMatchesView = ({ matches, allTeams }: { matches: GeneratedMatch
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {rescheduledMatches.map((match, i) => (
-                                <TableRow key={`${match.home}-${match.away}-${i}`}>
+                            {rescheduledMatches.map((match) => (
+                                <TableRow key={match.id}>
                                     <TableCell className="font-medium">{getTeamName(match.home)} vs {getTeamName(match.away)}</TableCell>
                                     <TableCell>
                                         {match.originalDate ? format(match.originalDate, 'PPP, p', { locale: es }) : 'N/A'}
@@ -470,8 +470,8 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
                 <div>
                     <h3 className="text-2xl font-bold text-center mb-4">Semifinales - Segunda Categoría</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {semiFinals.map((match, i) => (
-                            <FinalsCard key={i} match={match} title={`Semifinal ${i+1}`} />
+                        {semiFinals.map((match) => (
+                            <FinalsCard key={match.id} match={match} title={`Semifinal ${semiFinals.indexOf(match) + 1}`} />
                         ))}
                     </div>
                 </div>
@@ -540,7 +540,6 @@ const ResetDialog = ({
 export default function SchedulePage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [isClient, setIsClient] = useState(false);
   const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
   const [isDrawLeagueDialogOpen, setIsDrawLeagueDialogOpen] = useState(false);
   const [isDrawFinalsDialogOpen, setIsDrawFinalsDialogOpen] = useState(false);
@@ -550,24 +549,28 @@ export default function SchedulePage() {
   const [activeTab, setActiveTab] = useState('general');
   const [finalMatches, setFinalMatches] = useState<GeneratedMatch[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => { 
-    setIsClient(true);
-    async function fetchTeams() {
-        setAllTeams(await getTeams());
+    async function loadData() {
+        setIsLoading(true);
+        const teams = await getTeams();
+        setAllTeams(teams);
+        const { matches, finals } = await getSchedule();
+        setGeneratedMatches(matches);
+        setFinalMatches(finals);
+        setIsLoading(false);
     }
-    fetchTeams();
+    loadData();
   }, []);
   
   const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
 
-
   const isTournamentGenerated = useMemo(() => generatedMatches.length > 0, [generatedMatches]);
   
   const rescheduledMatchesCount = useMemo(() => {
-    if (!isClient) return 0;
     return generatedMatches.filter(m => m.rescheduled).length;
-  }, [isClient, generatedMatches]);
+  }, [generatedMatches]);
 
   const areAllMatchesFinished = isTournamentGenerated; 
   
@@ -592,7 +595,7 @@ export default function SchedulePage() {
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    idaMatches.push({ home: team1.id, away: team2.id, category, group, leg: 'Ida', round: round + 1 });
+                    idaMatches.push({ id: `match-${round + 1}-${i}`, home: team1.id, away: team2.id, category, group, leg: 'Ida', round: round + 1 });
                 }
             }
             const lastTeam = currentTeams.pop();
@@ -600,7 +603,7 @@ export default function SchedulePage() {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        const vueltaMatches = idaMatches.map(m => ({...m, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta', round: m.round ? m.round + numRounds : undefined }));
+        const vueltaMatches = idaMatches.map((m, idx) => ({...m, id: `${m.id}-vuelta`, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta', round: m.round ? m.round + numRounds : undefined }));
         
         return [...idaMatches, ...vueltaMatches];
     };
@@ -673,6 +676,7 @@ export default function SchedulePage() {
 
                     scheduledMatches.push({
                        ...match,
+                       id: `${match.home}-${match.away}-${match.leg}`,
                        date: matchDateTime,
                        time: format(matchDateTime, 'HH:mm'),
                        field: fieldIndex + 1,
@@ -696,13 +700,14 @@ export default function SchedulePage() {
     }
 
     setGeneratedMatches(scheduledMatches);
+    await saveSchedule(scheduledMatches, []);
     setIsSuccessDialogOpen(true);
 };
 
   
-  const handleReschedule = (matchToUpdate: GeneratedMatch, newDate: Date, newTime: string) => {
-      const updateFn = (m: GeneratedMatch) => {
-         if (m.home === matchToUpdate.home && m.away === matchToUpdate.away && m.leg === matchToUpdate.leg) {
+  const handleReschedule = async (matchToUpdate: GeneratedMatch, newDate: Date, newTime: string) => {
+      const updatedMatches = generatedMatches.map(m => {
+         if (m.id === matchToUpdate.id) {
               return {
                   ...m,
                   originalDate: m.date,
@@ -712,17 +717,19 @@ export default function SchedulePage() {
               };
           }
           return m;
-      }
-      setGeneratedMatches(prev => prev.map(updateFn));
+      });
+      setGeneratedMatches(updatedMatches);
+      await saveSchedule(updatedMatches, finalMatches);
   };
 
   const handleDrawButtonClick = () => {
     setIsDrawLeagueDialogOpen(true);
   }
   
-  const handleFinalizeTournament = () => {
+  const handleFinalizeTournament = async () => {
     setGeneratedMatches([]);
     setFinalMatches([]);
+    await deleteSchedule();
     setFinalizeAlertStep(0);
     toast({ title: '¡Torneo Finalizado!', description: 'Todos los datos de la temporada han sido reiniciados.'});
   };
@@ -743,28 +750,29 @@ export default function SchedulePage() {
         
         const maximaTeams = getTopTeams('Máxima');
         if (maximaTeams.length === 2) {
-            finals.push({ home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
+            finals.push({ id: `final-maxima`, home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
         }
 
         const primeraTeams = getTopTeams('Primera');
         if (primeraTeams.length === 2) {
-            finals.push({ home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
+            finals.push({ id: `final-primera`, home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
         }
         
         const groupATeams = getTopTeams('Segunda', 'A');
         const groupBTeams = getTopTeams('Segunda', 'B');
         
         if (groupATeams.length >= 2 && groupBTeams.length >= 2) {
-            finals.push({ home: groupATeams[0].teamId, away: groupBTeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
-            finals.push({ home: groupBTeams[0].teamId, away: groupATeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
-            finals.push({ home: groupATeams[0].teamId, away: groupBTeams[0].teamId, category: 'Segunda', leg: 'Final' });
+            finals.push({ id: 'semifinal-1', home: groupATeams[0].teamId, away: groupBTeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
+            finals.push({ id: 'semifinal-2', home: groupBTeams[0].teamId, away: groupATeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
+            finals.push({ id: 'final-segunda', home: groupATeams[0].teamId, away: groupBTeams[0].teamId, category: 'Segunda', leg: 'Final' });
         }
         
         setFinalMatches(finals);
+        await saveSchedule(generatedMatches, finals);
         setIsDrawFinalsDialogOpen(true);
     };
 
-    const scheduleFinals = (settings: any) => {
+    const scheduleFinals = async (settings: any) => {
         let scheduledFinals: GeneratedMatch[] = [];
         let currentDate = startOfDay(settings.startDate);
         let matchesForCurrentDate = 0;
@@ -814,6 +822,7 @@ export default function SchedulePage() {
         }
 
         setFinalMatches(scheduledFinals);
+        await saveSchedule(generatedMatches, scheduledFinals);
         setActiveTab('finals');
         toast({ title: 'Fase Final Programada', description: 'Los partidos de las finales han sido agendados.' });
     }

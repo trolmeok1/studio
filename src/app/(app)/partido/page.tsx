@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -25,9 +26,10 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
     const [standings, setStandings] = useState<Standing[]>([]);
 
     useEffect(() => {
-        getStandings().then(allStandings => {
+        const fetchStandings = async () => {
+            const allStandings = await getStandings();
+            const teamsInCategory = await getTeamsByCategory(category, group);
             const filteredStandings = allStandings.filter(s => {
-                const teamsInCategory = getTeamsByCategory(category, group);
                 return teamsInCategory.some(t => t.id === s.teamId);
             })
             .sort((a, b) => {
@@ -38,7 +40,8 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
             })
             .map((s, index) => ({ ...s, rank: index + 1 }));
             setStandings(filteredStandings);
-        })
+        };
+        fetchStandings();
     }, [category, group]);
 
 
@@ -88,7 +91,7 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                                 <TableCell>
                                     <Link href={`/teams/${s.teamId}`} className="flex items-center gap-3 hover:text-primary">
                                         <Image
-                                            src={getTeamsByCategory(category, group).find(t => t.id === s.teamId)?.logoUrl || ''}
+                                            src={s.teamLogoUrl || 'https://placehold.co/100x100.png'}
                                             alt={s.teamName}
                                             width={24}
                                             height={24}

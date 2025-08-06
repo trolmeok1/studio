@@ -1,8 +1,10 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { getMatches, type Match, type Category } from '@/lib/mock-data';
+import type { Match, Category } from '@/lib/mock-data';
+import { getSchedule } from '@/lib/schedule';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MatchCard } from './MatchCard';
 
@@ -13,7 +15,7 @@ export function MatchResults() {
 
     useEffect(() => {
         setIsClient(true);
-        getMatches().then(setAllMatches);
+        getSchedule().then(schedule => setAllMatches(schedule.matches as unknown as Match[]));
     }, []);
 
     const groupedPastMatches = useMemo(() => {
