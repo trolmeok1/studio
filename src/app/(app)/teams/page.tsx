@@ -114,12 +114,12 @@ export default function TeamsPage() {
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Category)} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
-                             {categories.map(cat => (
+                             {categories.map((cat) => (
                                 <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
                              ))}
                         </TabsList>
 
-                        {categories.map(cat => (
+                        {categories.map((cat) => (
                              <TabsContent key={cat} value={cat}>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
                                     {loading ? (
