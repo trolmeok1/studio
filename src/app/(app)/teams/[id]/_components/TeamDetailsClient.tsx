@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2, Edit, Trash2, AlertTriangle, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -390,45 +390,29 @@ const FinanceTab = ({ vocalPayments }: { vocalPayments: any[] }) => (
     </Card>
 );
 
-const PerformanceChart = ({ teamId, matches }: { teamId: string, matches: Match[] }) => {
-    const lastFive = useMemo(() => matches
-        .filter(m => m.status === 'finished')
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 5)
-        .reverse(), [matches]);
-
-    return (
-        <div className="flex items-center justify-center gap-2">
-            {lastFive.map((match, index) => {
-                const isHome = match.teams.home.id === teamId;
-                const homeScore = match.score?.home ?? 0;
-                const awayScore = match.score?.away ?? 0;
-                const isWin = (isHome && homeScore > awayScore) || (!isHome && awayScore > homeScore);
-                const isDraw = homeScore === awayScore;
-                
-                let Icon = Minus;
-                let color = 'text-yellow-500';
-
-                if (isWin) {
-                    Icon = TrendingUp;
-                    color = 'text-green-500';
-                } else if (!isDraw) {
-                    Icon = TrendingDown;
-                    color = 'text-red-500';
-                }
-                
-                return (
-                    <div key={index} className={cn("h-8 w-8 flex items-center justify-center rounded-full bg-muted", color)}>
-                        <Icon className="h-5 w-5" />
-                    </div>
-                );
-            })}
-             {lastFive.length === 0 && (
-                 <p className="text-sm text-muted-foreground">No hay partidos finalizados</p>
-            )}
-        </div>
-    )
-}
+const PerformanceChart = ({ form }: { form: string | undefined }) => (
+    <div className="flex items-center justify-center gap-2">
+        {form?.split('').map((result, index) => {
+            let Icon = Minus;
+            let color = 'text-gray-500 bg-gray-200';
+            if (result === 'W') {
+                Icon = Check;
+                color = 'text-green-600 bg-green-100';
+            } else if (result === 'L') {
+                Icon = X;
+                color = 'text-red-600 bg-red-100';
+            }
+            return (
+                <div key={index} className={cn("h-5 w-5 flex items-center justify-center rounded-full", color)}>
+                    <Icon className="h-3 w-3" />
+                </div>
+            );
+        })}
+         {(!form || form.length === 0) && (
+             <p className="text-sm text-muted-foreground">No hay partidos finalizados</p>
+        )}
+    </div>
+);
 
 const EditTeamDialog = ({ team, onTeamUpdated, onTeamDeleted }: { team: Team, onTeamUpdated: (updatedTeam: Team) => void, onTeamDeleted: (teamId: string) => void }) => {
     const { toast } = useToast();
@@ -721,7 +705,7 @@ export function TeamDetailsClient({
              <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Rendimiento (Últimos 5)</p>
                  <div className="mt-2 h-8 flex items-center justify-center">
-                     <PerformanceChart teamId={team.id} matches={matches} />
+                     <PerformanceChart form={teamStandings?.form} />
                 </div>
             </div>
         </CardContent>

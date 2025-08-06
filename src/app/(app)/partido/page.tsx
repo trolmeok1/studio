@@ -22,9 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MatchResults } from './_components/MatchResults';
 import { useEffect, useState, useMemo } from 'react';
 
-const PerformanceIndicator = ({ form }: { form: string }) => (
+const PerformanceIndicator = ({ form }: { form: string | undefined }) => (
     <div className="flex items-center justify-center gap-1">
-        {form.split('').map((result, index) => {
+        {form?.split('').map((result, index) => {
             let Icon = Minus;
             let color = 'text-gray-500 bg-gray-200';
             if (result === 'W') {
@@ -123,15 +123,15 @@ const LeagueView = ({ category, group }: { category: Category; group?: 'A' | 'B'
                                         <span className="font-medium">{s.teamName}</span>
                                     </Link>
                                 </TableCell>
-                                <TableCell className="text-center font-bold text-lg">{s.points}</TableCell>
-                                <TableCell className="text-center">{s.wins}</TableCell>
-                                <TableCell className="text-center">{s.draws}</TableCell>
-                                <TableCell className="text-center">{s.losses}</TableCell>
-                                <TableCell className="text-center">{s.goalsFor}</TableCell>
-                                <TableCell className="text-center">{s.goalsAgainst}</TableCell>
-                                <TableCell className="text-center">{s.goalsFor - s.goalsAgainst}</TableCell>
+                                <TableCell className="text-center font-bold text-lg">{s.points || 0}</TableCell>
+                                <TableCell className="text-center">{s.wins || 0}</TableCell>
+                                <TableCell className="text-center">{s.draws || 0}</TableCell>
+                                <TableCell className="text-center">{s.losses || 0}</TableCell>
+                                <TableCell className="text-center">{s.goalsFor || 0}</TableCell>
+                                <TableCell className="text-center">{s.goalsAgainst || 0}</TableCell>
+                                <TableCell className="text-center">{(s.goalsFor || 0) - (s.goalsAgainst || 0)}</TableCell>
                                 <TableCell className="text-center">
-                                    {s.form && <PerformanceIndicator form={s.form} />}
+                                    <PerformanceIndicator form={s.form} />
                                 </TableCell>
                             </TableRow>
                         ))}

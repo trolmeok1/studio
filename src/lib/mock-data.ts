@@ -489,7 +489,6 @@ export const setMatchAsFinished = async (matchId: string) => {
         }
         const match = matchDoc.data() as Match;
         
-        // Update match status
         transaction.update(matchRef, { status: 'finished' });
 
         const homeTeamId = match.teams.home.id;
@@ -515,39 +514,42 @@ export const setMatchAsFinished = async (matchId: string) => {
         let homeResult: 'W' | 'D' | 'L';
         let awayResult: 'W' | 'D' | 'L';
         
+        const newHomeStandings: Standing = { ...homeStandings };
+        const newAwayStandings: Standing = { ...awayStandings };
+
         if (homeScore > awayScore) {
-            homeStandings.wins = (homeStandings.wins || 0) + 1;
-            homeStandings.points = (homeStandings.points || 0) + 3;
-            awayStandings.losses = (awayStandings.losses || 0) + 1;
+            newHomeStandings.wins = (homeStandings.wins || 0) + 1;
+            newHomeStandings.points = (homeStandings.points || 0) + 3;
+            newAwayStandings.losses = (awayStandings.losses || 0) + 1;
             homeResult = 'W';
             awayResult = 'L';
         } else if (homeScore < awayScore) {
-            awayStandings.wins = (awayStandings.wins || 0) + 1;
-            awayStandings.points = (awayStandings.points || 0) + 3;
-            homeStandings.losses = (homeStandings.losses || 0) + 1;
+            newAwayStandings.wins = (awayStandings.wins || 0) + 1;
+            newAwayStandings.points = (awayStandings.points || 0) + 3;
+            newHomeStandings.losses = (homeStandings.losses || 0) + 1;
             homeResult = 'L';
             awayResult = 'W';
         } else {
-            homeStandings.draws = (homeStandings.draws || 0) + 1;
-            awayStandings.draws = (awayStandings.draws || 0) + 1;
-            homeStandings.points = (homeStandings.points || 0) + 1;
-            awayStandings.points = (awayStandings.points || 0) + 1;
+            newHomeStandings.draws = (homeStandings.draws || 0) + 1;
+            newAwayStandings.draws = (awayStandings.draws || 0) + 1;
+            newHomeStandings.points = (homeStandings.points || 0) + 1;
+            newAwayStandings.points = (awayStandings.points || 0) + 1;
             homeResult = 'D';
             awayResult = 'D';
         }
 
-        homeStandings.played = (homeStandings.played || 0) + 1;
-        homeStandings.goalsFor = (homeStandings.goalsFor || 0) + homeScore;
-        homeStandings.goalsAgainst = (homeStandings.goalsAgainst || 0) + awayScore;
-        homeStandings.form = ((homeStandings.form || '') + homeResult).slice(-5);
+        newHomeStandings.played = (homeStandings.played || 0) + 1;
+        newHomeStandings.goalsFor = (homeStandings.goalsFor || 0) + homeScore;
+        newHomeStandings.goalsAgainst = (homeStandings.goalsAgainst || 0) + awayScore;
+        newHomeStandings.form = ((homeStandings.form || '') + homeResult).slice(-5);
         
-        awayStandings.played = (awayStandings.played || 0) + 1;
-        awayStandings.goalsFor = (awayStandings.goalsFor || 0) + awayScore;
-        awayStandings.goalsAgainst = (awayStandings.goalsAgainst || 0) + homeScore;
-        awayStandings.form = ((awayStandings.form || '') + awayResult).slice(-5);
+        newAwayStandings.played = (awayStandings.played || 0) + 1;
+        newAwayStandings.goalsFor = (awayStandings.goalsFor || 0) + awayScore;
+        newAwayStandings.goalsAgainst = (awayStandings.goalsAgainst || 0) + homeScore;
+        newAwayStandings.form = ((awayStandings.form || '') + awayResult).slice(-5);
 
-        transaction.set(homeStandingsRef, homeStandings);
-        transaction.set(awayStandingsRef, awayStandings);
+        transaction.set(homeStandingsRef, newHomeStandings);
+        transaction.set(awayStandingsRef, newAwayStandings);
     });
 
     await addSystemLog('update', 'match', `Finalizó el partido con ID: ${matchId} y actualizó la tabla de posiciones.`);
