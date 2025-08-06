@@ -94,19 +94,21 @@ const GeneralMatchCard = ({ match, getTeam }: { match: Match, getTeam: (id: stri
                 </div>
             </CardHeader>
             <CardContent className="p-4 flex-grow">
-                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <Link href={`/teams/${homeTeam?.id}`} className="flex flex-col items-center text-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
-                        <p className="font-semibold text-sm">{homeTeam?.name}</p>
+                        <p className="font-semibold text-sm break-words w-full">{homeTeam?.name}</p>
                         {homeDressingRoom && <Badge variant="secondary" className="text-xs">Camerino {homeDressingRoom}</Badge>}
                     </Link>
-                    <div className="flex items-center justify-center">
+                    
+                    <div className="flex flex-col items-center justify-center self-stretch">
                         <span className="font-bold text-lg text-muted-foreground">VS</span>
-                        <div className="w-px h-10 bg-border mx-4"></div>
+                        <div className="w-px h-full bg-border"></div>
                     </div>
+
                     <Link href={`/teams/${awayTeam?.id}`} className="flex flex-col items-center text-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
-                        <p className="font-semibold text-sm">{awayTeam?.name}</p>
+                        <p className="font-semibold text-sm break-words w-full">{awayTeam?.name}</p>
                         {awayDressingRoom && <Badge variant="secondary" className="text-xs">Camerino {awayDressingRoom}</Badge>}
                     </Link>
                 </div>
@@ -648,11 +650,13 @@ export default function SchedulePage() {
     
     let matchesToSchedule = [...allMatchData];
     
+    let dressingRoomCounter = 1;
+    let dressingRoomPairingStart = 1;
+
     while(matchesToSchedule.length > 0) {
         const dayOfWeek = getDay(currentDate);
         if (settings.gameDays.includes(dayOfWeek)) {
             // This day is a game day
-            let dressingRoomCounter = 1;
             for(const time of settings.gameTimes) {
                 for(let field = 1; field <= settings.numFields; field++) {
                      if (matchesToSchedule.length === 0) break;
@@ -664,12 +668,14 @@ export default function SchedulePage() {
                      const vocalTeamId = allTeamIdsForVocal[vocalIndex % allTeamIdsForVocal.length];
                      vocalIndex++;
                      
-                     // Use non-sequential dressing rooms
-                    const homeDressingRoom = dressingRoomCounter;
-                    const awayDressingRoom = dressingRoomCounter + 2 > settings.numDressingRooms ? 2 : dressingRoomCounter + 2;
-                    dressingRoomCounter = (dressingRoomCounter + 1 > settings.numDressingRooms) ? 1 : dressingRoomCounter + 1;
-                    if(dressingRoomCounter === 2) dressingRoomCounter = 2; // Simple logic to alternate 1-3, 2-4 for now
-                    
+                     const homeDressingRoom = dressingRoomPairingStart;
+                     const awayDressingRoom = dressingRoomPairingStart + 2;
+
+                     if (field < settings.numFields) {
+                         dressingRoomPairingStart = (dressingRoomPairingStart % 2) + 1;
+                     } else {
+                         dressingRoomPairingStart = 1;
+                     }
 
                     await addMatch({
                         ...matchData,
@@ -717,17 +723,19 @@ export default function SchedulePage() {
         await deleteCopa();
         
         await loadData();
+        setGeneratedMatches([]);
+        setFinalMatches([]);
 
         toast({
             title: '¡Temporada Finalizada!',
             description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error al finalizar el torneo:", error);
         toast({
             title: 'Error al Finalizar Torneo',
-            description: 'No se pudo reiniciar la temporada. Revisa la consola para más detalles.',
+            description: `No se pudo reiniciar la temporada: ${error.message}`,
             variant: 'destructive',
         });
     } finally {
@@ -754,6 +762,7 @@ export default function SchedulePage() {
             category,
             status: 'future',
             events: [],
+            score: {home: 0, away: 0},
             teams: {
                 home: { id: homeTeam.id, name: homeTeam.name, logoUrl: homeTeam.logoUrl, attended: false },
                 away: { id: awayTeam.id, name: awayTeam.name, logoUrl: awayTeam.logoUrl, attended: false }
@@ -973,3 +982,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
