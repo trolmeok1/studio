@@ -1,4 +1,5 @@
 
+
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
 import { db, storage, auth } from './firebase';
@@ -6,6 +7,9 @@ import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, 
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import type { CarouselImage } from '@/app/(app)/dashboard/page';
+
+// --- IMPORTANT: Set your admin email here ---
+const ADMIN_EMAIL = 'alejandroespin2021@gmail.com';
 
 
 // --- Settings ---
@@ -30,24 +34,16 @@ export const saveCarouselImages = async (images: CarouselImage[]) => {
 export const getUsers = async (): Promise<User[]> => {
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
+
     if (userSnapshot.empty) {
-        // If no users, create default admin and secretary in both Firestore and Firebase Auth
-        const adminEmail = 'admin@ligacontrol.com';
-        const secretaryEmail = 'secretary@ligacontrol.com';
-        const defaultPassword = 'password';
-
-        try {
-            // Create Auth users
-            const adminAuthUser = await createUserWithEmailAndPassword(auth, adminEmail, defaultPassword);
-            const secretaryAuthUser = await createUserWithEmailAndPassword(auth, secretaryEmail, defaultPassword);
-            
-            // Important: Sign out immediately after creation so the app state isn't affected
-            await signOut(auth);
-
-            // Create Firestore users
-            const batch = writeBatch(db);
-            const adminUser = {
-                name: 'Administrador', email: adminEmail, role: 'admin',
+        // If no users in Firestore, check if the admin user from Auth exists.
+        // If so, create their Firestore document with full permissions.
+        const adminUserInFirestore = await getUserByEmail(ADMIN_EMAIL);
+        
+        if (!adminUserInFirestore) {
+            console.log(`Admin user ${ADMIN_EMAIL} not found in Firestore. Creating...`);
+            const adminUser: Omit<User, 'id'> = {
+                name: 'Administrador Principal', email: ADMIN_EMAIL, role: 'admin',
                 permissions: {
                     dashboard: { view: true, edit: true }, players: { view: true, edit: true },
                     schedule: { view: true, edit: true }, partido: { view: true, edit: true },
@@ -59,48 +55,14 @@ export const getUsers = async (): Promise<User[]> => {
                 },
                 avatarUrl: 'https://placehold.co/100x100.png'
             };
-            const secretaryUser = {
-                name: 'Secretario', email: secretaryEmail, role: 'secretary',
-                 permissions: {
-                    dashboard: { view: true, edit: false }, players: { view: true, edit: true },
-                    schedule: { view: true, edit: true }, partido: { view: true, edit: true },
-                    copa: { view: true, edit: true }, aiCards: { view: false, edit: false },
-                    committees: { view: true, edit: true }, treasury: { view: true, edit: true },
-                    requests: { view: true, edit: true }, reports: { view: true, edit: false },
-                    teams: { view: true, edit: true }, roles: { view: false, edit: false },
-                    logs: { view: false, edit: false },
-                },
-                avatarUrl: 'https://placehold.co/100x100.png'
-            };
 
-            batch.set(doc(db, "users", adminAuthUser.user.uid), adminUser);
-            batch.set(doc(db, "users", secretaryAuthUser.user.uid), secretaryUser);
+            // We don't know the UID from the Auth user, so we'll just create a new doc.
+            // When the user logs in, the AuthProvider will fetch this by email.
+            // This assumes the admin user was already created in the Firebase Auth console.
+            await addDoc(usersCol, adminUser);
             
-            await batch.commit();
-
-            return [
-                { id: adminAuthUser.user.uid, ...adminUser },
-                { id: secretaryAuthUser.user.uid, ...secretaryUser }
-            ] as User[];
-
-        } catch (error: any) {
-            // If users already exist in Auth but not in Firestore (e.g., from a failed previous attempt)
-            // this block will handle it gracefully.
-            if (error.code === 'auth/email-already-in-use') {
-                 console.warn("Default users already exist in Firebase Auth. Skipping Auth creation.");
-                 // We can proceed to try and get the users from Firestore again, assuming they might exist there.
-                 const freshSnapshot = await getDocs(usersCol);
-                 if (!freshSnapshot.empty) {
-                      return freshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-                 }
-            } else {
-                 console.error("Error creating default users:", error);
-            }
-           
-            if (auth.currentUser) {
-                await signOut(auth);
-            }
-            return []; // Return empty array if seeding fails
+            const freshSnapshot = await getDocs(usersCol);
+            return freshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         }
     }
     return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
@@ -124,6 +86,15 @@ export const updateUser = async (updatedUser: User) => {
 
 export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
     const usersCol = collection(db, 'users');
+    // Check if user already exists by email to prevent duplicates in Firestore
+    const q = query(usersCol, where("email", "==", newUser.email), limit(1));
+    const existingUserSnapshot = await getDocs(q);
+    if (!existingUserSnapshot.empty) {
+        // User already exists in Firestore, just return it.
+        const doc = existingUserSnapshot.docs[0];
+        return { id: doc.id, ...doc.data() } as User;
+    }
+    // User does not exist, add them.
     const docRef = await addDoc(usersCol, newUser);
     return { id: docRef.id, ...newUser } as User;
 };
@@ -441,5 +412,3 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
-
-    
