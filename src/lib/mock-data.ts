@@ -324,7 +324,7 @@ export const resetAllStandings = async (): Promise<void> => {
         const standingData: Partial<Standing> = {
             teamName: team.name,
             teamLogoUrl: team.logoUrl,
-            group: team.group || undefined,
+            group: team.group || null,
             played: 0,
             wins: 0,
             draws: 0,
