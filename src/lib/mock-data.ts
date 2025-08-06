@@ -1,7 +1,7 @@
 
 
-import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
-export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
+import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions, SanctionSettings } from './types';
+export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions, SanctionSettings };
 import { db, storage, auth } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch, setDoc, runTransaction, Timestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -31,6 +31,23 @@ const addSystemLog = async (
     } catch (error) {
         console.error("Failed to write system log:", error);
     }
+};
+
+// --- Sanction Settings ---
+export const getSanctionSettings = async (): Promise<SanctionSettings> => {
+    const docRef = doc(db, 'settings', 'sanctions');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as SanctionSettings;
+    }
+    // Return default values if not set
+    return { yellowCardFine: 1, redCardFine: 5, absenceFine: 20 };
+};
+
+export const saveSanctionSettings = async (settings: SanctionSettings) => {
+    const docRef = doc(db, 'settings', 'sanctions');
+    await setDoc(docRef, settings);
+    await addSystemLog('update', 'system', 'Actualizó la configuración de multas por sanción.');
 };
 
 
@@ -487,13 +504,9 @@ export const setMatchAsFinished = async (matchId: string) => {
         if (!matchDoc.exists()) {
             throw "El documento del partido no existe.";
         }
-        const match = matchDoc.data() as Match;
-
-        const homeTeamId = match.teams.home.id;
-        const awayTeamId = match.teams.away.id;
-        const homeScore = match.score?.home ?? 0;
-        const awayScore = match.score?.away ?? 0;
-
+        
+        const homeTeamId = matchDoc.data().teams.home.id;
+        const awayTeamId = matchDoc.data().teams.away.id;
         const homeStandingsRef = doc(db, 'standings', homeTeamId);
         const awayStandingsRef = doc(db, 'standings', awayTeamId);
         
@@ -505,15 +518,16 @@ export const setMatchAsFinished = async (matchId: string) => {
         if (!homeStandingsDoc.exists() || !awayStandingsDoc.exists()) {
             throw "Uno o ambos documentos de la tabla de posiciones no existen.";
         }
+        
+        const match = matchDoc.data() as Match;
+        const homeScore = match.score?.home ?? 0;
+        const awayScore = match.score?.away ?? 0;
 
-        const homeStandings = homeStandingsDoc.data() as Standing;
-        const awayStandings = awayStandingsDoc.data() as Standing;
+        const newHomeStandings: Standing = JSON.parse(JSON.stringify(homeStandingsDoc.data()));
+        const newAwayStandings: Standing = JSON.parse(JSON.stringify(awayStandingsDoc.data()));
         
         let homeResult: 'W' | 'D' | 'L';
         let awayResult: 'W' | 'D' | 'L';
-        
-        const newHomeStandings: Standing = JSON.parse(JSON.stringify(homeStandings));
-        const newAwayStandings: Standing = JSON.parse(JSON.stringify(awayStandings));
 
         if (homeScore > awayScore) {
             newHomeStandings.wins = (newHomeStandings.wins || 0) + 1;
