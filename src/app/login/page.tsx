@@ -51,9 +51,9 @@ export default function LoginPage() {
                 <Trophy className="h-10 w-10 text-primary" />
             </div>
             <CardTitle className="text-3xl font-bold mt-4 font-headline">
-                Control Liga
+                TeamLink Hub
             </CardTitle>
-            <CardDescription>Inicio de sesion para administradores</CardDescription>
+            <CardDescription>Inicio de sesión para administradores</CardDescription>
         </CardHeader>
         <CardContent>
              {error && (
@@ -102,3 +102,5 @@ export default function LoginPage() {
     </Card>
   );
 }
+
+    

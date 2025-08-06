@@ -1,10 +1,10 @@
 
-
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions };
-import { db, storage } from './firebase';
+import { db, storage, auth } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch, setDoc } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import type { CarouselImage } from '@/app/(app)/dashboard/page';
 
 
@@ -31,47 +31,77 @@ export const getUsers = async (): Promise<User[]> => {
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
     if (userSnapshot.empty) {
-        // If no users, create default admin and secretary
-        const batch = writeBatch(db);
-        const adminUser = {
-            name: 'Administrador',
-            email: 'admin@ligacontrol.com',
-            role: 'admin',
-            permissions: {
-                dashboard: { view: true, edit: true }, players: { view: true, edit: true },
-                schedule: { view: true, edit: true }, partido: { view: true, edit: true },
-                copa: { view: true, edit: true }, aiCards: { view: true, edit: true },
-                committees: { view: true, edit: true }, treasury: { view: true, edit: true },
-                requests: { view: true, edit: true }, reports: { view: true, edit: true },
-                teams: { view: true, edit: true }, roles: { view: true, edit: true },
-                logs: { view: true, edit: true },
-            },
-            avatarUrl: 'https://placehold.co/100x100.png'
-        };
-        const secretaryUser = {
-            name: 'Secretario',
-            email: 'secretary@ligacontrol.com',
-            role: 'secretary',
-            permissions: {
-                dashboard: { view: true, edit: false }, players: { view: true, edit: true },
-                schedule: { view: true, edit: true }, partido: { view: true, edit: true },
-                copa: { view: true, edit: true }, aiCards: { view: false, edit: false },
-                committees: { view: true, edit: true }, treasury: { view: true, edit: true },
-                requests: { view: true, edit: true }, reports: { view: true, edit: false },
-                teams: { view: true, edit: true }, roles: { view: false, edit: false },
-                logs: { view: false, edit: false },
-            },
-            avatarUrl: 'https://placehold.co/100x100.png'
-        };
-        const adminRef = doc(collection(db, "users"));
-        batch.set(adminRef, adminUser);
-        const secretaryRef = doc(collection(db, "users"));
-        batch.set(secretaryRef, secretaryUser);
-        await batch.commit();
-        return [
-            { id: adminRef.id, ...adminUser },
-            { id: secretaryRef.id, ...secretaryUser }
-        ] as User[];
+        // If no users, create default admin and secretary in both Firestore and Firebase Auth
+        const adminEmail = 'admin@ligacontrol.com';
+        const secretaryEmail = 'secretary@ligacontrol.com';
+        const defaultPassword = 'password';
+
+        try {
+            // Create Auth users
+            const adminAuthUser = await createUserWithEmailAndPassword(auth, adminEmail, defaultPassword);
+            const secretaryAuthUser = await createUserWithEmailAndPassword(auth, secretaryEmail, defaultPassword);
+            
+            // Important: Sign out immediately after creation so the app state isn't affected
+            await signOut(auth);
+
+            // Create Firestore users
+            const batch = writeBatch(db);
+            const adminUser = {
+                name: 'Administrador', email: adminEmail, role: 'admin',
+                permissions: {
+                    dashboard: { view: true, edit: true }, players: { view: true, edit: true },
+                    schedule: { view: true, edit: true }, partido: { view: true, edit: true },
+                    copa: { view: true, edit: true }, aiCards: { view: true, edit: true },
+                    committees: { view: true, edit: true }, treasury: { view: true, edit: true },
+                    requests: { view: true, edit: true }, reports: { view: true, edit: true },
+                    teams: { view: true, edit: true }, roles: { view: true, edit: true },
+                    logs: { view: true, edit: true },
+                },
+                avatarUrl: 'https://placehold.co/100x100.png'
+            };
+            const secretaryUser = {
+                name: 'Secretario', email: secretaryEmail, role: 'secretary',
+                 permissions: {
+                    dashboard: { view: true, edit: false }, players: { view: true, edit: true },
+                    schedule: { view: true, edit: true }, partido: { view: true, edit: true },
+                    copa: { view: true, edit: true }, aiCards: { view: false, edit: false },
+                    committees: { view: true, edit: true }, treasury: { view: true, edit: true },
+                    requests: { view: true, edit: true }, reports: { view: true, edit: false },
+                    teams: { view: true, edit: true }, roles: { view: false, edit: false },
+                    logs: { view: false, edit: false },
+                },
+                avatarUrl: 'https://placehold.co/100x100.png'
+            };
+
+            batch.set(doc(db, "users", adminAuthUser.user.uid), adminUser);
+            batch.set(doc(db, "users", secretaryAuthUser.user.uid), secretaryUser);
+            
+            await batch.commit();
+
+            return [
+                { id: adminAuthUser.user.uid, ...adminUser },
+                { id: secretaryAuthUser.user.uid, ...secretaryUser }
+            ] as User[];
+
+        } catch (error: any) {
+            // If users already exist in Auth but not in Firestore (e.g., from a failed previous attempt)
+            // this block will handle it gracefully.
+            if (error.code === 'auth/email-already-in-use') {
+                 console.warn("Default users already exist in Firebase Auth. Skipping Auth creation.");
+                 // We can proceed to try and get the users from Firestore again, assuming they might exist there.
+                 const freshSnapshot = await getDocs(usersCol);
+                 if (!freshSnapshot.empty) {
+                      return freshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+                 }
+            } else {
+                 console.error("Error creating default users:", error);
+            }
+           
+            if (auth.currentUser) {
+                await signOut(auth);
+            }
+            return []; // Return empty array if seeding fails
+        }
     }
     return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 };
@@ -157,12 +187,17 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
     await updateDoc(newTeamRef, { logoUrl: finalLogoUrl });
     
     const finalDoc = await getDoc(newTeamRef);
-    return { id: docRef.id, ...finalDoc.data() } as Team;
+    return { id: finalDoc.id, ...finalDoc.data() } as Team;
 };
 
 export const updateTeam = async (teamId: string, teamData: Partial<Team>, logoDataUri: string | null): Promise<Team> => {
     const teamRef = doc(db, 'teams', teamId);
-    const updateData: Partial<Team> = { ...teamData };
+    
+    // Create a copy to avoid mutating the original object from the state
+    const updateData: { [key: string]: any } = JSON.parse(JSON.stringify(teamData));
+
+    // Remove the id from the data to be written to Firestore
+    delete updateData.id;
 
     if (logoDataUri && logoDataUri.startsWith('data:image')) {
         const storageRef = ref(storage, `team-logos/${teamId}`);
@@ -406,3 +441,5 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
+
+    

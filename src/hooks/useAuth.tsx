@@ -56,39 +56,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const initializeAuth = async () => {
         setIsAuthLoading(true);
         const allUsers = await getUsers();
         setUsersState(allUsers);
 
-        if (firebaseUser) {
-            const appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
-            if (appUser) {
-                setCurrentUser(appUser);
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser && firebaseUser.email) {
+                const appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email!.toLowerCase());
+                if (appUser) {
+                    setCurrentUser(appUser);
+                } else {
+                    await signOut(auth);
+                    setCurrentUser(defaultGuestUser);
+                }
             } else {
-                // This case might happen if user is in Firebase Auth but not in Firestore 'users' collection
                 setCurrentUser(defaultGuestUser);
-                await signOut(auth);
             }
-        } else {
-            setCurrentUser(defaultGuestUser);
-        }
-        setIsAuthLoading(false);
-    });
+            setIsAuthLoading(false);
+        });
 
-    return () => unsubscribe();
+        return () => unsubscribe();
+    };
+
+    initializeAuth();
   }, []);
 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        const appUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if(appUser) {
-            setCurrentUser(appUser);
-            return true;
-        }
-        return false;
+        return true;
     } catch (error) {
         console.error("Firebase login error:", error);
         return false;
@@ -97,7 +95,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const logout = async () => {
     await signOut(auth);
-    setCurrentUser(defaultGuestUser);
   };
 
   const setUsers = (updatedUsers: User[]) => {
@@ -108,17 +105,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userExists = users.some(u => u.id === userToSave.id);
     
     if (userExists) {
-        // We don't update Firebase Auth user details here, only Firestore.
-        // Changing email/password would require re-authentication.
     } else {
         if (!userToSave.password) {
             throw new Error("Password is required to create a new user.");
         }
-        // Create user in Firebase Auth first
         const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password);
         const firebaseUser = userCredential.user;
         
-        // Then add the user details to Firestore
         await addUser({ ...userToSave, id: firebaseUser.uid });
     }
     
