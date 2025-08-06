@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -17,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
+import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown, History } from 'lucide-react';
 import Image from 'next/image';
 import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById, getSanctionSettings, type SanctionSettings } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
@@ -651,7 +649,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <AlertTriangle className="h-5 w-5" />
                             <h5 className="font-semibold">Equipo Ausente</h5>
                         </div>
-                        <p className="text-sm">Se ha aplicado una multa de <span className="font-bold">${sanctionSettings.absenceFine.toFixed(2)}</span> por no presentación.</p>
+                        <p className="text-sm">Se ha aplicado una multa de <span className="font-bold">${(details.absenceFine || 0).toFixed(2)}</span> por no presentación.</p>
                      </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -924,6 +922,7 @@ export default function CommitteesPage() {
   const handleFinishMatch = useCallback(async (matchId: string) => {
     await setMatchAsFinished(matchId);
     setAllMatches(prevMatches => prevMatches.map(m => m.id === matchId ? { ...m, status: 'finished' } : m));
+    setSelectedMatchId(null);
   }, []);
 
   const selectedMatch = useMemo(() => {
@@ -932,58 +931,31 @@ export default function CommitteesPage() {
   }, [selectedMatchId, allMatches]);
 
   const groupedMatches = useMemo(() => {
-    if (!isClient) return { today: [], future: [], past: [] };
+    if (!isClient) return { active: [], finished: [] };
+    
+    const active = allMatches
+        .filter(m => m.status !== 'finished')
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    const todayMatches = allMatches.filter(m => m.date && isToday(new Date(m.date)));
-    const futureMatches = allMatches.filter(m => m.date && isFuture(new Date(m.date)) && !isToday(new Date(m.date)));
-    const pastMatches = allMatches.filter(m => m.date && isPast(new Date(m.date)) && !isToday(new Date(m.date)));
+    const finished = allMatches
+        .filter(m => m.status === 'finished')
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    return {
-        today: todayMatches,
-        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-        past: pastMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    };
+    return { active, finished };
   }, [isClient, allMatches]);
 
-  const MatchSelect = () => (
+  const MatchSelect = ({ matches, placeholder }: { matches: Match[], placeholder: string }) => (
      <Select onValueChange={setSelectedMatchId} value={selectedMatchId || ''}>
         <SelectTrigger>
-            <SelectValue placeholder="Elige un partido del calendario..."/>
+            <SelectValue placeholder={placeholder}/>
         </SelectTrigger>
         <SelectContent>
             {isClient && (
-                <>
-                    {groupedMatches.today.length > 0 && (
-                        <SelectGroup>
-                            <SelectLabel>Partidos de Hoy</SelectLabel>
-                            {groupedMatches.today.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})})
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    )}
-                     {groupedMatches.future.length > 0 && (
-                        <SelectGroup>
-                            <SelectLabel>Partidos Futuros</SelectLabel>
-                            {groupedMatches.future.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    )}
-                     {groupedMatches.past.length > 0 && (
-                        <SelectGroup>
-                            <SelectLabel>Partidos Pasados</SelectLabel>
-                            {groupedMatches.past.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString()})
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    )}
-                </>
+                matches.map(match => (
+                    <SelectItem key={match.id} value={match.id}>
+                        {match.teams.home.name} vs {match.teams.away.name} ({new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                    </SelectItem>
+                ))
             )}
         </SelectContent>
     </Select>
@@ -999,17 +971,27 @@ export default function CommitteesPage() {
               </span>
             </h2>
         </div>
-        <div className="flex items-center gap-4">
-             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="digital">
-                <TabsList>
-                    <TabsTrigger value="digital">Vocalía Digital (Registrar)</TabsTrigger>
-                    <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
-                </TabsList>
-            </Tabs>
-        </div>
       </div>
 
-       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); }} defaultValue="digital" className="space-y-4">
+       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setSelectedMatchId(null); }} defaultValue="digital" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="digital">Vocalía Digital (Registrar)</TabsTrigger>
+              <TabsTrigger value="physical">Vocalía Física (Imprimir)</TabsTrigger>
+              <TabsTrigger value="history"><History className="mr-2"/>Historial (Ver/Editar)</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="digital" className="mt-0 space-y-4">
+            <Card className="print:hidden">
+                 <CardHeader>
+                    <CardTitle>Seleccionar Partido para Vocalía Digital</CardTitle>
+                     <CardContent className="p-0 pt-4">
+                          <MatchSelect matches={groupedMatches.active} placeholder="Elige un partido pendiente..." />
+                     </CardContent>
+                 </CardHeader>
+            </Card>
+             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} />
+          </TabsContent>
+
           <TabsContent value="physical" className="mt-0 space-y-4">
             <Card className="print:hidden">
                 <CardHeader>
@@ -1017,7 +999,7 @@ export default function CommitteesPage() {
                     <CardContent className="p-0 pt-4 flex gap-4 items-end">
                         <div className="flex-grow">
                              <Label>Seleccionar Partido</Label>
-                             <MatchSelect />
+                             <MatchSelect matches={groupedMatches.active} placeholder="Elige un partido pendiente..." />
                         </div>
                         <Button onClick={handlePrint} disabled={!selectedMatch}>
                             <Printer className="mr-2" />
@@ -1033,12 +1015,14 @@ export default function CommitteesPage() {
                  <PhysicalMatchSheet match={selectedMatch}/>
             </div>
           </TabsContent>
-          <TabsContent value="digital" className="mt-0 space-y-4">
-            <Card className="print:hidden">
+          
+          <TabsContent value="history" className="mt-0 space-y-4">
+             <Card className="print:hidden">
                  <CardHeader>
-                    <CardTitle>Seleccionar Partido para Vocalía Digital</CardTitle>
+                    <CardTitle>Historial de Vocalías</CardTitle>
+                    <CardDescription>Selecciona un partido finalizado para ver o editar sus detalles.</CardDescription>
                      <CardContent className="p-0 pt-4">
-                          <MatchSelect />
+                         <MatchSelect matches={groupedMatches.finished} placeholder="Elige un partido finalizado..." />
                      </CardContent>
                  </CardHeader>
             </Card>
