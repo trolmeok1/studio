@@ -4,6 +4,7 @@ import { getPlayers, getTeams, type Player, type Team } from '@/lib/mock-data';
 import { PlayerSearch } from './_components/PlayerSearch';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
 
 export default function PlayersPage() {
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
