@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown, History, PartyPopper } from 'lucide-react';
 import Image from 'next/image';
-import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById, getSanctionSettings, type SanctionSettings } from '@/lib/mock-data';
+import { getPlayers, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById, getSanctionSettings, type SanctionSettings } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { MatchEvent, MatchEventType, MatchTeam } from '@/lib/types';
-import { isToday, isFuture, isPast } from 'date-fns';
+import { isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -333,14 +333,23 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     )
 }
 
-const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (matchId: string, updatedData: Partial<Match>) => Promise<void>, onFinishMatch: (matchId: string) => Promise<void> }) => {
+const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFinishMatch: (matchData: Match) => Promise<void> }) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const canEdit = user.permissions.committees.edit;
     const [allMatches, setAllMatches] = useState<Match[]>([]);
     const [sanctionSettings, setSanctionSettings] = useState<SanctionSettings>({ yellowCardFine: 0, redCardFine: 0, absenceFine: 0 });
 
+    const [localMatch, setLocalMatch] = useState<Match | null>(null);
 
+    useEffect(() => {
+        if (match) {
+            setLocalMatch(JSON.parse(JSON.stringify(match)));
+        } else {
+            setLocalMatch(null);
+        }
+    }, [match]);
+    
     useEffect(() => {
         getMatches().then(setAllMatches);
         getSanctionSettings().then(setSanctionSettings);
@@ -349,32 +358,24 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
-    const [physicalSheetUrl, setPhysicalSheetUrl] = useState<string | null>(match?.physicalSheetUrl || null);
-    
-    const [events, setEvents] = useState<MatchEvent[]>(match?.events || []);
-    
-    useEffect(() => {
-        setEvents(match?.events || []);
-        setPhysicalSheetUrl(match?.physicalSheetUrl || null);
-    }, [match]);
 
     useEffect(() => {
-        if (!match) return;
-
-        const updateFines = async () => {
-             const updatedTeams = { ...match.teams };
-             let changed = false;
-
-             for (const teamKey of ['home', 'away'] as const) {
-                const team = updatedTeams[teamKey];
+        if (!localMatch) return;
+    
+        const calculateFines = () => {
+            let changed = false;
+            const newMatchData = JSON.parse(JSON.stringify(localMatch));
+    
+            for (const teamKey of ['home', 'away'] as const) {
+                const team = newMatchData.teams[teamKey];
                 if (!team.vocalPaymentDetails) continue;
-
-                const yellowCardCount = events.filter(e => e.teamName === team.name && e.event === 'yellow_card').length;
-                const redCardCount = events.filter(e => e.teamName === team.name && e.event === 'red_card').length;
-                
+    
+                const yellowCardCount = newMatchData.events.filter((e: MatchEvent) => e.teamName === team.name && e.event === 'yellow_card').length;
+                const redCardCount = newMatchData.events.filter((e: MatchEvent) => e.teamName === team.name && e.event === 'red_card').length;
+    
                 const newYellowCardFine = yellowCardCount * sanctionSettings.yellowCardFine;
                 const newRedCardFine = redCardCount * sanctionSettings.redCardFine;
-                
+    
                 if (team.vocalPaymentDetails.yellowCardFine !== newYellowCardFine || team.vocalPaymentDetails.redCardFine !== newRedCardFine) {
                     team.vocalPaymentDetails.yellowCardCount = yellowCardCount;
                     team.vocalPaymentDetails.redCardCount = redCardCount;
@@ -382,19 +383,19 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                     team.vocalPaymentDetails.redCardFine = newRedCardFine;
                     changed = true;
                 }
-             }
-
-             if (changed) {
-                handleVocalPaymentChange('home', 'referee', match.teams.home.vocalPaymentDetails?.referee || 0);
-                handleVocalPaymentChange('away', 'referee', match.teams.away.vocalPaymentDetails?.referee || 0);
-             }
+            }
+    
+            if (changed) {
+                // We need to trigger a recalculation of totals
+                handleVocalPaymentChange(newMatchData, 'home', 'referee', newMatchData.teams.home.vocalPaymentDetails?.referee || 0);
+            }
         };
+    
+        calculateFines();
+    }, [localMatch?.events, sanctionSettings]);
+    
 
-        updateFines();
-    }, [events, sanctionSettings, match]);
-
-
-    const teamForEventSearch = match?.teams.home.id === selectedTeamId ? match.teams.home : match?.teams.away;
+    const teamForEventSearch = localMatch?.teams.home.id === selectedTeamId ? localMatch.teams.home : localMatch?.teams.away;
 
     const handleSearch = async () => {
         if (!selectedTeamId || !playerNumber) {
@@ -413,7 +414,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     };
 
     const addEvent = async (player: Player, eventType: MatchEventType) => {
-        if (!match) return;
+        if (!localMatch) return;
         const newEvent: MatchEvent = {
             id: `evt-${Date.now()}`,
             playerId: player.id,
@@ -421,65 +422,41 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             teamName: player.team,
             event: eventType,
         };
-        const updatedEvents = [newEvent, ...events];
-        setEvents(updatedEvents);
-
-        await onUpdateMatch(match.id, { events: updatedEvents });
-
-        const statsUpdate = {
-            goals: eventType === 'goal' ? 1 : 0,
-            assists: eventType === 'assist' ? 1 : 0,
-            yellowCards: eventType === 'yellow_card' ? 1 : 0,
-            redCards: eventType === 'red_card' ? 1 : 0,
-        };
-        await updatePlayerStats(player.id, statsUpdate);
         
+        setLocalMatch(prev => {
+            if (!prev) return null;
+            const updatedEvents = [newEvent, ...prev.events];
+            return { ...prev, events: updatedEvents };
+        });
+
+        // The actual database write will happen on final save
         let toastMessage = '';
         if (eventType === 'goal') toastMessage = `Gol registrado para ${player.name}!`;
         if (eventType === 'assist') toastMessage = `Asistencia registrada para ${player.name}.`;
         if (eventType === 'yellow_card') toastMessage = `Tarjeta amarilla para ${player.name}.`;
         if (eventType === 'red_card') {
             toastMessage = `Tarjeta ROJA para ${player.name}. ¡Será suspendido!`;
-            await addSanction({
-                playerId: player.id,
-                playerName: player.name,
-                playerPhotoUrl: player.photoUrl,
-                teamName: player.team,
-                teamId: player.teamId,
-                reason: 'Tarjeta Roja Directa',
-                gamesSuspended: 1,
-                date: new Date().toISOString().split('T')[0],
-            });
         }
         
         toast({
-            title: "Evento Registrado",
-            description: toastMessage,
+            title: "Evento Registrado Localmente",
+            description: `${toastMessage} Los cambios se guardarán al finalizar el partido.`,
         });
 
         setSearchResults([]);
     };
     
     const removeEvent = async (eventId: string) => {
-        if(!match) return;
+        if(!localMatch) return;
 
-        const eventToRemove = events.find(e => e.id === eventId);
+        const eventToRemove = localMatch.events.find(e => e.id === eventId);
         if (!eventToRemove) return;
-
-        const statsUpdate = {
-            goals: eventToRemove.event === 'goal' ? -1 : 0,
-            assists: eventToRemove.event === 'assist' ? -1 : 0,
-            yellowCards: eventToRemove.event === 'yellow_card' ? -1 : 0,
-            redCards: eventToRemove.event === 'red_card' ? -1 : 0,
-        };
-        await updatePlayerStats(eventToRemove.playerId, statsUpdate);
         
-        const updatedEvents = events.filter((e) => e.id !== eventId);
-        setEvents(updatedEvents);
-        await onUpdateMatch(match.id, { events: updatedEvents });
+        const updatedEvents = localMatch.events.filter((e) => e.id !== eventId);
+        setLocalMatch(prev => prev ? { ...prev, events: updatedEvents } : null);
 
         toast({
-            title: "Evento Eliminado",
+            title: "Evento Eliminado Localmente",
             description: `Se ha revertido el evento para ${eventToRemove.playerName}.`,
             variant: "destructive",
         });
@@ -495,17 +472,17 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     }
 
     const handleMatchDataChange = (field: keyof Match, value: any) => {
-        if(!match) return;
-        onUpdateMatch(match.id, { [field]: value });
+        if(!localMatch) return;
+        setLocalMatch(prev => prev ? { ...prev, [field]: value } : null);
     }
     
     const handleScoreChange = (teamKey: 'home' | 'away', newScore: number) => {
-        if(!match || !match.score) return;
+        if(!localMatch || !localMatch.score) return;
         const updatedScore = {
-            ...match.score,
+            ...localMatch.score,
             [teamKey]: newScore
         };
-        onUpdateMatch(match.id, { score: updatedScore });
+        handleMatchDataChange('score', updatedScore);
     }
 
     const [pendingValueHome, setPendingValueHome] = useState(0);
@@ -525,24 +502,24 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     }, [allMatches]);
 
     useEffect(() => {
-        if (match?.teams.home.id) {
-            getPendingValue(match.teams.home.id, match.id).then(setPendingValueHome);
+        if (localMatch?.teams.home.id) {
+            getPendingValue(localMatch.teams.home.id, localMatch.id).then(setPendingValueHome);
         }
-        if (match?.teams.away.id) {
-            getPendingValue(match.teams.away.id, match.id).then(setPendingValueAway);
+        if (localMatch?.teams.away.id) {
+            getPendingValue(localMatch.teams.away.id, localMatch.id).then(setPendingValueAway);
         }
-    }, [match, getPendingValue]);
+    }, [localMatch, getPendingValue]);
     
-    const handleVocalPaymentChange = useCallback((teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
-        if (!match) return;
+    const handleVocalPaymentChange = useCallback((currentMatchData: Match, teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
+        if (!currentMatchData) return;
     
-        const teamDetails = match.teams[teamKey];
+        const teamDetails = currentMatchData.teams[teamKey];
         if (!teamDetails.vocalPaymentDetails) return;
     
         let updatedPayment = { ...teamDetails.vocalPaymentDetails, [field]: value };
     
         const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
-            const absenceFine = !match.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
+            const absenceFine = !currentMatchData.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
             const baseTotal = 
                 (Number(paymentDetails.referee) || 0) + 
                 (Number(paymentDetails.fee) || 0) + 
@@ -560,7 +537,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
         updatedPayment.total = calculateTotal(updatedPayment, pendingValue);
         
-        if (!match.teams[teamKey].attended) {
+        if (!currentMatchData.teams[teamKey].attended) {
             updatedPayment.absenceFine = sanctionSettings.absenceFine;
         } else {
             updatedPayment.absenceFine = 0;
@@ -570,30 +547,33 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             ...teamDetails,
             vocalPaymentDetails: updatedPayment
         };
-    
-        onUpdateMatch(match.id, { 
+
+        const newMatchState = {
+            ...currentMatchData,
             teams: {
-                ...match.teams,
+                ...currentMatchData.teams,
                 [teamKey]: updatedTeamDetails
             }
-        });
-    }, [match, onUpdateMatch, sanctionSettings, pendingValueHome, pendingValueAway]);
+        };
+
+        setLocalMatch(newMatchState);
+
+    }, [sanctionSettings, pendingValueHome, pendingValueAway]);
     
     const handleSaveResult = () => {
-        if (!match) return;
-        onFinishMatch(match.id);
+        if (!localMatch) return;
+        onFinishMatch(localMatch);
     }
 
      const handlePhysicalSheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && match) {
+        if (file && localMatch) {
             try {
-                const storageRef = ref(storage, `physical-sheets/${match.id}-${file.name}`);
+                const storageRef = ref(storage, `physical-sheets/${localMatch.id}-${file.name}`);
                 const snapshot = await uploadBytes(storageRef, file);
                 const downloadURL = await getDownloadURL(snapshot.ref);
                 
-                setPhysicalSheetUrl(downloadURL);
-                onUpdateMatch(match.id, { physicalSheetUrl: downloadURL });
+                handleMatchDataChange('physicalSheetUrl', downloadURL);
                 toast({ title: "Acta Física Subida", description: "La imagen ha sido guardada con el partido."});
             } catch (error) {
                  toast({ title: "Error al subir imagen", description: "No se pudo subir la imagen a Firebase Storage.", variant: "destructive"});
@@ -607,24 +587,34 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
         
         useEffect(() => {
-            if (match) {
+            if (localMatch) {
                 // Recalculate total whenever attendance changes for absence fine
-                handleVocalPaymentChange(teamKey, 'referee', match.teams[teamKey].vocalPaymentDetails?.referee || 0);
+                handleVocalPaymentChange(localMatch, teamKey, 'referee', localMatch.teams[teamKey].vocalPaymentDetails?.referee || 0);
             }
-        }, [match?.teams[teamKey].attended, teamKey]);
+        }, [localMatch?.teams[teamKey].attended, teamKey]);
 
-        if (!match) return null;
-        const details = match.teams[teamKey].vocalPaymentDetails;
+        if (!localMatch) return null;
+        const details = localMatch.teams[teamKey].vocalPaymentDetails;
         if (!details) return null;
         
-        const disabled = !canEdit || !match.teams[teamKey].attended;
+        const disabled = !canEdit || !localMatch.teams[teamKey].attended;
 
-        const handlePaymentStatusChange = (checked: boolean) => {
-             handleVocalPaymentChange(teamKey, 'paymentStatus', checked ? 'paid' : 'pending');
+        const handleSwitchChange = (field: keyof VocalPaymentDetailsType | 'attended', checked: boolean) => {
+             if (field === 'paymentStatus') {
+                handleVocalPaymentChange(localMatch, teamKey, 'paymentStatus', checked ? 'paid' : 'pending');
+             } else if (field === 'includePendingDebt') {
+                handleVocalPaymentChange(localMatch, teamKey, 'includePendingDebt', checked);
+             } else if (field === 'attended') {
+                 setLocalMatch(prev => prev ? { ...prev, teams: {...prev.teams, [teamKey]: {...prev.teams[teamKey], attended: checked}} } : null);
+             }
         }
         
-        const handleIncludePendingDebtChange = (checked: boolean) => {
-            handleVocalPaymentChange(teamKey, 'includePendingDebt', checked);
+        const handleInputChange = (field: keyof VocalPaymentDetailsType, value: string) => {
+            handleVocalPaymentChange(localMatch, teamKey, field, parseFloat(value) || 0);
+        }
+
+        const handleTextareaChange = (field: keyof VocalPaymentDetailsType, value: string) => {
+            handleVocalPaymentChange(localMatch, teamKey, field, value);
         }
 
         return (
@@ -640,7 +630,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <Checkbox 
                                 id={`include-pending-${teamKey}`} 
                                 checked={details.includePendingDebt}
-                                onCheckedChange={(checked) => handleIncludePendingDebtChange(Boolean(checked))}
+                                onCheckedChange={(checked) => handleSwitchChange('includePendingDebt', Boolean(checked))}
                                 disabled={disabled}
                             />
                             <Label htmlFor={`include-pending-${teamKey}`} className="text-sm">
@@ -649,7 +639,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                         </div>
                      </div>
                 )}
-                {!match.teams[teamKey].attended && (
+                {!localMatch.teams[teamKey].attended && (
                      <div className="p-2 rounded-md bg-destructive/10 border border-destructive text-destructive space-y-2">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5" />
@@ -667,17 +657,17 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                         <Switch
                             id={`payment-status-${teamKey}`}
                             checked={details.paymentStatus === 'paid'}
-                            onCheckedChange={handlePaymentStatusChange}
+                            onCheckedChange={(checked) => handleSwitchChange('paymentStatus', checked)}
                             disabled={disabled}
                         />
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <Label>Pago Árbitro:</Label>
-                    <Input type="number" value={details.referee || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'referee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.referee || ''} onChange={(e) => handleInputChange('referee', e.target.value)} placeholder="0.00" disabled={disabled} className="h-8" />
                     
                     <Label>Cuota:</Label>
-                    <Input type="number" value={details.fee || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'fee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.fee || ''} onChange={(e) => handleInputChange('fee', e.target.value)} placeholder="0.00" disabled={disabled} className="h-8" />
                     
                     <div className="flex items-center justify-between col-span-2">
                          <Label>Multa T. Amarillas:</Label>
@@ -690,12 +680,12 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                     </div>
 
                     <Label className="col-span-2">Otras Multas (especificar):</Label>
-                    <Textarea value={details.otherFinesDescription || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
+                    <Textarea value={details.otherFinesDescription || ''} onChange={(e) => handleTextareaChange('otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
                     <div/>
-                    <Input type="number" value={details.otherFines || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFines', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.otherFines || ''} onChange={(e) => handleInputChange('otherFines', e.target.value)} placeholder="0.00" disabled={disabled} className="h-8" />
 
                     <Label>Abono / Adelanto:</Label>
-                    <Input type="number" value={details.advancePayment || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'advancePayment', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.advancePayment || ''} onChange={(e) => handleInputChange('advancePayment', e.target.value)} placeholder="0.00" disabled={disabled} className="h-8" />
 
 
                     <Label className="font-bold text-base">TOTAL VOCALÍA:</Label>
@@ -705,7 +695,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         )
     };
     
-    if (!match) {
+    if (!localMatch) {
         return (
             <Card className="p-6 md:p-8 flex items-center justify-center h-full">
                 <p className="text-muted-foreground text-lg">Por favor, selecciona un partido para registrar la vocalía.</p>
@@ -725,7 +715,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                              <Label>Nombre del Árbitro (Opcional)</Label>
                              <Input 
                                 placeholder="Ej: Juan Pérez"
-                                value={match.refereeName || ''}
+                                value={localMatch.refereeName || ''}
                                 onChange={(e) => handleMatchDataChange('refereeName', e.target.value)}
                                 disabled={!canEdit}
                             />
@@ -734,7 +724,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                              <Label>Vocal de Turno</Label>
                              <Input 
                                 placeholder="Ej: Carlos Rivas"
-                                value={match.vocalName || ''}
+                                value={localMatch.vocalName || ''}
                                 onChange={(e) => handleMatchDataChange('vocalName', e.target.value)}
                                 disabled={!canEdit}
                             />
@@ -745,9 +735,9 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <CardTitle className="text-base">Evidencia de Vocalía Física</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
-                            {physicalSheetUrl ? (
+                            {localMatch.physicalSheetUrl ? (
                                 <div className="space-y-2">
-                                    <Image src={physicalSheetUrl} alt="Acta física" width={150} height={200} className="rounded-md border object-contain" />
+                                    <Image src={localMatch.physicalSheetUrl} alt="Acta física" width={150} height={200} className="rounded-md border object-contain" />
                                     <p className="text-sm text-muted-foreground">Imagen del acta física guardada.</p>
                                 </div>
                             ) : (
@@ -774,8 +764,8 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                                     <SelectValue placeholder="1. Elige Equipo..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={match.teams.home.id}>{match.teams.home.name}</SelectItem>
-                                    <SelectItem value={match.teams.away.id}>{match.teams.away.name}</SelectItem>
+                                    <SelectItem value={localMatch.teams.home.id}>{localMatch.teams.home.name}</SelectItem>
+                                    <SelectItem value={localMatch.teams.away.id}>{localMatch.teams.away.name}</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Input 
@@ -821,24 +811,24 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                      <h3 className="text-xl font-bold">Resumen del Partido</h3>
                      <div className="grid grid-cols-2 gap-4 items-start">
                         <div className="text-center space-y-2">
-                            <Image src={match.teams.home.logoUrl} alt={match.teams.home.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
-                            <h4 className="font-bold">{match.teams.home.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.home ?? 0} onChange={(e) => handleScoreChange('home', parseInt(e.target.value) || 0)} disabled={!canEdit} />
+                            <Image src={localMatch.teams.home.logoUrl} alt={localMatch.teams.home.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
+                            <h4 className="font-bold">{localMatch.teams.home.name}</h4>
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={localMatch.score?.home ?? 0} onChange={(e) => handleScoreChange('home', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamA-attended" checked={match.teams.home.attended} onCheckedChange={(checked) => onUpdateMatch(match.id, {teams: {...match.teams, home: {...match.teams.home, attended: checked}}})} disabled={!canEdit}/>
+                                 <Switch id="teamA-attended" checked={localMatch.teams.home.attended} onCheckedChange={(checked) => setLocalMatch(prev => prev ? { ...prev, teams: {...prev.teams, home: {...prev.teams.home, attended: checked}} } : null)} disabled={!canEdit}/>
                                  <Label htmlFor="teamA-attended">Se Presentó</Label>
                                </div>
                                <VocalPaymentDetailsInputs teamKey="home" />
                            </div>
                         </div>
                          <div className="text-center space-y-2">
-                             <Image src={match.teams.away.logoUrl} alt={match.teams.away.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
-                            <h4 className="font-bold">{match.teams.away.name}</h4>
-                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.away ?? 0} onChange={(e) => handleScoreChange('away', parseInt(e.target.value) || 0)} disabled={!canEdit} />
+                             <Image src={localMatch.teams.away.logoUrl} alt={localMatch.teams.away.name} width={60} height={60} className="mx-auto rounded-full" data-ai-hint="team logo" />
+                            <h4 className="font-bold">{localMatch.teams.away.name}</h4>
+                            <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={localMatch.score?.away ?? 0} onChange={(e) => handleScoreChange('away', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamB-attended" checked={match.teams.away.attended} onCheckedChange={(checked) => onUpdateMatch(match.id, {teams: {...match.teams, away: {...match.teams.away, attended: checked}}})} disabled={!canEdit}/>
+                                 <Switch id="teamB-attended" checked={localMatch.teams.away.attended} onCheckedChange={(checked) => setLocalMatch(prev => prev ? { ...prev, teams: {...prev.teams, away: {...prev.teams.away, attended: checked}} } : null)} disabled={!canEdit}/>
                                  <Label htmlFor="teamB-attended">Se Presentó</Label>
                                </div>
                                <VocalPaymentDetailsInputs teamKey="away" />
@@ -850,7 +840,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <CardTitle>Eventos Registrados</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {events.length === 0 ? (
+                            {localMatch.events.length === 0 ? (
                                 <p className="text-muted-foreground">Aún no se han registrado eventos.</p>
                             ) : (
                                 <Table>
@@ -863,7 +853,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {events.map((event) => (
+                                        {localMatch.events.map((event) => (
                                             <TableRow key={event.id}>
                                                 <TableCell>{event.playerName}</TableCell>
                                                 <TableCell>{event.teamName}</TableCell>
@@ -882,8 +872,8 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             )}
                         </CardContent>
                      </Card>
-                      <Button className="w-full" size="lg" disabled={!canEdit || match.status === 'finished'} onClick={handleSaveResult}>
-                        {match.status === 'finished' ? 'Partido Finalizado' : 'Guardar y Finalizar Partido'}
+                      <Button className="w-full" size="lg" disabled={!canEdit || localMatch.status === 'finished'} onClick={handleSaveResult}>
+                        {localMatch.status === 'finished' ? 'Partido Finalizado' : 'Guardar y Finalizar Partido'}
                       </Button>
                 </div>
 
@@ -917,17 +907,9 @@ export default function CommitteesPage() {
   const handlePrint = () => {
     window.print();
   };
-
-  const handleUpdateMatch = useCallback(async (matchId: string, updatedData: Partial<Match>) => {
-    await updateMatchData(matchId, updatedData);
-    const updatedMatch = await getMatchById(matchId);
-    if (updatedMatch) {
-        setAllMatches(prevMatches => prevMatches.map(m => m.id === updatedMatch.id ? updatedMatch : m));
-    }
-  }, []);
   
-  const handleFinishMatch = useCallback(async (matchId: string) => {
-    await setMatchAsFinished(matchId);
+  const handleFinishMatch = useCallback(async (matchData: Match) => {
+    await setMatchAsFinished(matchData);
     await loadMatches(); // Recargar todos los partidos para reflejar el cambio de estado
     setIsSuccessDialogOpen(true);
   }, [loadMatches]);
@@ -1001,7 +983,7 @@ export default function CommitteesPage() {
                      </CardContent>
                  </CardHeader>
             </Card>
-             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} />
+             <DigitalMatchSheet match={selectedMatch} onFinishMatch={handleFinishMatch} />
           </TabsContent>
 
           <TabsContent value="physical" className="mt-0 space-y-4">
@@ -1038,7 +1020,7 @@ export default function CommitteesPage() {
                      </CardContent>
                  </CardHeader>
             </Card>
-             <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} />
+             <DigitalMatchSheet match={selectedMatch} onFinishMatch={handleFinishMatch} />
           </TabsContent>
         </Tabs>
         

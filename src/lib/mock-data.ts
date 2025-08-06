@@ -496,23 +496,17 @@ export const updateMatchData = async (matchId: string, updatedData: Partial<Matc
     await addSystemLog('update', 'match', `Actualizó los datos del partido con ID: ${matchId}.`);
 };
 
-export const setMatchAsFinished = async (matchId: string) => {
-    const matchRef = doc(db, 'matches', matchId);
+export const setMatchAsFinished = async (matchData: Match) => {
+    const matchRef = doc(db, 'matches', matchData.id);
     
     await runTransaction(db, async (transaction) => {
-        const matchDoc = await transaction.get(matchRef);
-        if (!matchDoc.exists()) {
-            throw "El documento del partido no existe.";
-        }
-        
-        const match = matchDoc.data() as Match;
-        
-        const homeTeamId = match.teams.home.id;
-        const awayTeamId = match.teams.away.id;
+        const homeTeamId = matchData.teams.home.id;
+        const awayTeamId = matchData.teams.away.id;
         
         const homeStandingsRef = doc(db, 'standings', homeTeamId);
         const awayStandingsRef = doc(db, 'standings', awayTeamId);
         
+        // All reads must come before all writes.
         const homeStandingsDoc = await transaction.get(homeStandingsRef);
         const awayStandingsDoc = await transaction.get(awayStandingsRef);
         
@@ -520,8 +514,8 @@ export const setMatchAsFinished = async (matchId: string) => {
             throw "Uno o ambos documentos de la tabla de posiciones no existen.";
         }
         
-        const homeScore = match.score?.home ?? 0;
-        const awayScore = match.score?.away ?? 0;
+        const homeScore = matchData.score?.home ?? 0;
+        const awayScore = matchData.score?.away ?? 0;
 
         const newHomeStandings: Standing = JSON.parse(JSON.stringify(homeStandingsDoc.data()));
         const newAwayStandings: Standing = JSON.parse(JSON.stringify(awayStandingsDoc.data()));
@@ -560,12 +554,14 @@ export const setMatchAsFinished = async (matchId: string) => {
         newAwayStandings.goalsAgainst = (newAwayStandings.goalsAgainst || 0) + homeScore;
         newAwayStandings.form = ((newAwayStandings.form || '') + awayResult).slice(-5);
 
-        transaction.update(matchRef, { status: 'finished' });
+        // Now, perform all writes.
+        const finalMatchData = { ...matchData, status: 'finished' as const };
+        transaction.set(matchRef, finalMatchData);
         transaction.set(homeStandingsRef, newHomeStandings);
         transaction.set(awayStandingsRef, newAwayStandings);
     });
 
-    await addSystemLog('update', 'match', `Finalizó el partido con ID: ${matchId} y actualizó la tabla de posiciones.`);
+    await addSystemLog('update', 'match', `Finalizó el partido ${matchData.teams.home.name} vs ${matchData.teams.away.name} y actualizó la tabla de posiciones.`);
 };
 
 
