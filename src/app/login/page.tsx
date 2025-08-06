@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { loginAs, logout } = useAuth();
+    const { login, logout } = useAuth();
     const { toast } = useToast();
     const [email, setEmail] = useState('admin@ligacontrol.com');
     const [password, setPassword] = useState('password');
@@ -27,9 +27,7 @@ export default function LoginPage() {
         setIsLoading(true);
         setError('');
         
-        // In a real app, you would also check the password.
-        // For this demo, we are only checking the email via getUserByEmail.
-        const success = await loginAs(email);
+        const success = await login(email, password);
 
         if (success) {
             toast({ title: 'Inicio de Sesión Exitoso', description: 'Bienvenido de nuevo.' });
@@ -40,8 +38,8 @@ export default function LoginPage() {
         setIsLoading(false);
     }
 
-    const handleGuestLogin = () => {
-        logout(); // Ensure any existing session is cleared
+    const handleGuestLogin = async () => {
+        await logout(); 
         router.push('/dashboard');
     }
 

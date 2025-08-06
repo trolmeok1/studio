@@ -2,7 +2,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getUserByEmail, getUsers, addUser, updateUser, type User, type UserRole, type Permissions } from '@/lib/mock-data';
+import { getUsers, type User, type UserRole, type Permissions, addUser } from '@/lib/mock-data';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 
 export type { User, UserRole, Permissions };
 
@@ -11,7 +13,7 @@ const guestPermissions: Permissions = {
     players: { view: true, edit: false },
     schedule: { view: true, edit: false },
     partido: { view: true, edit: false },
-    copa: { view: true, edit: false }, // Guests can view, but visibility is controlled by isCopaPublic
+    copa: { view: true, edit: false },
     aiCards: { view: false, edit: false },
     committees: { view: false, edit: false },
     treasury: { view: false, edit: false },
@@ -36,8 +38,8 @@ interface AuthContextType {
   user: User;
   users: User[];
   setUsers: (users: User[]) => void;
-  loginAs: (email: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
   isAuthLoading: boolean;
@@ -54,40 +56,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    async function loadInitialData() {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         setIsAuthLoading(true);
-        const storedUser = sessionStorage.getItem('currentUser');
         const allUsers = await getUsers();
         setUsersState(allUsers);
 
-        if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            // Re-fetch user from DB to ensure permissions are up to date
-            const freshUser = allUsers.find(u => u.id === parsedUser.id);
-            setCurrentUser(freshUser || defaultGuestUser);
+        if (firebaseUser) {
+            const appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
+            if (appUser) {
+                setCurrentUser(appUser);
+            } else {
+                // This case might happen if user is in Firebase Auth but not in Firestore 'users' collection
+                setCurrentUser(defaultGuestUser);
+                await signOut(auth);
+            }
         } else {
             setCurrentUser(defaultGuestUser);
         }
         setIsAuthLoading(false);
-    }
-    loadInitialData();
+    });
+
+    return () => unsubscribe();
   }, []);
 
 
-  const loginAs = async (email: string) => {
-    // In a real app, password would be checked here
-    const userToLogin = users.find(u => u.email === email);
-    if (userToLogin) {
-      setCurrentUser(userToLogin);
-      sessionStorage.setItem('currentUser', JSON.stringify(userToLogin));
-      return true;
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        const appUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if(appUser) {
+            setCurrentUser(appUser);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error("Firebase login error:", error);
+        return false;
     }
-    return false;
   };
   
-  const logout = () => {
+  const logout = async () => {
+    await signOut(auth);
     setCurrentUser(defaultGuestUser);
-    sessionStorage.removeItem('currentUser');
   };
 
   const setUsers = (updatedUsers: User[]) => {
@@ -98,24 +108,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userExists = users.some(u => u.id === userToSave.id);
     
     if (userExists) {
-        await updateUser(userToSave);
-        setUsersState(prev => prev.map(u => u.id === userToSave.id ? userToSave : u));
-        // Update current user if they are the one being edited
-        if(currentUser.id === userToSave.id) {
-            setCurrentUser(userToSave);
-            sessionStorage.setItem('currentUser', JSON.stringify(userToSave));
-        }
+        // We don't update Firebase Auth user details here, only Firestore.
+        // Changing email/password would require re-authentication.
     } else {
-        const newUser = await addUser(userToSave);
-        setUsersState(prev => [...prev, newUser]);
+        if (!userToSave.password) {
+            throw new Error("Password is required to create a new user.");
+        }
+        // Create user in Firebase Auth first
+        const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password);
+        const firebaseUser = userCredential.user;
+        
+        // Then add the user details to Firestore
+        await addUser({ ...userToSave, id: firebaseUser.uid });
     }
-  }, [users, currentUser.id]);
+    
+    const allUsers = await getUsers();
+    setUsersState(allUsers);
+
+  }, [users]);
 
   const value = {
     user: currentUser,
     users,
     setUsers,
-    loginAs,
+    login,
     logout,
     isCopaPublic,
     setIsCopaPublic,
