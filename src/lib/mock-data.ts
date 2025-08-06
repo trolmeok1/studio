@@ -500,21 +500,22 @@ export const setMatchAsFinished = async (matchId: string) => {
     const matchRef = doc(db, 'matches', matchId);
     
     await runTransaction(db, async (transaction) => {
-        const matchDoc = await transaction.get(matchRef);
-        if (!matchDoc.exists()) {
-            throw "El documento del partido no existe.";
-        }
+        const tempMatchDoc = await transaction.get(matchRef);
+        const homeTeamId = tempMatchDoc.data()!.teams.home.id;
+        const awayTeamId = tempMatchDoc.data()!.teams.away.id;
         
-        const homeTeamId = matchDoc.data().teams.home.id;
-        const awayTeamId = matchDoc.data().teams.away.id;
         const homeStandingsRef = doc(db, 'standings', homeTeamId);
         const awayStandingsRef = doc(db, 'standings', awayTeamId);
         
-        const [homeStandingsDoc, awayStandingsDoc] = await Promise.all([
-            transaction.get(homeStandingsRef),
-            transaction.get(awayStandingsRef)
-        ]);
+        const homeStandingsDoc = await transaction.get(homeStandingsRef);
+        const awayStandingsDoc = await transaction.get(awayStandingsRef);
+        
+        // Re-read match doc last to minimize contention
+        const matchDoc = await transaction.get(matchRef);
 
+        if (!matchDoc.exists()) {
+            throw "El documento del partido no existe.";
+        }
         if (!homeStandingsDoc.exists() || !awayStandingsDoc.exists()) {
             throw "Uno o ambos documentos de la tabla de posiciones no existen.";
         }
@@ -634,3 +635,4 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
+
