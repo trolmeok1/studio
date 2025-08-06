@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { systemLogs, type LogEntry } from '@/lib/mock-data';
+import { getSystemLogs, type LogEntry } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FilePlus, FilePen, Trash2, DollarSign, Printer, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,8 +29,12 @@ const getIconForAction = (action: LogEntry['action']) => {
 
 
 export default function LogsPage() {
-    const [logs] = useState<LogEntry[]>(systemLogs);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
     const [activeTab, setActiveTab] = useState('all');
+    
+    useEffect(() => {
+        getSystemLogs().then(setLogs);
+    }, []);
 
     const filteredLogs = useMemo(() => {
         if (activeTab === 'all') {
