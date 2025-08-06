@@ -295,7 +295,7 @@ export const getMatches = async (): Promise<Match[]> => {
 
 export const getMatchesByTeamId = async (teamId: string): Promise<Match[]> => {
     const allMatches = await getMatches();
-    return allMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
+    return allMatches.filter(m => m.teams && (m.teams.home.id === teamId || m.teams.away.id === teamId));
 }
 
 export const getMatchById = async (id: string): Promise<Match | undefined> => {
