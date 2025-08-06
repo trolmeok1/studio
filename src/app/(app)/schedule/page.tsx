@@ -1,10 +1,11 @@
 
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData, resetAllStandings, clearAllSanctions, deleteCopa, clearAllMatches } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
+import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon, Loader2 } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -528,6 +529,7 @@ export default function SchedulePage() {
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const [finalMatches, setFinalMatches] = useState<Match[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
@@ -666,7 +668,7 @@ export default function SchedulePage() {
   }
   
   const handleFinalizeTournament = async () => {
-    setIsLoading(true);
+    setIsFinalizing(true);
     try {
         await clearAllMatches();
         await resetAllStandings();
@@ -678,16 +680,18 @@ export default function SchedulePage() {
             description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.',
         });
         
-        setGeneratedMatches([]);
-        setFinalMatches([]);
         await loadData();
 
     } catch (error) {
         console.error("Failed to finalize tournament:", error);
-        toast({ title: 'Error', description: 'No se pudo finalizar el torneo.', variant: 'destructive'});
+        toast({
+            title: 'Error al Finalizar Torneo',
+            description: 'No se pudo reiniciar la temporada. Revisa la consola para más detalles.',
+            variant: 'destructive',
+        });
     } finally {
         setFinalizeAlertStep(0);
-        setIsLoading(false);
+        setIsFinalizing(false);
     }
   };
 
@@ -797,9 +801,9 @@ export default function SchedulePage() {
                             <CalendarPlus className="mr-2" />
                             Reagendar Partido
                         </Button>
-                        <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)}>
-                            <Trophy className="mr-2" />
-                            Finalizar Torneo
+                        <Button variant="destructive" onClick={() => setFinalizeAlertStep(1)} disabled={isFinalizing}>
+                            {isFinalizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2" />}
+                            {isFinalizing ? 'Finalizando...' : 'Finalizar Torneo'}
                         </Button>
                     </div>
                 </Card>
