@@ -432,15 +432,13 @@ const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (u
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    // State is now managed entirely inside the dialog
     const [teamData, setTeamData] = useState<Team>(team);
     const [logoPreview, setLogoPreview] = useState<string | null>(team.logoUrl);
 
-    // This effect updates the dialog's internal state only when it opens.
-    // This prevents re-renders from the parent from wiping out user input.
     useEffect(() => {
         if (isOpen) {
-            setTeamData(team);
+            // Deep copy to prevent mutations of the parent state
+            setTeamData(JSON.parse(JSON.stringify(team)));
             setLogoPreview(team.logoUrl);
         }
     }, [team, isOpen]);
