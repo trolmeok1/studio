@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById } from '@/lib/mock-data';
+import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById, getSanctionSettings, type SanctionSettings } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -338,9 +338,12 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const { toast } = useToast();
     const canEdit = user.permissions.committees.edit;
     const [allMatches, setAllMatches] = useState<Match[]>([]);
+    const [sanctionSettings, setSanctionSettings] = useState<SanctionSettings>({ yellowCardFine: 0, redCardFine: 0, absenceFine: 0 });
+
 
     useEffect(() => {
         getMatches().then(setAllMatches);
+        getSanctionSettings().then(setSanctionSettings);
     }, []);
 
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -349,19 +352,47 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [physicalSheetUrl, setPhysicalSheetUrl] = useState<string | null>(match?.physicalSheetUrl || null);
     
     const [events, setEvents] = useState<MatchEvent[]>(match?.events || []);
-    const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     
-    useEffect(() => {
-        const fetchPlayers = async () => {
-            setAllPlayers(await getPlayers());
-        }
-        fetchPlayers();
-    }, []);
-
     useEffect(() => {
         setEvents(match?.events || []);
         setPhysicalSheetUrl(match?.physicalSheetUrl || null);
     }, [match]);
+
+    useEffect(() => {
+        if (!match) return;
+
+        const updateFines = async () => {
+             const updatedTeams = { ...match.teams };
+             let changed = false;
+
+             for (const teamKey of ['home', 'away'] as const) {
+                const team = updatedTeams[teamKey];
+                if (!team.vocalPaymentDetails) continue;
+
+                const yellowCardCount = events.filter(e => e.teamName === team.name && e.event === 'yellow_card').length;
+                const redCardCount = events.filter(e => e.teamName === team.name && e.event === 'red_card').length;
+                
+                const newYellowCardFine = yellowCardCount * sanctionSettings.yellowCardFine;
+                const newRedCardFine = redCardCount * sanctionSettings.redCardFine;
+                
+                if (team.vocalPaymentDetails.yellowCardFine !== newYellowCardFine || team.vocalPaymentDetails.redCardFine !== newRedCardFine) {
+                    team.vocalPaymentDetails.yellowCardCount = yellowCardCount;
+                    team.vocalPaymentDetails.redCardCount = redCardCount;
+                    team.vocalPaymentDetails.yellowCardFine = newYellowCardFine;
+                    team.vocalPaymentDetails.redCardFine = newRedCardFine;
+                    changed = true;
+                }
+             }
+
+             if (changed) {
+                await handleVocalPaymentChange('home', 'referee', match.teams.home.vocalPaymentDetails?.referee || 0);
+                await handleVocalPaymentChange('away', 'referee', match.teams.away.vocalPaymentDetails?.referee || 0);
+             }
+        };
+
+        updateFines();
+    }, [events, sanctionSettings, match]);
+
 
     const teamForEventSearch = match?.teams.home.id === selectedTeamId ? match.teams.home : match?.teams.away;
 
@@ -500,12 +531,14 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const updatedPayment = { ...currentPayment, [field]: value };
     
         const calculateTotal = async (paymentDetails: VocalPaymentDetailsType) => {
+            const absenceFine = !match.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
             const baseTotal = 
                 (Number(paymentDetails.referee) || 0) + 
                 (Number(paymentDetails.fee) || 0) + 
                 (Number(paymentDetails.yellowCardFine) || 0) + 
                 (Number(paymentDetails.redCardFine) || 0) + 
-                (Number(paymentDetails.otherFines) || 0);
+                (Number(paymentDetails.otherFines) || 0) +
+                absenceFine;
             
             const pendingValue = await getPendingValue(match.teams[teamKey].id, match.id);
             const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
@@ -517,6 +550,11 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         };
     
         updatedPayment.total = await calculateTotal(updatedPayment);
+        if (!match.teams[teamKey].attended) {
+            updatedPayment.absenceFine = sanctionSettings.absenceFine;
+        } else {
+             updatedPayment.absenceFine = 0;
+        }
     
         const updatedTeamDetails = {
             ...teamDetails,
@@ -529,7 +567,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 [teamKey]: updatedTeamDetails
             }
         });
-    }, [match, onUpdateMatch, getPendingValue]);
+    }, [match, onUpdateMatch, getPendingValue, sanctionSettings]);
     
     const handleSaveResult = () => {
         if (!match) return;
@@ -566,6 +604,10 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 getPendingValue(teamId, match.id).then(setPendingValue);
             }
         }, [teamId, match, getPendingValue]);
+        
+         useEffect(() => {
+            handleVocalPaymentChange(teamKey, 'referee', match?.teams[teamKey].vocalPaymentDetails?.referee || 0);
+        }, [match?.teams[teamKey].attended]);
 
         if (!match) return null;
         const details = match.teams[teamKey].vocalPaymentDetails;
@@ -603,6 +645,15 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                         </div>
                      </div>
                 )}
+                {!match.teams[teamKey].attended && (
+                     <div className="p-2 rounded-md bg-destructive/10 border border-destructive text-destructive space-y-2">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            <h5 className="font-semibold">Equipo Ausente</h5>
+                        </div>
+                        <p className="text-sm">Se ha aplicado una multa de <span className="font-bold">${sanctionSettings.absenceFine.toFixed(2)}</span> por no presentación.</p>
+                     </div>
+                )}
                 <div className="flex items-center justify-between">
                     <h5 className="font-semibold text-center">Desglose de Vocalía</h5>
                     <div className="flex items-center space-x-2">
@@ -624,13 +675,17 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                     <Label>Cuota:</Label>
                     <Input type="number" value={details.fee} onChange={(e) => handleVocalPaymentChange(teamKey, 'fee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
                     
-                    <Label>Tarjetas Amarillas:</Label>
-                    <Input type="number" value={details.yellowCardFine} onChange={(e) => handleVocalPaymentChange(teamKey, 'yellowCardFine', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <div className="flex items-center justify-between col-span-2">
+                         <Label>Multa T. Amarillas:</Label>
+                         <p className="font-semibold">${details.yellowCardFine.toFixed(2)} ({details.yellowCardCount || 0} tarjetas)</p>
+                    </div>
 
-                    <Label>Tarjetas Rojas:</Label>
-                    <Input type="number" value={details.redCardFine} onChange={(e) => handleVocalPaymentChange(teamKey, 'redCardFine', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <div className="flex items-center justify-between col-span-2">
+                         <Label>Multa T. Rojas:</Label>
+                         <p className="font-semibold">${details.redCardFine.toFixed(2)} ({details.redCardCount || 0} tarjetas)</p>
+                    </div>
 
-                    <Label className="col-span-2">Multas (especificar):</Label>
+                    <Label className="col-span-2">Otras Multas (especificar):</Label>
                     <Textarea value={details.otherFinesDescription} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
                     <div/>
                     <Input type="number" value={details.otherFines} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFines', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />

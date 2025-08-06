@@ -42,6 +42,7 @@ import {
   ListOrdered,
   ScrollText,
   Menu,
+  AlertOctagon,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -122,6 +123,7 @@ export function AppSidebar() {
   const settingsNavItems = [
       permissions.roles.view && { href: '/roles', icon: UserCog, label: 'Roles', tooltip: 'Roles' },
       permissions.logs.view && { href: '/logs', icon: FileClock, label: 'Logs', tooltip: 'Logs' },
+      user.role === 'admin' && { href: '/settings/sanctions', icon: AlertOctagon, label: 'Sanciones', tooltip: 'Sanciones' },
       user.role === 'admin' && { href: '/settings/appearance', icon: ImageIcon, label: 'Apariencia', tooltip: 'Apariencia' },
       user.role === 'admin' && { href: '/settings/data', icon: Database, label: 'Gestión de Datos', tooltip: 'Gestión de Datos' },
   ].filter(Boolean);

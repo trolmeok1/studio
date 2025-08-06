@@ -1,5 +1,11 @@
 
 
+export type SanctionSettings = {
+    yellowCardFine: number;
+    redCardFine: number;
+    absenceFine: number;
+};
+
 export type Category = 'Primera' | 'Máxima' | 'Segunda' | 'Copa';
 export type PlayerPosition = 'Portero' | 'Defensa' | 'Mediocampista' | 'Delantero';
 export type PlayerStatus = 'activo' | 'inactivo';
@@ -50,19 +56,25 @@ export interface Team {
   treasurer?: Person;
   vocal?: Person;
   delegates?: Person[];
+  absences?: number;
+  status?: 'active' | 'inactive';
+  statusReason?: string;
 }
 
 export interface VocalPaymentDetails {
     referee: number;
     fee: number;
-    yellowCardFine: number;
-    redCardFine: number;
+    yellowCardFine: number; // This will now be the calculated total, not an input
+    redCardFine: number; // This will now be the calculated total, not an input
     otherFines: number;
     otherFinesDescription: string;
     advancePayment: number;
     includePendingDebt: boolean;
     total: number;
     paymentStatus: 'paid' | 'pending';
+    yellowCardCount?: number;
+    redCardCount?: number;
+    absenceFine?: number;
 }
 
 export interface MatchTeam {
@@ -92,7 +104,7 @@ export interface Match {
         home: MatchTeam;
         away: MatchTeam;
     };
-    status: 'future' | 'in-progress' | 'finished';
+    status: 'future' | 'in-progress' | 'finished' | 'walkover';
     score?: {
         home: number;
         away: number;
@@ -216,7 +228,7 @@ export interface LogEntry {
   timestamp: string;
   user: string;
   userAvatar: string;
-  action: 'create' | 'update' | 'delete' | 'payment' | 'generate' | 'system';
+  action: 'create' | 'update' | 'delete' | 'payment' | 'generate' | 'system' | 'sanction';
   category: 'team' | 'player' | 'treasury' | 'system' | 'match';
   description: string;
 }
