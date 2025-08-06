@@ -6,6 +6,8 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { getUsers, type User, type UserRole, type Permissions, addUser } from '@/lib/mock-data';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { ADMIN_EMAIL } from '@/lib/mock-data';
+
 
 export type { User, UserRole, Permissions };
 
@@ -59,15 +61,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
         setIsAuthLoading(true);
-        const allUsers = await getUsers();
+        let allUsers = await getUsers();
         setUsersState(allUsers);
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser && firebaseUser.email) {
-                const appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email!.toLowerCase());
+                let appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email!.toLowerCase());
+                
+                // If user exists in Firebase Auth but not in our Firestore DB
+                if (!appUser && firebaseUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                    console.log("Admin user not found in Firestore DB, creating now...");
+                    const adminUserPayload: Omit<User, 'id'> = {
+                        name: 'Administrador Principal',
+                        email: ADMIN_EMAIL,
+                        role: 'admin',
+                        permissions: {
+                            dashboard: { view: true, edit: true }, players: { view: true, edit: true },
+                            schedule: { view: true, edit: true }, partido: { view: true, edit: true },
+                            copa: { view: true, edit: true }, aiCards: { view: true, edit: true },
+                            committees: { view: true, edit: true }, treasury: { view: true, edit: true },
+                            requests: { view: true, edit: true }, reports: { view: true, edit: true },
+                            teams: { view: true, edit: true }, roles: { view: true, edit: true },
+                            logs: { view: true, edit: true },
+                        },
+                        avatarUrl: 'https://placehold.co/100x100.png'
+                    };
+                    appUser = await addUser(adminUserPayload);
+                    // Refresh users list
+                    allUsers = await getUsers();
+                    setUsersState(allUsers);
+                }
+                
                 if (appUser) {
                     setCurrentUser(appUser);
                 } else {
+                    // This is not the admin, and they don't have a profile in our db.
+                    // Log them out of Firebase Auth and treat them as a guest.
                     await signOut(auth);
                     setCurrentUser(defaultGuestUser);
                 }
@@ -106,14 +135,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userExists = users.some(u => u.id === userToSave.id);
     
     if (userExists) {
+        // User update logic might be needed here if you want to update from this function
     } else {
         if (!userToSave.password) {
             throw new Error("Password is required to create a new user.");
         }
-        const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password);
-        const firebaseUser = userCredential.user;
-        
-        await addUser({ ...userToSave, id: firebaseUser.uid });
+        await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password);
+        await addUser(userToSave);
     }
     
     const allUsers = await getUsers();

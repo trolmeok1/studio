@@ -9,7 +9,7 @@ import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import type { CarouselImage } from '@/app/(app)/dashboard/page';
 
 // --- IMPORTANT: Set your admin email here ---
-const ADMIN_EMAIL = 'alejandroespin2021@gmail.com';
+export const ADMIN_EMAIL = 'alejandroespin2021@gmail.com';
 
 
 // --- Settings ---
@@ -34,43 +34,12 @@ export const saveCarouselImages = async (images: CarouselImage[]) => {
 export const getUsers = async (): Promise<User[]> => {
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
-
-    if (userSnapshot.empty) {
-        // If no users in Firestore, check if the admin user from Auth exists.
-        // If so, create their Firestore document with full permissions.
-        const adminUserInFirestore = await getUserByEmail(ADMIN_EMAIL);
-        
-        if (!adminUserInFirestore) {
-            console.log(`Admin user ${ADMIN_EMAIL} not found in Firestore. Creating...`);
-            const adminUser: Omit<User, 'id'> = {
-                name: 'Administrador Principal', email: ADMIN_EMAIL, role: 'admin',
-                permissions: {
-                    dashboard: { view: true, edit: true }, players: { view: true, edit: true },
-                    schedule: { view: true, edit: true }, partido: { view: true, edit: true },
-                    copa: { view: true, edit: true }, aiCards: { view: true, edit: true },
-                    committees: { view: true, edit: true }, treasury: { view: true, edit: true },
-                    requests: { view: true, edit: true }, reports: { view: true, edit: true },
-                    teams: { view: true, edit: true }, roles: { view: true, edit: true },
-                    logs: { view: true, edit: true },
-                },
-                avatarUrl: 'https://placehold.co/100x100.png'
-            };
-
-            // We don't know the UID from the Auth user, so we'll just create a new doc.
-            // When the user logs in, the AuthProvider will fetch this by email.
-            // This assumes the admin user was already created in the Firebase Auth console.
-            await addDoc(usersCol, adminUser);
-            
-            const freshSnapshot = await getDocs(usersCol);
-            return freshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        }
-    }
     return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 };
 
 export const getUserByEmail = async (email: string): Promise<User | undefined> => {
     const usersCol = collection(db, 'users');
-    const q = query(usersCol, where("email", "==", email), limit(1));
+    const q = query(usersCol, where("email", "==", email.toLowerCase()), limit(1));
     const userSnapshot = await getDocs(q);
     if (userSnapshot.empty) return undefined;
     const userDoc = userSnapshot.docs[0];
@@ -86,17 +55,24 @@ export const updateUser = async (updatedUser: User) => {
 
 export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
     const usersCol = collection(db, 'users');
+    
+    // Normalize email for query
+    const userEmailLower = newUser.email.toLowerCase();
+    
     // Check if user already exists by email to prevent duplicates in Firestore
-    const q = query(usersCol, where("email", "==", newUser.email), limit(1));
+    const q = query(usersCol, where("email", "==", userEmailLower), limit(1));
     const existingUserSnapshot = await getDocs(q);
     if (!existingUserSnapshot.empty) {
         // User already exists in Firestore, just return it.
         const doc = existingUserSnapshot.docs[0];
+        console.log("User already exists in Firestore:", doc.id);
         return { id: doc.id, ...doc.data() } as User;
     }
+    
     // User does not exist, add them.
-    const docRef = await addDoc(usersCol, newUser);
-    return { id: docRef.id, ...newUser } as User;
+    console.log("Adding new user to Firestore:", userEmailLower);
+    const docRef = await addDoc(usersCol, { ...newUser, email: userEmailLower });
+    return { id: docRef.id, ...newUser, email: userEmailLower } as User;
 };
 
 
