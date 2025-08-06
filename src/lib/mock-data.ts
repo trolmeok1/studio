@@ -194,11 +194,23 @@ export const deleteTeam = async (teamId: string): Promise<void> => {
 
     // Find and delete all players associated with the team
     const playersRef = collection(db, 'players');
-    const q = query(playersRef, where("teamId", "==", teamId));
-    const playersSnapshot = await getDocs(q);
+    const qPlayers = query(playersRef, where("teamId", "==", teamId));
+    const playersSnapshot = await getDocs(qPlayers);
     playersSnapshot.forEach(playerDoc => {
         batch.delete(playerDoc.ref);
     });
+    
+    // Find and delete all sanctions associated with the team
+    const sanctionsRef = collection(db, 'sanctions');
+    const qSanctions = query(sanctionsRef, where("teamId", "==", teamId));
+    const sanctionsSnapshot = await getDocs(qSanctions);
+    sanctionsSnapshot.forEach(sanctionDoc => {
+        batch.delete(sanctionDoc.ref);
+    });
+
+    // Delete the standing for the team
+    const standingRef = doc(db, 'standings', teamId);
+    batch.delete(standingRef);
 
     // Commit the batch delete
     await batch.commit();

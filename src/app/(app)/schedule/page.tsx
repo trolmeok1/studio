@@ -647,7 +647,7 @@ export default function SchedulePage() {
         scheduledMatches.push(newMatch);
     }
 
-    setGeneratedMatches(scheduledMatches);
+    await loadData();
     setIsSuccessDialogOpen(true);
 };
 
@@ -667,29 +667,28 @@ export default function SchedulePage() {
   }
   
   const handleFinalizeTournament = async () => {
-    // 1. Delete all matches
-    const allMatches = await getMatches();
-    for (const match of allMatches) {
-        await deleteMatch(match.id);
+    setIsLoading(true);
+    try {
+        const allMatches = await getMatches();
+        for (const match of allMatches) {
+            await deleteMatch(match.id);
+        }
+        await resetAllStandings();
+        await clearAllSanctions();
+        await deleteCopa();
+
+        toast({
+            title: '¡Temporada Finalizada!',
+            description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.',
+        });
+    } catch (error) {
+        console.error("Failed to finalize tournament:", error);
+        toast({ title: 'Error', description: 'No se pudo finalizar el torneo.', variant: 'destructive'});
+    } finally {
+        await loadData();
+        setFinalizeAlertStep(0);
+        setIsLoading(false);
     }
-
-    // 2. Reset all standings to zero
-    await resetAllStandings();
-
-    // 3. Clear all sanctions
-    await clearAllSanctions();
-
-    // 4. Clear Copa teams
-    await deleteCopa();
-
-    // 5. Update local state
-    setGeneratedMatches([]);
-    setFinalMatches([]);
-    setFinalizeAlertStep(0);
-    toast({ 
-        title: '¡Temporada Finalizada!', 
-        description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.'
-    });
   };
 
    const handleGenerateFinals = async () => {
