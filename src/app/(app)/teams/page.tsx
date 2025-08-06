@@ -4,14 +4,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getTeams, type Team, type Category } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Shield, Users } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { AddTeam } from './_components/AddTeam';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 const TeamCard = ({ team }: { team: Team }) => (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -82,6 +82,19 @@ export default function TeamsPage() {
             .filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [teams, activeTab, searchTerm]);
 
+    const TeamList = ({ teamsToShow }: { teamsToShow: Team[] }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
+            {loading ? (
+                Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-40 bg-muted rounded-lg animate-pulse"></div>)
+            ) : teamsToShow.length > 0 ? (
+                teamsToShow.map(team => <TeamCard key={team.id} team={team} />)
+            ) : (
+                <div className="col-span-full text-center py-10">
+                    <p>No se encontraron equipos para "{activeTab}" {searchTerm && `con el nombre "${searchTerm}"`}.</p>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -112,29 +125,25 @@ export default function TeamsPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Category)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
-                             {categories.map((cat) => (
-                                <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
-                             ))}
-                        </TabsList>
-
+                    <div className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-full overflow-x-auto">
                         {categories.map((cat) => (
-                             <TabsContent key={cat} value={cat}>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
-                                    {loading ? (
-                                        Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-40 bg-muted rounded-lg animate-pulse"></div>)
-                                    ) : filteredTeams.length > 0 ? (
-                                        filteredTeams.map(team => <TeamCard key={team.id} team={team} />)
-                                    ) : (
-                                        <div className="col-span-full text-center py-10">
-                                            <p>No se encontraron equipos para "{cat}" {searchTerm && `con el nombre "${searchTerm}"`}.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </TabsContent>
+                             <Button
+                                key={cat}
+                                variant="ghost"
+                                onClick={() => setActiveTab(cat)}
+                                className={cn(
+                                    "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                                    activeTab === cat && "bg-card text-foreground shadow-sm"
+                                )}
+                            >
+                                {cat}
+                            </Button>
                         ))}
-                    </Tabs>
+                    </div>
+                    
+                    <div className="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                        <TeamList teamsToShow={filteredTeams} />
+                    </div>
                 </CardContent>
             </Card>
         </div>
