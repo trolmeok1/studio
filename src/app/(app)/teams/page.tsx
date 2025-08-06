@@ -128,13 +128,13 @@ export default function TeamsPage() {
                 </CardHeader>
                 <CardContent>
                      <Accordion type="multiple" defaultValue={categories} className="w-full">
-                       {categories.map((cat) => {
+                       {categories.map((cat, index) => {
                             const teamsForCategory = filteredTeamsByCategory(cat);
                             if (teamsForCategory.length === 0 && searchTerm) {
                                 return null;
                             }
                            return (
-                               <AccordionItem value={cat} key={cat}>
+                               <AccordionItem value={cat} key={`${cat}-${index}`}>
                                    <AccordionTrigger className="text-lg font-semibold">{cat}</AccordionTrigger>
                                    <AccordionContent>
                                        <TeamList teamsToShow={teamsForCategory} />
