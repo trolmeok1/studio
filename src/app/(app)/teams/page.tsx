@@ -92,7 +92,7 @@ export default function TeamsPage() {
                         Gestiona los equipos de la liga, su información y sus jugadores.
                     </p>
                 </div>
-                <AddTeam onTeamAdded={handleTeamAdded} />
+                {user.permissions.teams.edit && <AddTeam onTeamAdded={handleTeamAdded} />}
             </div>
             
             <Card>
