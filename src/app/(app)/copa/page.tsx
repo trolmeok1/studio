@@ -149,7 +149,7 @@ const CopaSettingsDialog = ({ onGenerate }: { onGenerate: (settings: { teams: Te
                             )}
                         >
                             <Checkbox checked={selectedTeamIds.includes(team.id)} onCheckedChange={() => handleTeamToggle(team.id)} />
-                            <Image src={team.logoUrl} alt={team.name} width={32} height={32} className="rounded-full" />
+                            <Image src={team.logoUrl || 'https://placehold.co/100x100.png'} alt={team.name} width={32} height={32} className="rounded-full" />
                             <div className="flex-1">
                                 <p className="font-semibold text-sm">{team.name}</p>
                                 <p className="text-xs text-muted-foreground">{team.category}</p>
