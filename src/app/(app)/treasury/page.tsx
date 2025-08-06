@@ -153,10 +153,10 @@ export default function TreasuryPage() {
     
     const pendingPayments = useMemo(() => filteredMatches.flatMap(match => {
         const pending: { team: MatchTeam, amount: number, date: string }[] = [];
-        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending') {
+        if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending' && match.teams.home.vocalPaymentDetails.total > 0) {
             pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date});
         }
-        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending') {
+        if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending' && match.teams.away.vocalPaymentDetails.total > 0) {
             pending.push({team: match.teams.away, amount: match.teams.away.vocalPaymentDetails.total, date: match.date});
         }
         return pending;
@@ -347,7 +347,7 @@ export default function TreasuryPage() {
                         <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${pendingPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString('en-US')}</div>
+                        <div className="text-2xl font-bold">${pendingPayments.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString('en-US')}</div>
                         <p className="text-xs text-muted-foreground">
                             De {pendingPayments.length} equipos
                         </p>
@@ -377,7 +377,7 @@ export default function TreasuryPage() {
                                      <TableRow key={`${p.team.id}-${index}`}>
                                         <TableCell>{isClient ? new Date(p.date).toLocaleDateString() : ''}</TableCell>
                                         <TableCell className="font-medium">{p.team.name}</TableCell>
-                                        <TableCell className="text-right font-semibold">${p.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right font-semibold">${(p.amount || 0).toFixed(2)}</TableCell>
                                         <TableCell className="text-right">
                                             <Button size="sm">Marcar como Pagado</Button>
                                         </TableCell>

@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown, History } from 'lucide-react';
+import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown, History, PartyPopper } from 'lucide-react';
 import Image from 'next/image';
 import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById, getSanctionSettings, type SanctionSettings } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ import { isToday, isFuture, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
@@ -332,7 +333,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     )
 }
 
-const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (matchId: string, updatedData: Partial<Match>) => void, onFinishMatch: (matchId: string) => void }) => {
+const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (matchId: string, updatedData: Partial<Match>) => Promise<void>, onFinishMatch: (matchId: string) => Promise<void> }) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const canEdit = user.permissions.committees.edit;
@@ -538,8 +539,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const teamDetails = match.teams[teamKey];
         if (!teamDetails.vocalPaymentDetails) return;
     
-        const currentPayment = { ...teamDetails.vocalPaymentDetails };
-        const updatedPayment = { ...currentPayment, [field]: value };
+        let updatedPayment = { ...teamDetails.vocalPaymentDetails, [field]: value };
     
         const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
             const absenceFine = !match.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
@@ -582,7 +582,6 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const handleSaveResult = () => {
         if (!match) return;
         onFinishMatch(match.id);
-        toast({ title: "Partido Finalizado", description: "El resultado ha sido guardado y el partido marcado como finalizado."});
     }
 
      const handlePhysicalSheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -675,10 +674,10 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <Label>Pago Árbitro:</Label>
-                    <Input type="number" value={details.referee} onChange={(e) => handleVocalPaymentChange(teamKey, 'referee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.referee || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'referee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
                     
                     <Label>Cuota:</Label>
-                    <Input type="number" value={details.fee} onChange={(e) => handleVocalPaymentChange(teamKey, 'fee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.fee || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'fee', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
                     
                     <div className="flex items-center justify-between col-span-2">
                          <Label>Multa T. Amarillas:</Label>
@@ -691,9 +690,9 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                     </div>
 
                     <Label className="col-span-2">Otras Multas (especificar):</Label>
-                    <Textarea value={details.otherFinesDescription} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
+                    <Textarea value={details.otherFinesDescription || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
                     <div/>
-                    <Input type="number" value={details.otherFines} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFines', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
+                    <Input type="number" value={details.otherFines || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'otherFines', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
 
                     <Label>Abono / Adelanto:</Label>
                     <Input type="number" value={details.advancePayment || ''} onChange={(e) => handleVocalPaymentChange(teamKey, 'advancePayment', parseFloat(e.target.value) || 0)} placeholder="0.00" disabled={disabled} className="h-8" />
@@ -900,6 +899,7 @@ export default function CommitteesPage() {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
 
   const loadMatches = useCallback(async () => {
     setLoading(true);
@@ -928,9 +928,14 @@ export default function CommitteesPage() {
   
   const handleFinishMatch = useCallback(async (matchId: string) => {
     await setMatchAsFinished(matchId);
-    setAllMatches(prevMatches => prevMatches.map(m => m.id === matchId ? { ...m, status: 'finished' } : m));
-    setSelectedMatchId(null);
-  }, []);
+    await loadMatches(); // Recargar todos los partidos para reflejar el cambio de estado
+    setIsSuccessDialogOpen(true);
+  }, [loadMatches]);
+
+  const handleSuccessDialogClose = () => {
+    setIsSuccessDialogOpen(false);
+    setSelectedMatchId(null); // Volver a la pantalla de selección
+  };
 
   const selectedMatch = useMemo(() => {
     if (!selectedMatchId) return null;
@@ -1036,6 +1041,23 @@ export default function CommitteesPage() {
              <DigitalMatchSheet match={selectedMatch} onUpdateMatch={handleUpdateMatch} onFinishMatch={handleFinishMatch} />
           </TabsContent>
         </Tabs>
+        
+        <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                     <AlertDialogTitle className="flex items-center gap-2">
+                        <PartyPopper className="text-primary h-6 w-6"/>
+                        ¡Éxito!
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                       Se registró la información del partido.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogAction onClick={handleSuccessDialogClose}>Aceptar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
       <style jsx global>{`
         @media print {

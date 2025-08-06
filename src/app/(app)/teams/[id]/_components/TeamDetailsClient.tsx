@@ -440,18 +440,24 @@ const EditTeamDialog = ({ team, onTeamUpdated, onTeamDeleted }: { team: Team, on
         }
     };
     
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { id, value } = e.target;
-        const [field, subField] = id.split('.');
-
-        if (subField) {
-            setTeamData(prev => ({
-                ...prev,
-                [field]: { ...((prev as any)[field] || {}), [subField]: value }
-            }));
-        } else {
-            setTeamData(prev => ({ ...prev, [field]: value }));
-        }
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, fieldPath: string) => {
+        const { value } = e.target;
+        const keys = fieldPath.split('.');
+    
+        setTeamData(prev => {
+            const newData = { ...prev };
+            let currentLevel: any = newData;
+    
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!currentLevel[keys[i]]) {
+                    currentLevel[keys[i]] = {};
+                }
+                currentLevel = currentLevel[keys[i]];
+            }
+            currentLevel[keys[keys.length - 1]] = value;
+    
+            return newData;
+        });
     };
     
     const handleCategoryChange = (value: Category) => {
@@ -518,8 +524,8 @@ const EditTeamDialog = ({ team, onTeamUpdated, onTeamDeleted }: { team: Team, on
         <div>
             <Label>{label}</Label>
             <div className="grid grid-cols-2 gap-2">
-                <Input id={`${id}.name`} placeholder="Nombre" value={person?.name || ''} onChange={handleChange} />
-                <Input id={`${id}.phone`} placeholder="Teléfono" value={person?.phone || ''} onChange={handleChange} />
+                <Input placeholder="Nombre" value={person?.name || ''} onChange={(e) => handleInputChange(e, `${id}.name`)} />
+                <Input placeholder="Teléfono" value={person?.phone || ''} onChange={(e) => handleInputChange(e, `${id}.phone`)} />
             </div>
         </div>
     );
@@ -547,7 +553,7 @@ const EditTeamDialog = ({ team, onTeamUpdated, onTeamDeleted }: { team: Team, on
                     </div>
                      <div className="grid grid-cols-3 items-center gap-4">
                         <Label htmlFor="name">Nombre del Equipo</Label>
-                        <Input id="name" value={teamData.name} onChange={handleChange} className="col-span-2" />
+                        <Input id="name" value={teamData.name || ''} onChange={(e) => handleInputChange(e, 'name')} className="col-span-2" />
                     </div>
                     <div className="grid grid-cols-3 items-center gap-4">
                          <Label htmlFor="category">Categoría</Label>
