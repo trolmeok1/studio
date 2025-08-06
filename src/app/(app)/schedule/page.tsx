@@ -3,7 +3,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData, resetAllStandings, clearAllSanctions } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -521,7 +521,7 @@ const ResetDialog = ({
 
 
 export default function SchedulePage() {
-  const { toast } = useAuth();
+  const { toast } = useToast();
   const { user } = useAuth();
   const [generatedMatches, setGeneratedMatches] = useState<Match[]>([]);
   const [isDrawLeagueDialogOpen, setIsDrawLeagueDialogOpen] = useState(false);
@@ -667,16 +667,28 @@ export default function SchedulePage() {
   }
   
   const handleFinalizeTournament = async () => {
-    for (const match of generatedMatches) {
+    // 1. Delete all matches
+    const allMatches = await getMatches();
+    for (const match of allMatches) {
         await deleteMatch(match.id);
     }
-     for (const match of finalMatches) {
-        await deleteMatch(match.id);
-    }
+
+    // 2. Reset all standings to zero
+    await resetAllStandings();
+
+    // 3. Clear all sanctions
+    await clearAllSanctions();
+
+    // 4. TODO: Clear Copa teams (if stored separately)
+
+    // 5. Update local state
     setGeneratedMatches([]);
     setFinalMatches([]);
     setFinalizeAlertStep(0);
-    toast({ title: '¡Torneo Finalizado!', description: 'Todos los datos de la temporada han sido reiniciados.'});
+    toast({ 
+        title: '¡Temporada Finalizada!', 
+        description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.'
+    });
   };
 
    const handleGenerateFinals = async () => {

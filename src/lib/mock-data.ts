@@ -281,6 +281,24 @@ export const getStandings = async (): Promise<Standing[]> => {
     return standingsSnapshot.docs.map(doc => ({ ...doc.data(), teamId: doc.id } as Standing));
 };
 
+export const resetAllStandings = async (): Promise<void> => {
+    const standingsCol = collection(db, 'standings');
+    const standingsSnapshot = await getDocs(standingsCol);
+    const batch = writeBatch(db);
+    standingsSnapshot.forEach(doc => {
+        batch.update(doc.ref, {
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            points: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+        });
+    });
+    await batch.commit();
+};
+
 
 // --- Scorers ---
 export const getTopScorers = async (): Promise<Scorer[]> => {
@@ -312,6 +330,16 @@ export const addSanction = async (newSanction: Omit<Sanction, 'id'>): Promise<Sa
     const sanctionsCol = collection(db, 'sanctions');
     const docRef = await addDoc(sanctionsCol, newSanction);
     return { id: docRef.id, ...newSanction };
+};
+
+export const clearAllSanctions = async (): Promise<void> => {
+    const sanctionsCol = collection(db, 'sanctions');
+    const sanctionSnapshot = await getDocs(sanctionsCol);
+    const batch = writeBatch(db);
+    sanctionSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
 };
 
 
