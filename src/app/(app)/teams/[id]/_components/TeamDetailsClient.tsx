@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2 } from 'lucide-react';
+import { PlusCircle, Users, Calendar, ShieldAlert, BadgeInfo, Printer, List, LayoutGrid, DollarSign, Phone, User as UserIcon, BarChart3, TrendingUp, TrendingDown, Minus, Upload, Loader2, Edit } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -21,8 +22,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addPlayer } from '@/lib/mock-data';
-import type { PlayerPosition } from '@/lib/types';
+import { addPlayer, updateTeam } from '@/lib/mock-data';
+import type { PlayerPosition, Person } from '@/lib/types';
 
 
 const AddPlayerDialog = ({ team, onPlayerAdded }: { team: Team, onPlayerAdded: (newPlayer: Player) => void }) => {
@@ -427,6 +428,144 @@ const PerformanceChart = ({ teamId, matches }: { teamId: string, matches: Match[
     )
 }
 
+const EditTeamDialog = ({ team, onTeamUpdated }: { team: Team, onTeamUpdated: (updatedTeam: Team) => void }) => {
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [teamData, setTeamData] = useState<Team>(team);
+    const [logoPreview, setLogoPreview] = useState<string | null>(team.logoUrl);
+
+    useEffect(() => {
+        setTeamData(team);
+        setLogoPreview(team.logoUrl);
+    }, [team, isOpen]);
+
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        const [field, subField] = id.split('.');
+
+        if (subField) {
+            setTeamData(prev => ({
+                ...prev,
+                [field]: { ...(prev as any)[field], [subField]: value }
+            }));
+        } else {
+            setTeamData(prev => ({ ...prev, [field]: value }));
+        }
+    };
+
+    const handleDelegateChange = (index: number, field: 'name' | 'phone', value: string) => {
+        setTeamData(prev => {
+            const newDelegates = [...(prev.delegates || [])];
+            while (newDelegates.length <= index) {
+                newDelegates.push({ name: '' });
+            }
+            newDelegates[index] = { ...newDelegates[index], [field]: value };
+            return { ...prev, delegates: newDelegates };
+        });
+    }
+
+    const handleSave = async () => {
+        setIsLoading(true);
+        try {
+            const updatedTeam = await updateTeam(teamData.id, teamData, logoPreview);
+            toast({
+                title: 'Equipo Actualizado',
+                description: `La información de "${teamData.name}" ha sido guardada.`,
+            });
+            onTeamUpdated(updatedTeam);
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Failed to update team:", error);
+            toast({
+                title: 'Error al actualizar',
+                description: 'No se pudo guardar la información del equipo.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const DirectiveInput = ({ id, label, person }: { id: string, label: string, person?: Person }) => (
+        <div>
+            <Label>{label}</Label>
+            <div className="grid grid-cols-2 gap-2">
+                <Input id={`${id}.name`} placeholder="Nombre" value={person?.name || ''} onChange={handleChange} />
+                <Input id={`${id}.phone`} placeholder="Teléfono" value={person?.phone || ''} onChange={handleChange} />
+            </div>
+        </div>
+    );
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="secondary"><Edit className="mr-2 h-4 w-4" /> Editar Equipo</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Editar Información del Equipo</DialogTitle>
+                    <DialogDescription>Modifica los datos de la directiva y del equipo.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                    <div className="grid grid-cols-3 items-center gap-4">
+                        <Label>Logo del Equipo</Label>
+                        <div className="col-span-2 flex items-center gap-4">
+                            <Avatar className="w-20 h-20">
+                                {logoPreview && <AvatarImage src={logoPreview} alt={teamData.name} />}
+                                <AvatarFallback className="text-2xl">{teamData.name.substring(0,2)}</AvatarFallback>
+                            </Avatar>
+                            <Input id="logo-upload" type="file" accept="image/*" onChange={handleLogoChange} />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="name">Nombre del Equipo</Label>
+                        <Input id="name" value={teamData.name} onChange={handleChange} className="col-span-2" />
+                    </div>
+                    <DirectiveInput id="president" label="Presidente/a" person={teamData.president} />
+                    <DirectiveInput id="vicePresident" label="Vicepresidente/a" person={teamData.vicePresident} />
+                    <DirectiveInput id="secretary" label="Secretario/a" person={teamData.secretary} />
+                    <DirectiveInput id="treasurer" label="Tesorero/a" person={teamData.treasurer} />
+                    <DirectiveInput id="vocal" label="Vocal Principal" person={teamData.vocal} />
+
+                    <div>
+                        <Label>Delegados</Label>
+                        <div className="space-y-2 mt-1">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <div key={index} className="grid grid-cols-[auto_1fr_1fr] items-center gap-2">
+                                    <span>{index + 1}.</span>
+                                    <Input placeholder="Nombre Delegado" value={teamData.delegates?.[index]?.name || ''} onChange={(e) => handleDelegateChange(index, 'name', e.target.value)} />
+                                    <Input placeholder="Teléfono Delegado" value={teamData.delegates?.[index]?.phone || ''} onChange={(e) => handleDelegateChange(index, 'phone', e.target.value)} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button onClick={handleSave} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Guardar Cambios
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export function TeamDetailsClient({
   team: initialTeam,
   players: initialPlayers,
@@ -445,10 +584,16 @@ export function TeamDetailsClient({
 
   const { user } = useAuth();
   const [players, setPlayers] = useState(initialPlayers);
+  const [team, setTeam] = useState(initialTeam);
+
   const activePlayers = useMemo(() => players.filter(p => p.status === 'activo'), [players]);
 
   const handlePlayerAdded = useCallback((newPlayer: Player) => {
     setPlayers(prev => [...prev, newPlayer]);
+  }, []);
+  
+  const handleTeamUpdated = useCallback((updatedTeam: Team) => {
+      setTeam(updatedTeam);
   }, []);
 
   return (
@@ -456,32 +601,35 @@ export function TeamDetailsClient({
       <header className="flex flex-col md:flex-row gap-4 justify-between items-start">
         <div className="flex items-center gap-6">
           <Image
-            src={initialTeam.logoUrl || 'https://placehold.co/128x128.png'}
-            alt={`Logo de ${initialTeam.name}`}
+            src={team.logoUrl || 'https://placehold.co/128x128.png'}
+            alt={`Logo de ${team.name}`}
             width={128}
             height={128}
             className="rounded-full border-4 border-primary shadow-lg"
             data-ai-hint="team logo"
           />
           <div>
-            <Badge>{initialTeam.category}</Badge>
-            <h2 className="text-4xl font-bold font-headline mt-1">{initialTeam.name}</h2>
-            <p className="text-muted-foreground">{initialTeam.president?.name || 'Presidente no asignado'}</p>
+            <Badge>{team.category}</Badge>
+            <h2 className="text-4xl font-bold font-headline mt-1">{team.name}</h2>
+            <p className="text-muted-foreground">{team.president?.name || 'Presidente no asignado'}</p>
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" asChild>
-            <Link href={`/teams/${initialTeam.id}/roster`}>
+            <Link href={`/teams/${team.id}/roster`}>
                 <Printer className="mr-2 h-4 w-4" /> Nómina
             </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/teams/${initialTeam.id}/info`}>
+            <Link href={`/teams/${team.id}/info`}>
                 <BadgeInfo className="mr-2 h-4 w-4" /> Directiva
             </Link>
           </Button>
           {user.permissions.teams.edit && (
-            <AddPlayerDialog team={initialTeam} onPlayerAdded={handlePlayerAdded} />
+            <>
+              <EditTeamDialog team={team} onTeamUpdated={handleTeamUpdated} />
+              <AddPlayerDialog team={team} onPlayerAdded={handlePlayerAdded} />
+            </>
           )}
         </div>
       </header>
@@ -502,7 +650,7 @@ export function TeamDetailsClient({
              <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Rendimiento (Últimos 5)</p>
                  <div className="mt-2 h-8 flex items-center justify-center">
-                     <PerformanceChart teamId={initialTeam.id} matches={matches} />
+                     <PerformanceChart teamId={team.id} matches={matches} />
                 </div>
             </div>
         </CardContent>
@@ -519,7 +667,7 @@ export function TeamDetailsClient({
           <RosterTab players={activePlayers} />
         </TabsContent>
         <TabsContent value="matches" className="mt-4">
-            <MatchesTab teamId={initialTeam.id} matches={matches} />
+            <MatchesTab teamId={team.id} matches={matches} />
         </TabsContent>
         <TabsContent value="sanctions" className="mt-4">
           <SanctionsTab sanctions={teamSanctions} />

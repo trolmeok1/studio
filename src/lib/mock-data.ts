@@ -126,6 +126,8 @@ export const getTeams = async (): Promise<Team[]> => {
 };
 
 export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDataUri: string | null): Promise<Team> => {
+    const newTeamRef = doc(collection(db, 'teams'));
+    
     const newTeamData: Omit<Team, 'id' | 'logoUrl' | 'group'> & { group?: 'A' | 'B' } = {
         name: teamData.name,
         category: teamData.category,
@@ -135,19 +137,43 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
         treasurer: { name: '' },
         vocal: { name: '' },
         delegates: [],
-        logoUrl: logoDataUri || 'https://placehold.co/100x100.png', // Use placeholder if no logo
+        logoUrl: '', // Will be updated after upload
     };
 
     if (teamData.category === 'Segunda') {
         newTeamData.group = 'A';
     }
 
-    const docRef = await addDoc(collection(db, 'teams'), newTeamData);
+    await setDoc(newTeamRef, newTeamData);
+    const newTeamId = newTeamRef.id;
+
+    let finalLogoUrl = 'https://placehold.co/100x100.png';
+    if (logoDataUri && logoDataUri.startsWith('data:image')) {
+        const storageRef = ref(storage, `team-logos/${newTeamId}`);
+        const snapshot = await uploadString(storageRef, logoDataUri, 'data_url');
+        finalLogoUrl = await getDownloadURL(snapshot.ref);
+    }
     
-    const finalDoc = await getDoc(docRef);
+    await updateDoc(newTeamRef, { logoUrl: finalLogoUrl });
+    
+    const finalDoc = await getDoc(newTeamRef);
     return { id: docRef.id, ...finalDoc.data() } as Team;
 };
 
+export const updateTeam = async (teamId: string, teamData: Partial<Team>, logoDataUri: string | null): Promise<Team> => {
+    const teamRef = doc(db, 'teams', teamId);
+    const updateData: Partial<Team> = { ...teamData };
+
+    if (logoDataUri && logoDataUri.startsWith('data:image')) {
+        const storageRef = ref(storage, `team-logos/${teamId}`);
+        const snapshot = await uploadString(storageRef, logoDataUri, 'data_url');
+        updateData.logoUrl = await getDownloadURL(snapshot.ref);
+    }
+
+    await updateDoc(teamRef, updateData);
+    const updatedDoc = await getDoc(teamRef);
+    return { id: updatedDoc.id, ...updatedDoc.data() } as Team;
+};
 
 export const getTeamById = async (id: string): Promise<Team | undefined> => {
     if (!id) return undefined;
