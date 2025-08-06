@@ -360,46 +360,83 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
 
+    const handleVocalPaymentChange = useCallback((
+        currentMatchData: Match,
+        teamKey: 'home' | 'away',
+        field: keyof VocalPaymentDetailsType,
+        value: any
+    ): Match => {
+        const newMatchState = JSON.parse(JSON.stringify(currentMatchData)); // Deep copy
+        const teamDetails = newMatchState.teams[teamKey];
+    
+        if (!teamDetails.vocalPaymentDetails) return currentMatchData;
+    
+        let updatedPayment = { ...teamDetails.vocalPaymentDetails, [field]: value };
+    
+        const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
+            const absenceFine = !newMatchState.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
+            const baseTotal =
+                (Number(paymentDetails.referee) || 0) +
+                (Number(paymentDetails.fee) || 0) +
+                (Number(paymentDetails.yellowCardFine) || 0) +
+                (Number(paymentDetails.redCardFine) || 0) +
+                (Number(paymentDetails.otherFines) || 0) +
+                absenceFine;
+    
+            const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
+    
+            const totalWithPending = baseTotal + pendingAmountToAdd;
+            return totalWithPending - (Number(paymentDetails.advancePayment) || 0);
+        };
+    
+        const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
+        updatedPayment.total = calculateTotal(updatedPayment, pendingValue);
+    
+        if (!newMatchState.teams[teamKey].attended) {
+            updatedPayment.absenceFine = sanctionSettings.absenceFine;
+        } else {
+            updatedPayment.absenceFine = 0;
+        }
+    
+        teamDetails.vocalPaymentDetails = updatedPayment;
+        return newMatchState;
+    
+    }, [sanctionSettings, pendingValueHome, pendingValueAway]);
+
     useEffect(() => {
         if (!localMatch) return;
     
-        const calculateFines = () => {
-            let changed = false;
-            const newMatchData = JSON.parse(JSON.stringify(localMatch));
-    
-            for (const teamKey of ['home', 'away'] as const) {
-                const team = newMatchData.teams[teamKey];
-                if (!team.vocalPaymentDetails) continue;
-    
-                const yellowCardCount = newMatchData.events.filter((e: MatchEvent) => e.teamName === team.name && e.event === 'yellow_card').length;
-                const redCardCount = newMatchData.events.filter((e: MatchEvent) => e.teamName === team.name && e.event === 'red_card').length;
-    
-                const newYellowCardFine = yellowCardCount * sanctionSettings.yellowCardFine;
-                const newRedCardFine = redCardCount * sanctionSettings.redCardFine;
-    
-                if (team.vocalPaymentDetails.yellowCardFine !== newYellowCardFine || team.vocalPaymentDetails.redCardFine !== newRedCardFine) {
-                    team.vocalPaymentDetails.yellowCardCount = yellowCardCount;
-                    team.vocalPaymentDetails.redCardCount = redCardCount;
-                    team.vocalPaymentDetails.yellowCardFine = newYellowCardFine;
-                    team.vocalPaymentDetails.redCardFine = newRedCardFine;
-                    changed = true;
-                }
+        let changed = false;
+        const newMatchData = JSON.parse(JSON.stringify(localMatch));
+
+        for (const teamKey of ['home', 'away'] as const) {
+            if (!newMatchData.teams[teamKey]?.vocalPaymentDetails) continue;
+
+            const team = newMatchData.teams[teamKey];
+            const yellowCardCount = newMatchData.events.filter((e: MatchEvent) => e.teamName === team.name && e.event === 'yellow_card').length;
+            const redCardCount = newMatchData.events.filter((e: MatchEvent) => e.teamName === team.name && e.event === 'red_card').length;
+
+            const newYellowCardFine = yellowCardCount * sanctionSettings.yellowCardFine;
+            const newRedCardFine = redCardCount * sanctionSettings.redCardFine;
+
+            if (team.vocalPaymentDetails.yellowCardFine !== newYellowCardFine || team.vocalPaymentDetails.redCardFine !== newRedCardFine) {
+                team.vocalPaymentDetails.yellowCardCount = yellowCardCount;
+                team.vocalPaymentDetails.redCardCount = redCardCount;
+                team.vocalPaymentDetails.yellowCardFine = newYellowCardFine;
+                team.vocalPaymentDetails.redCardFine = newRedCardFine;
+                changed = true;
             }
+        }
     
-            if (changed) {
-                setLocalMatch(prev => {
-                    if (!prev) return null;
-                    const tempUpdatedMatch = { ...prev };
-                    handleVocalPaymentChange(tempUpdatedMatch, 'home', 'referee', tempUpdatedMatch.teams.home.vocalPaymentDetails?.referee || 0, (m) => {
-                        handleVocalPaymentChange(m, 'away', 'referee', m.teams.away.vocalPaymentDetails?.referee || 0, setLocalMatch);
-                    });
-                    return prev; 
-                });
+        if (changed) {
+            const updatedWithHome = handleVocalPaymentChange(newMatchData, 'home', 'referee', newMatchData.teams.home.vocalPaymentDetails?.referee || 0);
+            const updatedWithAway = handleVocalPaymentChange(updatedWithHome, 'away', 'referee', newMatchData.teams.away.vocalPaymentDetails?.referee || 0);
+            
+            if (JSON.stringify(localMatch) !== JSON.stringify(updatedWithAway)) {
+                 setLocalMatch(updatedWithAway);
             }
-        };
-    
-        calculateFines();
-    }, [localMatch?.events.length, sanctionSettings]);
+        }
+    }, [localMatch?.events.length, sanctionSettings, handleVocalPaymentChange]);
     
 
     const teamForEventSearch = localMatch?.teams.home.id === selectedTeamId ? localMatch.teams.home : localMatch?.teams.away;
@@ -517,57 +554,17 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
         }
     }, [localMatch, getPendingValue]);
     
-     const handleVocalPaymentChange = useCallback((
-        currentMatchData: Match,
+     const updateVocalPayment = useCallback((
         teamKey: 'home' | 'away',
         field: keyof VocalPaymentDetailsType,
-        value: any,
-        setter: React.Dispatch<React.SetStateAction<Match | null>>
+        value: any
     ) => {
-        setter(prev => {
-            if (!prev) return null;
-            const newMatchState = JSON.parse(JSON.stringify(prev)); // Deep copy
-            const teamDetails = newMatchState.teams[teamKey];
-
-            if (!teamDetails.vocalPaymentDetails) return prev;
-
-            let updatedPayment = { ...teamDetails.vocalPaymentDetails, [field]: value };
-
-            const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
-                const absenceFine = !newMatchState.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
-                const baseTotal =
-                    (Number(paymentDetails.referee) || 0) +
-                    (Number(paymentDetails.fee) || 0) +
-                    (Number(paymentDetails.yellowCardFine) || 0) +
-                    (Number(paymentDetails.redCardFine) || 0) +
-                    (Number(paymentDetails.otherFines) || 0) +
-                    absenceFine;
-
-                const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
-
-                const totalWithPending = baseTotal + pendingAmountToAdd;
-                return totalWithPending - (Number(paymentDetails.advancePayment) || 0);
-            };
-
-            const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
-            updatedPayment.total = calculateTotal(updatedPayment, pendingValue);
-
-            if (!newMatchState.teams[teamKey].attended) {
-                updatedPayment.absenceFine = sanctionSettings.absenceFine;
-            } else {
-                updatedPayment.absenceFine = 0;
-            }
-
-            teamDetails.vocalPaymentDetails = updatedPayment;
-            
-            const hasChanged = JSON.stringify(prev) !== JSON.stringify(newMatchState);
-
-            if (hasChanged) {
-                return newMatchState;
-            }
-            return prev;
-        });
-    }, [sanctionSettings, pendingValueHome, pendingValueAway]);
+        if (!localMatch) return;
+        const updatedMatch = handleVocalPaymentChange(localMatch, teamKey, field, value);
+        if (JSON.stringify(localMatch) !== JSON.stringify(updatedMatch)) {
+            setLocalMatch(updatedMatch);
+        }
+    }, [localMatch, handleVocalPaymentChange]);
     
     const handleSaveResult = () => {
         if (!localMatch) return;
@@ -597,7 +594,7 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
         
         useEffect(() => {
             if (localMatch) {
-                handleVocalPaymentChange(localMatch, teamKey, 'referee', localMatch.teams[teamKey].vocalPaymentDetails?.referee || 0, setLocalMatch);
+                updateVocalPayment(teamKey, 'referee', localMatch.teams[teamKey].vocalPaymentDetails?.referee || 0);
             }
         }, [localMatch?.teams[teamKey].attended, teamKey]);
 
@@ -609,20 +606,20 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
 
         const handleSwitchChange = (field: keyof VocalPaymentDetailsType | 'attended', checked: boolean) => {
              if (field === 'paymentStatus') {
-                handleVocalPaymentChange(localMatch, teamKey, 'paymentStatus', checked ? 'paid' : 'pending', setLocalMatch);
+                updateVocalPayment(teamKey, 'paymentStatus', checked ? 'paid' : 'pending');
              } else if (field === 'includePendingDebt') {
-                handleVocalPaymentChange(localMatch, teamKey, 'includePendingDebt', checked, setLocalMatch);
+                updateVocalPayment(teamKey, 'includePendingDebt', checked);
              } else if (field === 'attended') {
                  setLocalMatch(prev => prev ? { ...prev, teams: {...prev.teams, [teamKey]: {...prev.teams[teamKey], attended: checked}} } : null);
              }
         }
         
         const handleInputChange = (field: keyof VocalPaymentDetailsType, value: string) => {
-            handleVocalPaymentChange(localMatch, teamKey, field, parseFloat(value) || 0, setLocalMatch);
+            updateVocalPayment(teamKey, field, parseFloat(value) || 0);
         }
 
         const handleTextareaChange = (field: keyof VocalPaymentDetailsType, value: string) => {
-            handleVocalPaymentChange(localMatch, teamKey, field, value, setLocalMatch);
+            updateVocalPayment(teamKey, field, value);
         }
 
         return (
