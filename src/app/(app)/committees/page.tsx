@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { players as allPlayersData, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions } from '@/lib/mock-data';
+import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions } from '@/lib/mock-data';
 import { getSchedule } from '@/lib/schedule';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -354,7 +354,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     
     useEffect(() => {
         const fetchPlayers = async () => {
-            setAllPlayers(await allPlayersData());
+            setAllPlayers(await getPlayers());
         }
         fetchPlayers();
     }, []);
