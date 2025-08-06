@@ -320,6 +320,10 @@ export const resetAllStandings = async (): Promise<void> => {
     const batch = writeBatch(db);
 
     for (const team of teams) {
+        if (!team.id || !team.name) {
+            console.warn('Skipping team with missing id or name:', team);
+            continue;
+        }
         const standingRef = doc(db, 'standings', team.id);
         const standingData: Partial<Standing> = {
             teamName: team.name,
@@ -493,3 +497,5 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
+
+    
