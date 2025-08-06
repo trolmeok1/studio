@@ -206,6 +206,7 @@ function DashboardCarousel() {
     const { user } = useAuth();
     const [images, setImages] = useState<CarouselImage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const canEdit = user.permissions.dashboard.edit;
 
 
     useEffect(() => {
@@ -253,7 +254,7 @@ function DashboardCarousel() {
                 <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
                 <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
             </Carousel>
-            {user.permissions.dashboard.edit && (
+            {canEdit && (
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button className="absolute top-4 right-4" size="sm">Gestionar Carrusel</Button>

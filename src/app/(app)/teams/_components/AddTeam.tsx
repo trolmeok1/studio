@@ -65,19 +65,19 @@ export function AddTeam({ onTeamAdded }: { onTeamAdded: (newTeam: Team) => void 
 
     try {
         const newTeamData = { name: teamName, category };
-        const newTeam = await addTeam(newTeamData, logoPreview);
+        // The logo is now a placeholder, not uploaded.
+        const newTeam = await addTeam(newTeamData, null);
         
         toast({
             title: 'Equipo Agregado',
             description: `El equipo "${teamName}" ha sido creado en la categoría ${category}.`,
         });
 
-        onTeamAdded(newTeam); // Callback to update parent state
+        onTeamAdded(newTeam);
         resetForm();
         setIsOpen(false);
     } catch (error) {
         console.error("Error detallado al agregar equipo:", error);
-        // Display a more specific error message to the user
         const errorMessage = error instanceof Error ? error.message : "Ocurrió un error desconocido.";
         toast({
             title: 'Error al Guardar el Equipo',
@@ -133,7 +133,7 @@ export function AddTeam({ onTeamAdded }: { onTeamAdded: (newTeam: Team) => void 
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Logo del Equipo</Label>
+            <Label>Logo del Equipo (Opcional)</Label>
             <div className="flex items-center gap-4">
                 <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                     {logoPreview ? (

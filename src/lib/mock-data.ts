@@ -20,7 +20,9 @@ export const getCarouselImages = async (): Promise<CarouselImage[]> => {
 
 export const saveCarouselImages = async (images: CarouselImage[]) => {
     const settingsRef = doc(db, 'settings', 'carousel');
-    await setDoc(settingsRef, { images });
+    // We only save the src, alt, and title. The hint is for generation and not stored.
+    const imagesToSave = images.map(({ src, alt, title }) => ({ src, alt, title }));
+    await setDoc(settingsRef, { images: imagesToSave });
 };
 
 
@@ -133,6 +135,7 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
         treasurer: { name: '' },
         vocal: { name: '' },
         delegates: [],
+        logoUrl: logoDataUri || 'https://placehold.co/100x100.png', // Use placeholder if no logo
     };
 
     if (teamData.category === 'Segunda') {
@@ -140,19 +143,9 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
     }
 
     const docRef = await addDoc(collection(db, 'teams'), newTeamData);
-    const newTeamId = docRef.id;
-
-    let logoUrl = 'https://placehold.co/100x100.png';
-    if (logoDataUri) {
-        const storageRef = ref(storage, `team-logos/${newTeamId}`);
-        const snapshot = await uploadString(storageRef, logoDataUri, 'data_url');
-        logoUrl = await getDownloadURL(snapshot.ref);
-    }
-
-    await updateDoc(docRef, { logoUrl: logoUrl });
-
+    
     const finalDoc = await getDoc(docRef);
-    return { id: newTeamId, logoUrl, ...finalDoc.data() } as Team;
+    return { id: docRef.id, ...finalDoc.data() } as Team;
 };
 
 
