@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart2, Calendar, DollarSign, Download, Printer, ArrowLeft, Home, CalendarClock, User, Trophy, UserCheck, Image as ImageIcon, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { standings as mockStandings, teams, expenses as mockExpenses, type Category, type Standing, type Match, type Expense, upcomingMatches } from '@/lib/mock-data';
+import { standings as mockStandings, teams, expenses as mockExpenses, type Category, type Standing, type Match, type Expense, upcomingMatches, getMatches } from '@/lib/mock-data';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, addDays, isWithinInterval } from 'date-fns';
@@ -328,7 +328,7 @@ const FinalFlyer = ({ localTeam, awayTeam, date, time }: { localTeam?: Team, awa
 };
 
 
-const ScheduleReport = () => {
+const ScheduleReport = ({ matches }: { matches: Match[] }) => {
     const [bg, setBg] = useState<string | null>(null);
     useEffect(() => {
         setBg(localStorage.getItem('schedule-report-bg'));
@@ -341,10 +341,10 @@ const ScheduleReport = () => {
     const weeklyMatches = useMemo(() => {
         const today = new Date();
         const nextWeek = addDays(today, 7);
-        return upcomingMatches
-            .filter(match => isWithinInterval(new Date(match.date), { start: today, end: nextWeek }))
+        return matches
+            .filter(match => match.date && isWithinInterval(new Date(match.date), { start: today, end: nextWeek }))
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, []);
+    }, [matches]);
 
     const groupedMatches = useMemo(() => {
         return weeklyMatches.reduce((acc, match) => {
@@ -404,6 +404,7 @@ type FlyerDesign = 'standard' | 'semifinal' | 'final';
 
 export default function ReportsPage() {
     const [reportType, setReportType] = useState<ReportType>(null);
+    const [allMatches, setAllMatches] = useState<Match[]>([]);
     // Standings
     const [category, setCategory] = useState<Category>('Máxima');
     const [group, setGroup] = useState<'A' | 'B' | 'all'>('all');
@@ -422,6 +423,7 @@ export default function ReportsPage() {
         if (typeof window !== 'undefined') {
             setIsClient(true);
         }
+        getMatches().then(setAllMatches);
     }, []);
     
     useEffect(() => {
@@ -458,7 +460,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="mt-4">
                     {reportType === 'standings' && <StandingsReport category={category} group={group === 'all' ? undefined : group} />}
-                    {reportType === 'schedule' && <ScheduleReport />}
+                    {reportType === 'schedule' && <ScheduleReport matches={allMatches} />}
                     {reportType === 'finance' && <FinancialReport dateRange={dateRange} />}
                     {reportType === 'flyer' && flyerDesign === 'standard' && <StandardFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}
                     {reportType === 'flyer' && flyerDesign === 'semifinal' && <SemifinalFlyer localTeam={localTeam} awayTeam={awayTeam} date={flyerDate} time={flyerTime} />}

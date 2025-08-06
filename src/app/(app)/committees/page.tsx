@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions } from '@/lib/mock-data';
+import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches } from '@/lib/mock-data';
 import { getSchedule } from '@/lib/schedule';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,7 +43,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     const [allMatches, setAllMatches] = useState<Match[]>([]);
 
     useEffect(() => {
-        getSchedule().then(schedule => setAllMatches(schedule.matches as unknown as Match[]));
+        getMatches().then(setAllMatches);
     }, []);
 
     useEffect(() => {
@@ -341,7 +341,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
     const [allMatches, setAllMatches] = useState<Match[]>([]);
 
     useEffect(() => {
-        getSchedule().then(schedule => setAllMatches(schedule.matches as unknown as Match[]));
+        getMatches().then(setAllMatches);
     }, []);
 
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -849,7 +849,7 @@ export default function CommitteesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    getSchedule().then(schedule => setAllMatches(schedule.matches as unknown as Match[]));
+    getMatches().then(setAllMatches);
   }, []);
 
   const { user } = useAuth();
@@ -875,9 +875,9 @@ export default function CommitteesPage() {
   const groupedMatches = useMemo(() => {
     if (!isClient) return { today: [], future: [], past: [] };
 
-    const todayMatches = allMatches.filter(m => isToday(new Date(m.date)));
-    const futureMatches = allMatches.filter(m => isFuture(new Date(m.date)) && !isToday(new Date(m.date)));
-    const pastMatches = allMatches.filter(m => isPast(new Date(m.date)) && !isToday(new Date(m.date)));
+    const todayMatches = allMatches.filter(m => m.date && isToday(new Date(m.date)));
+    const futureMatches = allMatches.filter(m => m.date && isFuture(new Date(m.date)) && !isToday(new Date(m.date)));
+    const pastMatches = allMatches.filter(m => m.date && isPast(new Date(m.date)) && !isToday(new Date(m.date)));
 
     return {
         today: todayMatches,

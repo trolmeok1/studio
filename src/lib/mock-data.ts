@@ -328,6 +328,7 @@ export const getMatchesByTeamId = async (teamId: string): Promise<Match[]> => {
 }
 
 export const getMatchById = async (id: string): Promise<Match | undefined> => {
+    if (!id) return undefined;
     const matchRef = doc(db, 'matches', id);
     const matchSnap = await getDoc(matchRef);
     return matchSnap.exists() ? { id: matchSnap.id, ...matchSnap.data() } as Match : undefined;
