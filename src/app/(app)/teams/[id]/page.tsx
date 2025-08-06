@@ -3,30 +3,33 @@
 'use client';
 
 import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, getStandings, getSanctions, type Standing, type Team } from '@/lib/mock-data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { TeamDetailsClient } from './_components/TeamDetailsClient';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function TeamDetailsPage({ params }: { params: { id: string } }) {
+export default function TeamDetailsPage() {
+  const params = useParams();
+  const teamId = typeof params.id === 'string' ? params.id : '';
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchTeamData = useCallback(async () => {
+    if (!teamId) return;
     setLoading(true);
-    const team = await getTeamById(params.id);
+    const team = await getTeamById(teamId);
     if (!team) {
       notFound();
       return;
     }
   
-    const players = await getPlayersByTeamId(params.id);
-    const matches = await getMatchesByTeamId(params.id);
+    const players = await getPlayersByTeamId(teamId);
+    const matches = await getMatchesByTeamId(teamId);
     const standings = await getStandings();
     const allSanctions = await getSanctions();
     
-    const teamStandings = standings.find(s => s.teamId === params.id);
-    const teamSanctions = allSanctions.filter(s => s.teamId === params.id);
+    const teamStandings = standings.find(s => s.teamId === teamId);
+    const teamSanctions = allSanctions.filter(s => s.teamId === teamId);
     
     const vocalPayments = matches
       .filter(m => m.status === 'finished')
@@ -53,17 +56,16 @@ export default function TeamDetailsPage({ params }: { params: { id: string } }) 
       vocalPayments
     });
     setLoading(false);
-  }, [params.id]);
+  }, [teamId]);
 
   useEffect(() => {
     fetchTeamData();
   }, [fetchTeamData]);
 
-  const handleTeamDeleted = useCallback((teamId: string) => {
+  const handleTeamDeleted = useCallback((deletedTeamId: string) => {
     // In a real app, you might want to redirect or show a message.
     // For now, we can just refetch data or navigate away.
-    // Let's assume the component will redirect from the client side.
-    console.log(`Team ${teamId} was deleted.`);
+    console.log(`Team ${deletedTeamId} was deleted.`);
   }, []);
 
   if (loading || !teamData) {
