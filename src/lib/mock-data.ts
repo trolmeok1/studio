@@ -5,11 +5,11 @@ export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardSt
 import { db, storage, auth } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, deleteDoc, updateDoc, query, where, limit, orderBy, writeBatch, setDoc, runTransaction, Timestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import type { CarouselImage } from '@/app/(app)/dashboard/page';
 
 // --- IMPORTANT: Set your admin email here ---
-export const ADMIN_EMAIL = 'alejandroespin2021@gmail.com';
+export const ADMIN_EMAIL = 'admin@ligacontrol.com';
 
 // --- System Log Utility ---
 const addSystemLog = async (
@@ -500,9 +500,15 @@ export const setMatchAsFinished = async (matchId: string) => {
     const matchRef = doc(db, 'matches', matchId);
     
     await runTransaction(db, async (transaction) => {
-        const tempMatchDoc = await transaction.get(matchRef);
-        const homeTeamId = tempMatchDoc.data()!.teams.home.id;
-        const awayTeamId = tempMatchDoc.data()!.teams.away.id;
+        const matchDoc = await transaction.get(matchRef);
+        if (!matchDoc.exists()) {
+            throw "El documento del partido no existe.";
+        }
+        
+        const match = matchDoc.data() as Match;
+        
+        const homeTeamId = match.teams.home.id;
+        const awayTeamId = match.teams.away.id;
         
         const homeStandingsRef = doc(db, 'standings', homeTeamId);
         const awayStandingsRef = doc(db, 'standings', awayTeamId);
@@ -510,17 +516,10 @@ export const setMatchAsFinished = async (matchId: string) => {
         const homeStandingsDoc = await transaction.get(homeStandingsRef);
         const awayStandingsDoc = await transaction.get(awayStandingsRef);
         
-        // Re-read match doc last to minimize contention
-        const matchDoc = await transaction.get(matchRef);
-
-        if (!matchDoc.exists()) {
-            throw "El documento del partido no existe.";
-        }
         if (!homeStandingsDoc.exists() || !awayStandingsDoc.exists()) {
             throw "Uno o ambos documentos de la tabla de posiciones no existen.";
         }
         
-        const match = matchDoc.data() as Match;
         const homeScore = match.score?.home ?? 0;
         const awayScore = match.score?.away ?? 0;
 
@@ -636,3 +635,4 @@ export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
 
+    

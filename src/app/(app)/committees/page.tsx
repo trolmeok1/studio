@@ -384,8 +384,8 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
              }
 
              if (changed) {
-                await handleVocalPaymentChange('home', 'referee', match.teams.home.vocalPaymentDetails?.referee || 0);
-                await handleVocalPaymentChange('away', 'referee', match.teams.away.vocalPaymentDetails?.referee || 0);
+                handleVocalPaymentChange('home', 'referee', match.teams.home.vocalPaymentDetails?.referee || 0);
+                handleVocalPaymentChange('away', 'referee', match.teams.away.vocalPaymentDetails?.referee || 0);
              }
         };
 
@@ -507,6 +507,9 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         onUpdateMatch(match.id, { score: updatedScore });
     }
 
+    const [pendingValueHome, setPendingValueHome] = useState(0);
+    const [pendingValueAway, setPendingValueAway] = useState(0);
+
     const getPendingValue = useCallback(async (teamId: string, currentMatchId: string) => {
         const pastMatches = allMatches.filter(m => m.id !== currentMatchId && isPast(new Date(m.date)));
         const teamPastMatches = pastMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
@@ -519,8 +522,17 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             return total;
         }, 0);
     }, [allMatches]);
+
+    useEffect(() => {
+        if (match?.teams.home.id) {
+            getPendingValue(match.teams.home.id, match.id).then(setPendingValueHome);
+        }
+        if (match?.teams.away.id) {
+            getPendingValue(match.teams.away.id, match.id).then(setPendingValueAway);
+        }
+    }, [match, getPendingValue]);
     
-    const handleVocalPaymentChange = useCallback(async (teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
+    const handleVocalPaymentChange = useCallback((teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
         if (!match) return;
     
         const teamDetails = match.teams[teamKey];
@@ -529,7 +541,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const currentPayment = { ...teamDetails.vocalPaymentDetails };
         const updatedPayment = { ...currentPayment, [field]: value };
     
-        const calculateTotal = async (paymentDetails: VocalPaymentDetailsType) => {
+        const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
             const absenceFine = !match.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
             const baseTotal = 
                 (Number(paymentDetails.referee) || 0) + 
@@ -539,20 +551,19 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 (Number(paymentDetails.otherFines) || 0) +
                 absenceFine;
             
-            const pendingValue = await getPendingValue(match.teams[teamKey].id, match.id);
             const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
             
             const totalWithPending = baseTotal + pendingAmountToAdd;
-            const finalTotal = totalWithPending - (Number(paymentDetails.advancePayment) || 0);
-
-            return finalTotal;
+            return totalWithPending - (Number(paymentDetails.advancePayment) || 0);
         };
-    
-        updatedPayment.total = await calculateTotal(updatedPayment);
+        
+        const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
+        updatedPayment.total = calculateTotal(updatedPayment, pendingValue);
+        
         if (!match.teams[teamKey].attended) {
             updatedPayment.absenceFine = sanctionSettings.absenceFine;
         } else {
-             updatedPayment.absenceFine = 0;
+            updatedPayment.absenceFine = 0;
         }
     
         const updatedTeamDetails = {
@@ -566,7 +577,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 [teamKey]: updatedTeamDetails
             }
         });
-    }, [match, onUpdateMatch, getPendingValue, sanctionSettings]);
+    }, [match, onUpdateMatch, sanctionSettings, pendingValueHome, pendingValueAway]);
     
     const handleSaveResult = () => {
         if (!match) return;
@@ -594,19 +605,14 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
 
     const VocalPaymentDetailsInputs = ({ teamKey }: { teamKey: 'home' | 'away' }) => {
-        const [pendingValue, setPendingValue] = useState(0);
+        const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
         
-        const teamId = match?.teams[teamKey].id;
-
         useEffect(() => {
-            if (teamId && match) {
-                getPendingValue(teamId, match.id).then(setPendingValue);
+            if (match) {
+                // Recalculate total whenever attendance changes for absence fine
+                handleVocalPaymentChange(teamKey, 'referee', match.teams[teamKey].vocalPaymentDetails?.referee || 0);
             }
-        }, [teamId, match, getPendingValue]);
-        
-         useEffect(() => {
-            handleVocalPaymentChange(teamKey, 'referee', match?.teams[teamKey].vocalPaymentDetails?.referee || 0);
-        }, [match?.teams[teamKey].attended]);
+        }, [match?.teams[teamKey].attended, teamKey]);
 
         if (!match) return null;
         const details = match.teams[teamKey].vocalPaymentDetails;
