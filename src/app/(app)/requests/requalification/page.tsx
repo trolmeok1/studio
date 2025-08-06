@@ -142,7 +142,7 @@ export default function RequalificationPage() {
             teamName: selectedTeam.name,
             requestType: requestType,
             playerInName: playerIn.name,
-            playerOutName: playerOut?.name,
+            playerOutName: playerOut?.name || null,
             date: new Date().toISOString(),
             status: 'pending',
         };
