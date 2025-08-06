@@ -319,5 +319,3 @@ export function BottomNavbar() {
         </div>
     );
 }
-
-    
