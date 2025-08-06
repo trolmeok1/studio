@@ -685,6 +685,8 @@ export default function SchedulePage() {
         console.error("Failed to finalize tournament:", error);
         toast({ title: 'Error', description: 'No se pudo finalizar el torneo.', variant: 'destructive'});
     } finally {
+        setGeneratedMatches([]);
+        setFinalMatches([]);
         await loadData();
         setFinalizeAlertStep(0);
         setIsLoading(false);
@@ -915,3 +917,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+
