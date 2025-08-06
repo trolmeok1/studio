@@ -12,6 +12,7 @@ import { AddTeam } from './_components/AddTeam';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const TeamCard = ({ team }: { team: Team }) => (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -41,22 +42,14 @@ export default function TeamsPage() {
     const { user } = useAuth();
     const [teams, setTeams] = useState<Team[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<Category | undefined>(undefined);
     const [loading, setLoading] = useState(true);
 
     const loadTeams = useCallback(async () => {
         setLoading(true);
         const allTeams = await getTeams();
         setTeams(allTeams);
-        // Set initial tab to the first category available
-        const uniqueCategories = [...new Set(allTeams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
-        const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
-        const sortedCategories = uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
-        if (!activeTab && sortedCategories.length > 0) {
-            setActiveTab(sortedCategories[0]);
-        }
         setLoading(false);
-    }, [activeTab]);
+    }, []);
 
     useEffect(() => {
         loadTeams();
@@ -64,37 +57,46 @@ export default function TeamsPage() {
 
     const handleTeamAdded = useCallback((newTeam: Team) => {
         setTeams(prevTeams => [...prevTeams, newTeam]);
-        // Optionally switch to the new team's category
-        setActiveTab(newTeam.category);
     }, []);
 
     const categories: Category[] = useMemo(() => {
        const uniqueCategories = [...new Set(teams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
-       // Custom sort order
        const order: Category[] = ['Máxima', 'Primera', 'Segunda'];
        return uniqueCategories.sort((a,b) => order.indexOf(a) - order.indexOf(b));
     }, [teams]);
 
-    const filteredTeams = useMemo(() => {
-        if (!activeTab) return [];
+    const filteredTeamsByCategory = (category: Category) => {
         return teams
-            .filter(team => team.category === activeTab)
+            .filter(team => team.category === category)
             .filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [teams, activeTab, searchTerm]);
+    };
 
-    const TeamList = ({ teamsToShow }: { teamsToShow: Team[] }) => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
-            {loading ? (
-                Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-40 bg-muted rounded-lg animate-pulse"></div>)
-            ) : teamsToShow.length > 0 ? (
-                teamsToShow.map(team => <TeamCard key={team.id} team={team} />)
-            ) : (
-                <div className="col-span-full text-center py-10">
-                    <p>No se encontraron equipos para "{activeTab}" {searchTerm && `con el nombre "${searchTerm}"`}.</p>
+    const TeamList = ({ teamsToShow }: { teamsToShow: Team[] }) => {
+         if (loading) {
+            return (
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
+                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-40 bg-muted rounded-lg animate-pulse"></div>)}
                 </div>
-            )}
-        </div>
-    );
+            )
+        }
+        if (teamsToShow.length === 0) {
+            return (
+                 <div className="col-span-full text-center py-10">
+                    <p>No se encontraron equipos {searchTerm && `con el nombre "${searchTerm}"`}.</p>
+                </div>
+            )
+        }
+        return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
+               {teamsToShow.map(team => <TeamCard key={team.id} team={team} />)}
+            </div>
+        )
+    };
+    
+    const activeCategories = useMemo(() => {
+        return categories.filter(cat => filteredTeamsByCategory(cat).length > 0 || !searchTerm);
+    }, [categories, teams, searchTerm]);
+
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -125,25 +127,29 @@ export default function TeamsPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-full overflow-x-auto">
-                        {categories.map((cat) => (
-                             <Button
-                                key={cat}
-                                variant="ghost"
-                                onClick={() => setActiveTab(cat)}
-                                className={cn(
-                                    "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                                    activeTab === cat && "bg-card text-foreground shadow-sm"
-                                )}
-                            >
-                                {cat}
-                            </Button>
-                        ))}
-                    </div>
-                    
-                    <div className="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                        <TeamList teamsToShow={filteredTeams} />
-                    </div>
+                     <Accordion type="multiple" defaultValue={categories} className="w-full">
+                       {categories.map((cat) => {
+                            const teamsForCategory = filteredTeamsByCategory(cat);
+                            if (teamsForCategory.length === 0 && searchTerm) {
+                                return null;
+                            }
+                           return (
+                               <AccordionItem value={cat} key={cat}>
+                                   <AccordionTrigger className="text-lg font-semibold">{cat}</AccordionTrigger>
+                                   <AccordionContent>
+                                       <TeamList teamsToShow={teamsForCategory} />
+                                   </AccordionContent>
+                               </AccordionItem>
+                           )
+                       })}
+                    </Accordion>
+                     {loading && (
+                        <div className="space-y-4">
+                            <div className="h-12 bg-muted rounded-lg animate-pulse w-full"></div>
+                            <div className="h-12 bg-muted rounded-lg animate-pulse w-full"></div>
+                            <div className="h-12 bg-muted rounded-lg animate-pulse w-full"></div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
