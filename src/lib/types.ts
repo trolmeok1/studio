@@ -112,8 +112,8 @@ export interface GeneratedMatch {
     category: Category;
     group?: 'A' | 'B';
     leg?: 'Ida' | 'Vuelta' | 'Semifinal' | 'Final';
-    date?: Date;
-    time?: string;
+    date: Date;
+    time: string;
     field?: number;
     rescheduled?: boolean;
     originalDate?: Date;
@@ -232,7 +232,7 @@ export interface RequalificationRequest {
     teamName: string;
     requestType: 'qualification' | 'requalification';
     playerInName: string;
-    playerOutName?: string;
+    playerOutName?: string | null;
     date: string;
     status: 'pending' | 'approved' | 'rejected';
 }

@@ -19,8 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Printer, Upload, Search, Trash2, DollarSign, AlertTriangle, User, ImageDown } from 'lucide-react';
 import Image from 'next/image';
-import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches } from '@/lib/mock-data';
-import { getSchedule } from '@/lib/schedule';
+import { getPlayers, teams as allTeamsData, type Player, updatePlayerStats, addSanction, type Category, type Match, type VocalPaymentDetails as VocalPaymentDetailsType, getPlayersByTeamId, updateMatchData, setMatchAsFinished, getSanctions, getMatches, getMatchById } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
@@ -334,7 +333,7 @@ const PhysicalMatchSheet = ({ match }: { match: Match | null }) => {
     )
 }
 
-const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (updatedMatch: Match) => void, onFinishMatch: (matchId: string) => void }) => {
+const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Match | null, onUpdateMatch: (matchId: string, updatedData: Partial<Match>) => void, onFinishMatch: (matchId: string) => void }) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const canEdit = user.permissions.committees.edit;
@@ -394,7 +393,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         const updatedEvents = [newEvent, ...events];
         setEvents(updatedEvents);
 
-        await onUpdateMatch({ ...match, events: updatedEvents });
+        await onUpdateMatch(match.id, { events: updatedEvents });
 
         const statsUpdate = {
             goals: eventType === 'goal' ? 1 : 0,
@@ -446,7 +445,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
         
         const updatedEvents = events.filter((e) => e.id !== eventId);
         setEvents(updatedEvents);
-        await onUpdateMatch({ ...match, events: updatedEvents });
+        await onUpdateMatch(match.id, { events: updatedEvents });
 
         toast({
             title: "Evento Eliminado",
@@ -466,20 +465,16 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
 
     const handleMatchDataChange = (field: keyof Match, value: any) => {
         if(!match) return;
-        const updatedMatch = { ...match, [field]: value };
-        onUpdateMatch(updatedMatch);
+        onUpdateMatch(match.id, { [field]: value });
     }
     
     const handleScoreChange = (teamKey: 'home' | 'away', newScore: number) => {
         if(!match || !match.score) return;
-        const updatedMatch = {
-            ...match,
-            score: {
-                ...match.score,
-                [teamKey]: newScore
-            }
+        const updatedScore = {
+            ...match.score,
+            [teamKey]: newScore
         };
-        onUpdateMatch(updatedMatch);
+        onUpdateMatch(match.id, { score: updatedScore });
     }
 
     const getPendingValue = useCallback(async (teamId: string, currentMatchId: string) => {
@@ -528,14 +523,12 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
             vocalPaymentDetails: updatedPayment
         };
     
-        const updatedMatch = {
-            ...match,
+        onUpdateMatch(match.id, { 
             teams: {
                 ...match.teams,
                 [teamKey]: updatedTeamDetails
             }
-        };
-        onUpdateMatch(updatedMatch);
+        });
     }, [match, onUpdateMatch, getPendingValue]);
     
     const handleSaveResult = () => {
@@ -553,7 +546,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                 const downloadURL = await getDownloadURL(snapshot.ref);
                 
                 setPhysicalSheetUrl(downloadURL);
-                onUpdateMatch({ ...match, physicalSheetUrl: downloadURL });
+                onUpdateMatch(match.id, { physicalSheetUrl: downloadURL });
                 toast({ title: "Acta Física Subida", description: "La imagen ha sido guardada con el partido."});
             } catch (error) {
                  toast({ title: "Error al subir imagen", description: "No se pudo subir la imagen a Firebase Storage.", variant: "destructive"});
@@ -774,7 +767,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.home ?? 0} onChange={(e) => handleScoreChange('home', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamA-attended" checked={match.teams.home.attended} onCheckedChange={(checked) => onUpdateMatch({...match, teams: {...match.teams, home: {...match.teams.home, attended: checked}}})} disabled={!canEdit}/>
+                                 <Switch id="teamA-attended" checked={match.teams.home.attended} onCheckedChange={(checked) => onUpdateMatch(match.id, {teams: {...match.teams, home: {...match.teams.home, attended: checked}}})} disabled={!canEdit}/>
                                  <Label htmlFor="teamA-attended">Se Presentó</Label>
                                </div>
                                <VocalPaymentDetailsInputs teamKey="home" />
@@ -786,7 +779,7 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                             <Input type="number" className="w-24 mx-auto text-center text-2xl font-bold" value={match.score?.away ?? 0} onChange={(e) => handleScoreChange('away', parseInt(e.target.value) || 0)} disabled={!canEdit} />
                              <div className="space-y-2 pt-2">
                                <div className="flex items-center justify-center gap-2">
-                                 <Switch id="teamB-attended" checked={match.teams.away.attended} onCheckedChange={(checked) => onUpdateMatch({...match, teams: {...match.teams, away: {...match.teams.away, attended: checked}}})} disabled={!canEdit}/>
+                                 <Switch id="teamB-attended" checked={match.teams.away.attended} onCheckedChange={(checked) => onUpdateMatch(match.id, {teams: {...match.teams, away: {...match.teams.away, attended: checked}}})} disabled={!canEdit}/>
                                  <Label htmlFor="teamB-attended">Se Presentó</Label>
                                </div>
                                <VocalPaymentDetailsInputs teamKey="away" />
@@ -846,24 +839,35 @@ export default function CommitteesPage() {
   const [isClient, setIsClient] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadMatches = useCallback(async () => {
+    setLoading(true);
+    const matches = await getMatches();
+    setAllMatches(matches);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
-    getMatches().then(setAllMatches);
-  }, []);
+    loadMatches();
+  }, [loadMatches]);
 
   const { user } = useAuth();
   const handlePrint = () => {
     window.print();
   };
 
-  const handleUpdateMatch = useCallback((updatedMatch: Match) => {
-    updateMatchData(updatedMatch);
-    setAllMatches(prevMatches => prevMatches.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+  const handleUpdateMatch = useCallback(async (matchId: string, updatedData: Partial<Match>) => {
+    await updateMatchData(matchId, updatedData);
+    const updatedMatch = await getMatchById(matchId);
+    if (updatedMatch) {
+        setAllMatches(prevMatches => prevMatches.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+    }
   }, []);
   
-  const handleFinishMatch = useCallback((matchId: string) => {
-    setMatchAsFinished(matchId);
+  const handleFinishMatch = useCallback(async (matchId: string) => {
+    await setMatchAsFinished(matchId);
     setAllMatches(prevMatches => prevMatches.map(m => m.id === matchId ? { ...m, status: 'finished' } : m));
   }, []);
 
@@ -881,7 +885,7 @@ export default function CommitteesPage() {
 
     return {
         today: todayMatches,
-        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime()),
+        future: futureMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
         past: pastMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     };
   }, [isClient, allMatches]);

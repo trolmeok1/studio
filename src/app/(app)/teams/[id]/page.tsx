@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getTeamById, getPlayersByTeamId, getMatchesByTeamId, getStandings, getSanctions, type Standing, type Team } from '@/lib/mock-data';
+import { getTeamById, getPlayersByTeamId, getMatches, getStandings, getSanctions, type Standing, type Team } from '@/lib/mock-data';
 import { notFound, useParams } from 'next/navigation';
 import { TeamDetailsClient } from './_components/TeamDetailsClient';
 import { useEffect, useState, useCallback } from 'react';
@@ -24,7 +24,8 @@ export default function TeamDetailsPage() {
     }
   
     const players = await getPlayersByTeamId(teamId);
-    const matches = await getMatchesByTeamId(teamId);
+    const allMatches = await getMatches();
+    const matches = allMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
     const standings = await getStandings();
     const allSanctions = await getSanctions();
     

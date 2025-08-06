@@ -322,10 +322,15 @@ export const getMatches = async (): Promise<Match[]> => {
     return matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
 };
 
-export const getMatchesByTeamId = async (teamId: string): Promise<Match[]> => {
-    const allMatches = await getMatches();
-    return allMatches.filter(m => m.teams && (m.teams.home.id === teamId || m.teams.away.id === teamId));
-}
+export const addMatch = async (matchData: Omit<Match, 'id'>): Promise<Match> => {
+    const matchesCol = collection(db, 'matches');
+    const docRef = await addDoc(matchesCol, matchData);
+    return { id: docRef.id, ...matchData };
+};
+
+export const deleteMatch = async (matchId: string) => {
+    await deleteDoc(doc(db, "matches", matchId));
+};
 
 export const getMatchById = async (id: string): Promise<Match | undefined> => {
     if (!id) return undefined;
@@ -334,10 +339,9 @@ export const getMatchById = async (id: string): Promise<Match | undefined> => {
     return matchSnap.exists() ? { id: matchSnap.id, ...matchSnap.data() } as Match : undefined;
 };
 
-export const updateMatchData = async (updatedMatch: Match) => {
-    const matchRef = doc(db, 'matches', updatedMatch.id);
-    const { id, ...matchData } = updatedMatch;
-    await updateDoc(matchRef, matchData);
+export const updateMatchData = async (matchId: string, updatedData: Partial<Match>) => {
+    const matchRef = doc(db, 'matches', matchId);
+    await updateDoc(matchRef, updatedData);
 };
 
 export const setMatchAsFinished = async (matchId: string) => {

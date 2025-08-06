@@ -3,7 +3,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -12,7 +12,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { GeneratedMatch } from '@/lib/types';
+import type { GeneratedMatch, Match } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
@@ -27,12 +27,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { saveSchedule, getSchedule, deleteSchedule } from '@/lib/schedule';
 
 
-const CategoryMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
-    const homeTeam = getTeam(match.home);
-    const awayTeam = getTeam(match.away);
+const CategoryMatchCard = ({ match, getTeam }: { match: Match, getTeam: (id: string) => Team | undefined }) => {
+    const homeTeam = getTeam(match.teams.home.id);
+    const awayTeam = getTeam(match.teams.away.id);
+    const vocalTeam = getTeam(match.vocalTeam?.id || '');
 
     const getNeonColor = (category: Category) => {
         switch(category) {
@@ -51,13 +51,12 @@ const CategoryMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam:
                     <div className="flex flex-col items-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={64} height={64} className="rounded-full bg-white/10 p-1" data-ai-hint="team logo" />
                         <p className="font-bold text-sm leading-tight">{homeTeam?.name}</p>
-                        <p className="text-xs text-slate-300 -mt-1">Camerino {match.homeDressingRoom || 'N/A'}</p>
                     </div>
 
                     {/* Match Info */}
                     <div className="flex flex-col items-center">
-                        <p className="text-xl font-bold">{match.date ? format(match.date, 'HH:mm', { locale: es }) : 'VS'}</p>
-                        <p className="text-xs text-slate-300">{match.date ? format(match.date, 'MMM d, yyyy', { locale: es }) : 'Por definir'}</p>
+                        <p className="text-xl font-bold">{match.date ? format(new Date(match.date), 'HH:mm', { locale: es }) : 'VS'}</p>
+                        <p className="text-xs text-slate-300">{match.date ? format(new Date(match.date), 'MMM d, yyyy', { locale: es }) : 'Por definir'}</p>
                         <Badge variant="secondary" className="mt-2 text-xs bg-black/30 text-white">
                            Por Jugar
                         </Badge>
@@ -67,29 +66,28 @@ const CategoryMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam:
                     <div className="flex flex-col items-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={64} height={64} className="rounded-full bg-white/10 p-1" data-ai-hint="team logo" />
                         <p className="font-bold text-sm leading-tight">{awayTeam?.name}</p>
-                        <p className="text-xs text-slate-300 -mt-1">Camerino {match.awayDressingRoom || 'N/A'}</p>
                     </div>
                 </div>
                  <div className="text-xs text-white/80 border-t border-white/20 pt-2 flex justify-between">
                     <span>Cancha: {match.field || 'N/A'}</span>
-                    <span>Vocal: {getTeam(match.vocalTeamId || '')?.name || 'N/A'}</span>
+                    <span>Vocal: {vocalTeam?.name || 'N/A'}</span>
                 </div>
             </CardContent>
         </Card>
     );
 };
 
-const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: (id: string) => Team | undefined }) => {
-    const homeTeam = getTeam(match.home);
-    const awayTeam = getTeam(match.away);
-    const vocalTeam = getTeam(match.vocalTeamId || '');
+const GeneralMatchCard = ({ match, getTeam }: { match: Match, getTeam: (id: string) => Team | undefined }) => {
+    const homeTeam = getTeam(match.teams.home.id);
+    const awayTeam = getTeam(match.teams.away.id);
+    const vocalTeam = getTeam(match.vocalTeam?.id || '');
 
     return (
         <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between p-3 bg-muted/50">
-                <Badge variant="outline">{match.category} {match.group && `- Grupo ${match.group}`}</Badge>
+                <Badge variant="outline">{match.category} {homeTeam?.group && `- Grupo ${homeTeam.group}`}</Badge>
                 <div className="text-sm font-semibold">
-                    {match.date ? format(match.date, 'HH:mm', { locale: es }) : 'Hora por definir'}
+                    {match.date ? format(new Date(match.date), 'HH:mm', { locale: es }) : 'Hora por definir'}
                 </div>
             </CardHeader>
             <CardContent className="p-4 flex-grow">
@@ -111,7 +109,6 @@ const GeneralMatchCard = ({ match, getTeam }: { match: GeneratedMatch, getTeam: 
             <CardFooter className="p-3 bg-muted/20 border-t grid grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center gap-2 text-muted-foreground"><Shield className="w-4 h-4" /> <span className="font-semibold">Cancha:</span> {match.field || 'N/A'}</div>
                 <div className="flex items-center gap-2 text-muted-foreground"><UserCheck className="w-4 h-4" /> <span className="font-semibold">Vocal:</span> {vocalTeam?.name || 'N/A'}</div>
-                <div className="flex items-center gap-2 text-muted-foreground col-span-2"><Home className="w-4 h-4" /> <span className="font-semibold">Camerinos:</span> {match.homeDressingRoom}/{match.awayDressingRoom}</div>
             </CardFooter>
         </Card>
     );
@@ -123,7 +120,6 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
     const [numFields, setNumFields] = useState(1);
-    const [numDressingRooms, setNumDressingRooms] = useState(4);
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -144,7 +140,6 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
             gameDays,
             gameTimes: gameTimes.filter(t => t).sort(), // Filter out empty time slots and sort them
             numFields,
-            numDressingRooms,
         });
     }
 
@@ -183,10 +178,6 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
                             <Label htmlFor="numFields">Número de Canchas</Label>
                             <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
                         </div>
-                         <div>
-                            <Label htmlFor="numDressingRooms">Número de Camerinos</Label>
-                            <Input id="numDressingRooms" type="number" value={numDressingRooms} onChange={e => setNumDressingRooms(parseInt(e.target.value) || 4)} min="4" />
-                        </div>
                     </div>
                     <div>
                         <Label>Horarios de los Partidos</Label>
@@ -214,7 +205,7 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
     );
 };
 
-const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTeams }: { allMatches: GeneratedMatch[], open: boolean, onOpenChange: (open: boolean) => void, onReschedule: (match: GeneratedMatch, newDate: Date, newTime: string) => void, allTeams: Team[] }) => {
+const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTeams }: { allMatches: Match[], open: boolean, onOpenChange: (open: boolean) => void, onReschedule: (match: Match, newDate: Date) => void, allTeams: Team[] }) => {
     const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>();
     const [newDate, setNewDate] = useState<Date | undefined>();
     const [newTime, setNewTime] = useState<string>('');
@@ -225,8 +216,8 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
         if (!newDate) return [];
         const dateStr = format(newDate, 'yyyy-MM-dd');
         return allMatches
-            .filter(m => m.date && format(m.date, 'yyyy-MM-dd') === dateStr)
-            .map(m => m.time)
+            .filter(m => m.date && format(new Date(m.date), 'yyyy-MM-dd') === dateStr)
+            .map(m => m.date ? format(new Date(m.date), 'HH:mm') : null)
             .filter(Boolean) as string[];
     }, [newDate, allMatches]);
 
@@ -236,7 +227,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
         if (matchToReschedule) {
             const [hours, minutes] = newTime.split(':').map(Number);
             const finalDate = setMinutes(setHours(startOfDay(newDate), hours), minutes);
-            onReschedule(matchToReschedule, finalDate, newTime);
+            onReschedule(matchToReschedule, finalDate);
             onOpenChange(false); // Close dialog on success
         }
     };
@@ -258,7 +249,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
                             <SelectContent>
                                 {allMatches.map((match) => (
                                     <SelectItem key={match.id} value={match.id}>
-                                        {getTeamName(match.home)} vs {getTeamName(match.away)} ({match.leg})
+                                        {getTeamName(match.teams.home.id)} vs {getTeamName(match.teams.away.id)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -302,7 +293,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
 };
 
 
-const ScheduleView = ({ generatedMatches, selectedCategory, groupBy, allTeams }: { generatedMatches: GeneratedMatch[], selectedCategory: Category | 'all', groupBy: 'date' | 'round', allTeams: Team[] }) => {
+const ScheduleView = ({ generatedMatches, selectedCategory, groupBy, allTeams }: { generatedMatches: Match[], selectedCategory: Category | 'all', groupBy: 'date' | 'round', allTeams: Team[] }) => {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
     
@@ -319,34 +310,28 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupBy, allTeams }:
         if (filteredMatches.length === 0 || !isClient) return {};
 
         const sortedMatches = [...filteredMatches].sort((a, b) => {
-            const dateA = a.date ? a.date.getTime() : Infinity;
-            const dateB = b.date ? b.date.getTime() : Infinity;
+            const dateA = a.date ? new Date(a.date).getTime() : Infinity;
+            const dateB = b.date ? new Date(b.date).getTime() : Infinity;
             if (dateA !== dateB) return dateA - dateB;
             
-            const timeA = a.time || '';
-            const timeB = b.time || '';
-            if (timeA !== timeB) return timeA.localeCompare(timeB);
-            
-            const roundA = a.round || 0;
-            const roundB = b.round || 0;
-            return roundA - roundB;
+            const timeA = a.date ? format(new Date(a.date), 'HH:mm') : '';
+            const timeB = b.date ? format(new Date(b.date), 'HH:mm') : '';
+            return timeA.localeCompare(timeB);
         });
 
         return sortedMatches
             .reduce((acc, match) => {
                  if (groupBy === 'date' && !match.date) return acc;
-                 if (groupBy === 'round' && !match.round) return acc;
-
                 const groupKey = groupBy === 'date'
-                    ? (match.date ? format(match.date, 'PPPP', { locale: es }) : 'Fecha por definir')
-                    : `Fecha ${match.round || 'N/A'}`;
+                    ? (match.date ? format(new Date(match.date), 'PPPP', { locale: es }) : 'Fecha por definir')
+                    : `Jornada (Aún no implementado)`;
                 
                 if (!acc[groupKey]) {
                     acc[groupKey] = [];
                 }
                 acc[groupKey].push(match);
                 return acc;
-            }, {} as Record<string, GeneratedMatch[]>);
+            }, {} as Record<string, Match[]>);
     }, [filteredMatches, isClient, groupBy]);
 
     const CardComponent = groupBy === 'date' ? GeneralMatchCard : CategoryMatchCard;
@@ -378,9 +363,9 @@ const ScheduleView = ({ generatedMatches, selectedCategory, groupBy, allTeams }:
     );
 };
 
-const RescheduledMatchesView = ({ matches, allTeams }: { matches: GeneratedMatch[], allTeams: Team[] }) => {
+const RescheduledMatchesView = ({ matches, allTeams }: { matches: Match[], allTeams: Team[] }) => {
     const getTeamName = (teamId: string) => allTeams.find(t => t.id === teamId)?.name || teamId;
-    const rescheduledMatches = matches.filter(m => m.rescheduled);
+    const rescheduledMatches = matches.filter(m => m.physicalSheetUrl?.includes('rescheduled')); // Placeholder for rescheduled flag
 
     return (
         <Card neon="blue">
@@ -403,12 +388,12 @@ const RescheduledMatchesView = ({ matches, allTeams }: { matches: GeneratedMatch
                         <TableBody>
                             {rescheduledMatches.map((match) => (
                                 <TableRow key={match.id}>
-                                    <TableCell className="font-medium">{getTeamName(match.home)} vs {getTeamName(match.away)}</TableCell>
+                                    <TableCell className="font-medium">{getTeamName(match.teams.home.id)} vs {getTeamName(match.teams.away.id)}</TableCell>
                                     <TableCell>
-                                        {match.originalDate ? format(match.originalDate, 'PPP, p', { locale: es }) : 'N/A'}
+                                        {'N/A'}
                                     </TableCell>
                                     <TableCell>
-                                        {match.date ? format(match.date, 'PPP, p', { locale: es }) : 'N/A'}
+                                        {match.date ? format(new Date(match.date), 'PPP, p', { locale: es }) : 'N/A'}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -420,7 +405,7 @@ const RescheduledMatchesView = ({ matches, allTeams }: { matches: GeneratedMatch
     )
 }
 
-const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (id: string) => Team | undefined }) => {
+const FinalsView = ({ finals, getTeam }: { finals: Match[], getTeam: (id: string) => Team | undefined }) => {
     if (finals.length === 0) {
         return (
             <div className="text-center py-10 text-muted-foreground">
@@ -430,9 +415,9 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
         );
     }
     
-    const FinalsCard = ({ match, title }: { match: GeneratedMatch, title: string }) => {
-        const homeTeam = getTeam(match.home);
-        const awayTeam = getTeam(match.away);
+    const FinalsCard = ({ match, title }: { match: Match, title: string }) => {
+        const homeTeam = getTeam(match.teams.home.id);
+        const awayTeam = getTeam(match.teams.away.id);
         
         return (
              <Card className="text-center" neon="purple">
@@ -443,26 +428,24 @@ const FinalsView = ({ finals, getTeam }: { finals: GeneratedMatch[], getTeam: (i
                      <div className="flex flex-col items-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-bold">{homeTeam?.name}</p>
-                        <p className="text-xs text-muted-foreground">Camerino {match.homeDressingRoom || 'N/A'}</p>
                     </div>
                     <span className="text-2xl font-bold text-muted-foreground">VS</span>
                      <div className="flex flex-col items-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-bold">{awayTeam?.name}</p>
-                        <p className="text-xs text-muted-foreground">Camerino {match.awayDressingRoom || 'N/A'}</p>
                     </div>
                 </CardContent>
                 <CardFooter className="p-3 bg-muted/50 text-xs text-muted-foreground">
-                    {match.date ? format(match.date, 'PPP, p', { locale: es }) : 'Fecha y Hora por definir'}
+                    {match.date ? format(new Date(match.date), 'PPP, p', { locale: es }) : 'Fecha y Hora por definir'}
                 </CardFooter>
             </Card>
         )
     }
 
-    const semiFinals = finals.filter(f => f.leg === 'Semifinal');
-    const maximaFinal = finals.find(f => f.category === 'Máxima' && f.leg === 'Final');
-    const primeraFinal = finals.find(f => f.category === 'Primera' && f.leg === 'Final');
-    const segundaFinal = finals.find(f => f.category === 'Segunda' && f.leg === 'Final');
+    const semiFinals = finals.filter(f => f.category === 'Copa');
+    const maximaFinal = finals.find(f => f.category === 'Máxima');
+    const primeraFinal = finals.find(f => f.category === 'Primera');
+    const segundaFinal = finals.find(f => f.category === 'Segunda');
 
     return (
         <div className="space-y-8">
@@ -538,38 +521,39 @@ const ResetDialog = ({
 
 
 export default function SchedulePage() {
-  const { toast } = useToast();
+  const { toast } = useAuth();
   const { user } = useAuth();
-  const [generatedMatches, setGeneratedMatches] = useState<GeneratedMatch[]>([]);
+  const [generatedMatches, setGeneratedMatches] = useState<Match[]>([]);
   const [isDrawLeagueDialogOpen, setIsDrawLeagueDialogOpen] = useState(false);
   const [isDrawFinalsDialogOpen, setIsDrawFinalsDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [finalizeAlertStep, setFinalizeAlertStep] = useState(0);
   const [activeTab, setActiveTab] = useState('general');
-  const [finalMatches, setFinalMatches] = useState<GeneratedMatch[]>([]);
+  const [finalMatches, setFinalMatches] = useState<Match[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => { 
-    async function loadData() {
-        setIsLoading(true);
-        const teams = await getTeams();
-        setAllTeams(teams);
-        const { matches, finals } = await getSchedule();
-        setGeneratedMatches(matches);
-        setFinalMatches(finals);
-        setIsLoading(false);
-    }
-    loadData();
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    const teams = await getTeams();
+    setAllTeams(teams);
+    const matches = await getMatches();
+    setGeneratedMatches(matches.filter(m => m.category !== 'Copa'));
+    setFinalMatches(matches.filter(m => m.category === 'Copa'));
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => { 
+    loadData();
+  }, [loadData]);
   
   const getTeam = useCallback((id: string) => allTeams.find(t => t.id === id), [allTeams]);
 
   const isTournamentGenerated = useMemo(() => generatedMatches.length > 0, [generatedMatches]);
   
   const rescheduledMatchesCount = useMemo(() => {
-    return generatedMatches.filter(m => m.rescheduled).length;
+    return generatedMatches.filter(m => m.physicalSheetUrl?.includes('rescheduled')).length; // Placeholder
   }, [generatedMatches]);
 
   const areAllMatchesFinished = isTournamentGenerated; 
@@ -579,7 +563,7 @@ export default function SchedulePage() {
     const teamsPrimera = await getTeamsByCategory('Primera');
     const teamsSegunda = await getTeamsByCategory('Segunda');
 
-    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): GeneratedMatch[] => {
+    const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): Omit<Match, 'id' | 'date'>[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
             currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
@@ -587,7 +571,7 @@ export default function SchedulePage() {
 
         const numTeams = currentTeams.length;
         const numRounds = numTeams - 1;
-        let idaMatches: GeneratedMatch[] = [];
+        let idaMatches: Omit<Match, 'id' | 'date'>[] = [];
 
         for (let round = 0; round < numRounds; round++) {
             for (let i = 0; i < numTeams / 2; i++) {
@@ -595,7 +579,16 @@ export default function SchedulePage() {
                 const team2 = currentTeams[numTeams - 1 - i];
 
                 if (team1.id !== 'dummy' && team2.id !== 'dummy') {
-                    idaMatches.push({ id: `match-${round + 1}-${i}`, home: team1.id, away: team2.id, category, group, leg: 'Ida', round: round + 1 });
+                    const baseMatch = { 
+                        category, 
+                        status: 'future' as const, 
+                        events: [],
+                        teams: {
+                            home: { id: team1.id, name: team1.name, logoUrl: team1.logoUrl, attended: false },
+                            away: { id: team2.id, name: team2.name, logoUrl: team2.logoUrl, attended: false }
+                        }
+                    };
+                    idaMatches.push(baseMatch);
                 }
             }
             const lastTeam = currentTeams.pop();
@@ -603,12 +596,15 @@ export default function SchedulePage() {
                 currentTeams.splice(1, 0, lastTeam);
             }
         }
-        const vueltaMatches = idaMatches.map((m, idx) => ({...m, id: `${m.id}-vuelta`, home: m.away, away: m.home, leg: 'Vuelta' as 'Vuelta', round: m.round ? m.round + numRounds : undefined }));
+        const vueltaMatches = idaMatches.map((m) => ({
+            ...m, 
+            teams: { home: m.teams.away, away: m.teams.home } 
+        }));
         
         return [...idaMatches, ...vueltaMatches];
     };
     
-    let allMatches: GeneratedMatch[] = [];
+    let allMatchData: Omit<Match, 'id'|'date'>[] = [];
     const categoriesConfig: {category: Category, isGrouped: boolean, teams: Team[]}[] = [
         { category: 'Máxima', isGrouped: false, teams: teamsMaxima },
         { category: 'Primera', isGrouped: false, teams: teamsPrimera },
@@ -619,107 +615,51 @@ export default function SchedulePage() {
         if(cat.isGrouped) {
              const groupA = cat.teams.filter(t => t.group === 'A');
              const groupB = cat.teams.filter(t => t.group === 'B');
-             if (groupA.length > 1) allMatches.push(...generateRoundRobinMatches(groupA, cat.category, 'A'));
-             if (groupB.length > 1) allMatches.push(...generateRoundRobinMatches(groupB, cat.category, 'B'));
+             if (groupA.length > 1) allMatchData.push(...generateRoundRobinMatches(groupA, cat.category, 'A'));
+             if (groupB.length > 1) allMatchData.push(...generateRoundRobinMatches(groupB, cat.category, 'B'));
         } else {
             const teams = cat.teams;
             if (teams.length > 1) {
-                allMatches.push(...generateRoundRobinMatches(teams, cat.category));
+                allMatchData.push(...generateRoundRobinMatches(teams, cat.category));
             }
         }
     });
 
-    const matchesByRound = allMatches.reduce((acc, match) => {
-        const round = match.round || 0;
-        if (!acc[round]) {
-            acc[round] = [];
-        }
-        acc[round].push(match);
-        return acc;
-    }, {} as Record<number, GeneratedMatch[]>);
-    
-    let scheduledMatches: GeneratedMatch[] = [];
     let currentDate = startOfDay(settings.startDate);
     const allTeamIdsForVocal = allTeams.map(t => t.id);
-    const sortedRounds = Object.keys(matchesByRound).map(Number).sort((a,b) => a - b);
+    let scheduledMatches: Match[] = [];
     
-    let dressingRoomCursor = 0;
-
-    for (const round of sortedRounds) {
-        let roundMatches = [...matchesByRound[round]].sort(() => Math.random() - 0.5);
-        let matchesForCurrentDate = 0;
-        
-        while(roundMatches.length > 0) {
+    for (const matchData of allMatchData) {
+        let dayFound = false;
+        while(!dayFound) {
             const dayOfWeek = getDay(currentDate);
-
             if(settings.gameDays.includes(dayOfWeek)) {
-                 const availableSlotsToday = settings.gameTimes.length * settings.numFields;
-
-                for (let i = 0; i < availableSlotsToday && roundMatches.length > 0; i++) {
-                    const timeIndex = Math.floor(matchesForCurrentDate / settings.numFields) % settings.gameTimes.length;
-                    const fieldIndex = matchesForCurrentDate % settings.numFields;
-
-                    const match = roundMatches.shift()!;
-                    const teamsPlayingInSlot = new Set([match.home, match.away]);
-                    const eligibleVocalTeams = allTeamIdsForVocal.filter(id => !teamsPlayingInSlot.has(id));
-                    const vocalTeamId = eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)];
-                    
-                    const time = settings.gameTimes[timeIndex];
-                    const timeParts = time.split(':');
-                    const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
-                    
-                    const numDressingRooms = settings.numDressingRooms;
-                    const homeDressingRoom = (dressingRoomCursor % numDressingRooms) + 1;
-                    const awayDressingRoom = ((dressingRoomCursor + 2) % numDressingRooms) + 1;
-                    dressingRoomCursor = (dressingRoomCursor + 1) % numDressingRooms;
-                    
-
-                    scheduledMatches.push({
-                       ...match,
-                       id: `${match.home}-${match.away}-${match.leg}`,
-                       date: matchDateTime,
-                       time: format(matchDateTime, 'HH:mm'),
-                       field: fieldIndex + 1,
-                       homeDressingRoom: homeDressingRoom,
-                       awayDressingRoom: awayDressingRoom,
-                       vocalTeamId: vocalTeamId
-                    });
-
-                    matchesForCurrentDate++;
-                }
-            }
-
-            if(roundMatches.length > 0) {
-              currentDate = addDays(currentDate, 1);
-              matchesForCurrentDate = 0;
+                dayFound = true;
+            } else {
+                currentDate = addDays(currentDate, 1);
             }
         }
-        currentDate = addDays(currentDate, 1);
-        matchesForCurrentDate = 0;
-        dressingRoomCursor = 0; // Reset for the new round/week
+        const time = settings.gameTimes[scheduledMatches.filter(m => format(new Date(m.date), 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')).length % settings.gameTimes.length];
+        const [hours, minutes] = time.split(':').map(Number);
+        const matchDateTime = setMinutes(setHours(currentDate, hours), minutes);
+        
+        const newMatch = await addMatch({ ...matchData, date: matchDateTime.toISOString() });
+        scheduledMatches.push(newMatch);
     }
 
     setGeneratedMatches(scheduledMatches);
-    await saveSchedule(scheduledMatches, []);
     setIsSuccessDialogOpen(true);
 };
 
   
-  const handleReschedule = async (matchToUpdate: GeneratedMatch, newDate: Date, newTime: string) => {
-      const updatedMatches = generatedMatches.map(m => {
-         if (m.id === matchToUpdate.id) {
-              return {
-                  ...m,
-                  originalDate: m.date,
-                  date: newDate,
-                  time: newTime,
-                  rescheduled: true,
-              };
-          }
-          return m;
-      });
-      setGeneratedMatches(updatedMatches);
-      await saveSchedule(updatedMatches, finalMatches);
+  const handleReschedule = async (matchToUpdate: Match, newDate: Date) => {
+    const updatedData: Partial<Match> = {
+        date: newDate.toISOString(),
+        // ToDo: Add originalDate logic for tracking
+    };
+    await updateMatchData(matchToUpdate.id, updatedData);
+    await loadData();
+    toast({ title: 'Partido Reagendado', description: 'La fecha del partido ha sido actualizada.'});
   };
 
   const handleDrawButtonClick = () => {
@@ -727,15 +667,20 @@ export default function SchedulePage() {
   }
   
   const handleFinalizeTournament = async () => {
+    for (const match of generatedMatches) {
+        await deleteMatch(match.id);
+    }
+     for (const match of finalMatches) {
+        await deleteMatch(match.id);
+    }
     setGeneratedMatches([]);
     setFinalMatches([]);
-    await deleteSchedule();
     setFinalizeAlertStep(0);
     toast({ title: '¡Torneo Finalizado!', description: 'Todos los datos de la temporada han sido reiniciados.'});
   };
 
    const handleGenerateFinals = async () => {
-        let finals: GeneratedMatch[] = [];
+        let finals: Omit<Match, 'id'|'date'>[] = [];
         const standings = await getStandings();
 
         const getTopTeams = (category: Category, group?: 'A' | 'B') => {
@@ -748,81 +693,68 @@ export default function SchedulePage() {
                 .slice(0, 2);
         };
         
-        const maximaTeams = getTopTeams('Máxima');
+        const createMatchObject = (homeTeam: Team, awayTeam: Team, category: Category): Omit<Match, 'id' | 'date'> => ({
+            category,
+            status: 'future',
+            events: [],
+            teams: {
+                home: { id: homeTeam.id, name: homeTeam.name, logoUrl: homeTeam.logoUrl, attended: false },
+                away: { id: awayTeam.id, name: awayTeam.name, logoUrl: awayTeam.logoUrl, attended: false }
+            }
+        });
+
+        const maximaTeams = getTopTeams('Máxima').map(s => getTeam(s.teamId)).filter(t => t) as Team[];
         if (maximaTeams.length === 2) {
-            finals.push({ id: `final-maxima`, home: maximaTeams[0].teamId, away: maximaTeams[1].teamId, category: 'Máxima', leg: 'Final' });
+            finals.push(createMatchObject(maximaTeams[0], maximaTeams[1], 'Copa'));
         }
 
-        const primeraTeams = getTopTeams('Primera');
+        const primeraTeams = getTopTeams('Primera').map(s => getTeam(s.teamId)).filter(t => t) as Team[];
         if (primeraTeams.length === 2) {
-            finals.push({ id: `final-primera`, home: primeraTeams[0].teamId, away: primeraTeams[1].teamId, category: 'Primera', leg: 'Final' });
+            finals.push(createMatchObject(primeraTeams[0], primeraTeams[1], 'Copa'));
         }
         
-        const groupATeams = getTopTeams('Segunda', 'A');
-        const groupBTeams = getTopTeams('Segunda', 'B');
+        const groupATeams = getTopTeams('Segunda', 'A').map(s => getTeam(s.teamId)).filter(t => t) as Team[];
+        const groupBTeams = getTopTeams('Segunda', 'B').map(s => getTeam(s.teamId)).filter(t => t) as Team[];
         
         if (groupATeams.length >= 2 && groupBTeams.length >= 2) {
-            finals.push({ id: 'semifinal-1', home: groupATeams[0].teamId, away: groupBTeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
-            finals.push({ id: 'semifinal-2', home: groupBTeams[0].teamId, away: groupATeams[1].teamId, category: 'Segunda', leg: 'Semifinal' });
-            finals.push({ id: 'final-segunda', home: groupATeams[0].teamId, away: groupBTeams[0].teamId, category: 'Segunda', leg: 'Final' });
+            finals.push(createMatchObject(groupATeams[0], groupBTeams[1], 'Copa'));
+            finals.push(createMatchObject(groupBTeams[0], groupATeams[1], 'Copa'));
+            finals.push(createMatchObject(groupATeams[0], groupBTeams[0], 'Copa'));
         }
         
-        setFinalMatches(finals);
-        await saveSchedule(generatedMatches, finals);
+        const addedFinals = [];
+        for (const finalData of finals) {
+            const newFinal = await addMatch({ ...finalData, date: new Date().toISOString() });
+            addedFinals.push(newFinal);
+        }
+        
+        setFinalMatches(addedFinals);
         setIsDrawFinalsDialogOpen(true);
     };
 
     const scheduleFinals = async (settings: any) => {
-        let scheduledFinals: GeneratedMatch[] = [];
         let currentDate = startOfDay(settings.startDate);
-        let matchesForCurrentDate = 0;
-        let dressingRoomCursor = 0;
-        
-        const allFinalTeams = [...new Set(finalMatches.flatMap(m => [m.home, m.away]))];
-
+        let scheduledMatches: Match[] = [];
 
         for (const match of finalMatches) {
-             let dayFound = false;
-             while(!dayFound) {
-                 const dayOfWeek = getDay(currentDate);
-                 if(settings.gameDays.includes(dayOfWeek)) {
-                     dayFound = true;
-                 } else {
-                     currentDate = addDays(currentDate, 1);
-                 }
-             }
+            let dayFound = false;
+            while (!dayFound) {
+                const dayOfWeek = getDay(currentDate);
+                if (settings.gameDays.includes(dayOfWeek)) {
+                    dayFound = true;
+                } else {
+                    currentDate = addDays(currentDate, 1);
+                }
+            }
             
-            const timeIndex = matchesForCurrentDate % settings.gameTimes.length;
-            const fieldIndex = Math.floor(matchesForCurrentDate / settings.gameTimes.length) % settings.numFields;
-            
-            const time = settings.gameTimes[timeIndex];
-            const timeParts = time.split(':');
-            const matchDateTime = setMinutes(setHours(currentDate, parseInt(timeParts[0])), parseInt(timeParts[1]));
+            const time = settings.gameTimes[scheduledMatches.length % settings.gameTimes.length];
+            const [hours, minutes] = time.split(':').map(Number);
+            const matchDateTime = setMinutes(setHours(currentDate, hours), minutes);
 
-            const teamsPlayingInSlot = new Set([match.home, match.away]);
-            const eligibleVocalTeams = allFinalTeams.filter(id => !teamsPlayingInSlot.has(id));
-            const vocalTeamId = eligibleVocalTeams.length > 0 ? eligibleVocalTeams[Math.floor(Math.random() * eligibleVocalTeams.length)] : allTeams[Math.floor(Math.random() * allTeams.length)].id;
-
-            const numDressingRooms = settings.numDressingRooms;
-            const homeDressingRoom = (dressingRoomCursor % numDressingRooms) + 1;
-            const awayDressingRoom = ((dressingRoomCursor + 2) % numDressingRooms) + 1;
-            dressingRoomCursor = (dressingRoomCursor + 1) % numDressingRooms;
-
-            scheduledFinals.push({
-                ...match,
-                date: matchDateTime,
-                time: format(matchDateTime, 'HH:mm'),
-                field: fieldIndex + 1,
-                homeDressingRoom,
-                awayDressingRoom,
-                vocalTeamId
-            });
-
-            matchesForCurrentDate++;
+            await updateMatchData(match.id, { date: matchDateTime.toISOString() });
         }
-
-        setFinalMatches(scheduledFinals);
-        await saveSchedule(generatedMatches, scheduledFinals);
+        
+        await loadData();
         setActiveTab('finals');
         toast({ title: 'Fase Final Programada', description: 'Los partidos de las finales han sido agendados.' });
     }
@@ -911,13 +843,13 @@ export default function SchedulePage() {
                     <ScheduleView generatedMatches={generatedMatches} selectedCategory="all" groupBy="date" allTeams={allTeams} />
                 </TabsContent>
                 <TabsContent value="maxima">
-                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupBy="round" allTeams={allTeams} />
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Máxima" groupBy="date" allTeams={allTeams} />
                 </TabsContent>
                 <TabsContent value="primera">
-                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupBy="round" allTeams={allTeams} />
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Primera" groupBy="date" allTeams={allTeams} />
                 </TabsContent>
                 <TabsContent value="segunda">
-                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupBy="round" allTeams={allTeams} />
+                    <ScheduleView generatedMatches={generatedMatches} selectedCategory="Segunda" groupBy="date" allTeams={allTeams} />
                 </TabsContent>
                 {rescheduledMatchesCount > 0 &&
                     <TabsContent value="rescheduled">
