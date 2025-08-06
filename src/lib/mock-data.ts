@@ -11,11 +11,34 @@ import type { CarouselImage } from '@/app/(app)/dashboard/page';
 // --- IMPORTANT: Set your admin email here ---
 export const ADMIN_EMAIL = 'alejandroespin2021@gmail.com';
 
+// --- System Log Utility ---
+const addSystemLog = async (
+    action: LogEntry['action'], 
+    category: LogEntry['category'], 
+    description: string
+) => {
+    try {
+        const logCol = collection(db, 'logs');
+        const logEntry: Omit<LogEntry, 'id'> = {
+            timestamp: new Date().toISOString(),
+            user: auth.currentUser?.displayName || 'Admin',
+            userAvatar: auth.currentUser?.photoURL || 'https://placehold.co/100x100.png',
+            action,
+            category,
+            description,
+        };
+        await addDoc(logCol, logEntry);
+    } catch (error) {
+        console.error("Failed to write system log:", error);
+    }
+};
+
 
 // --- Copa ---
 export const saveCopa = async (teams: Team[], matches: Match[]) => {
     const docRef = doc(db, 'settings', 'copa');
     await setDoc(docRef, { teams, matches });
+    await addSystemLog('update', 'system', 'Se guardó la configuración de la Copa.');
 };
 
 export const getCopa = async (): Promise<{ teams: Team[], matches: Match[] }> => {
@@ -36,6 +59,7 @@ export const getCopa = async (): Promise<{ teams: Team[], matches: Match[] }> =>
 export const deleteCopa = async () => {
     const docRef = doc(db, 'settings', 'copa');
     await deleteDoc(docRef);
+    await addSystemLog('delete', 'system', 'Se eliminaron los datos del torneo de Copa.');
 };
 
 
@@ -54,6 +78,7 @@ export const saveCarouselImages = async (images: CarouselImage[]) => {
     // We only save the src, alt, and title. The hint is for generation and not stored.
     const imagesToSave = images.map(({ src, alt, title }) => ({ src, alt, title }));
     await setDoc(settingsRef, { images: imagesToSave });
+    await addSystemLog('update', 'system', 'Se actualizaron las imágenes del carrusel de inicio.');
 };
 
 
@@ -78,6 +103,7 @@ export const updateUser = async (updatedUser: User) => {
     const userRef = doc(db, 'users', updatedUser.id);
     const { id, ...userData } = updatedUser;
     await updateDoc(userRef, userData);
+    await addSystemLog('update', 'system', `Se actualizaron los permisos para el usuario ${updatedUser.name}.`);
 };
 
 export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
@@ -99,6 +125,7 @@ export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
     // User does not exist, add them.
     console.log("Adding new user to Firestore:", userEmailLower);
     const docRef = await addDoc(usersCol, { ...newUser, email: userEmailLower });
+    await addSystemLog('create', 'system', `Se creó un nuevo usuario: ${newUser.name}.`);
     return { id: docRef.id, ...newUser, email: userEmailLower } as User;
 };
 
@@ -113,12 +140,16 @@ export const getExpenses = async (): Promise<Expense[]> => {
 export const addExpense = async (expense: Omit<Expense, 'id'>): Promise<Expense> => {
     const expensesCol = collection(db, 'expenses');
     const docRef = await addDoc(expensesCol, expense);
+    await addSystemLog('create', 'treasury', `Registró un gasto de $${expense.amount} por: ${expense.description}.`);
     return { id: docRef.id, ...expense };
 }
 
 export const removeExpense = async (id: string) => {
     const expenseRef = doc(db, 'expenses', id);
+    const docSnap = await getDoc(expenseRef);
+    const expenseData = docSnap.data();
     await deleteDoc(expenseRef);
+    await addSystemLog('delete', 'treasury', `Eliminó un gasto registrado de $${expenseData?.amount}.`);
 }
 
 
@@ -159,6 +190,7 @@ export const addTeam = async (teamData: Pick<Team, 'name' | 'category'>, logoDat
     }
     
     await updateDoc(newTeamRef, { logoUrl: finalLogoUrl });
+    await addSystemLog('create', 'team', `Agregó un nuevo equipo: ${teamData.name}.`);
     
     const finalDoc = await getDoc(newTeamRef);
     return { id: finalDoc.id, ...finalDoc.data() } as Team;
@@ -180,6 +212,7 @@ export const updateTeam = async (teamId: string, teamData: Partial<Team>, logoDa
     }
 
     await updateDoc(teamRef, updateData);
+    await addSystemLog('update', 'team', `Actualizó la información del equipo ${teamData.name}.`);
     const updatedDoc = await getDoc(teamRef);
     return { id: updatedDoc.id, ...updatedDoc.data() } as Team;
 };
@@ -189,6 +222,9 @@ export const deleteTeam = async (teamId: string): Promise<void> => {
     const batch = writeBatch(db);
 
     const teamRef = doc(db, 'teams', teamId);
+    const teamDoc = await getDoc(teamRef);
+    const teamName = teamDoc.data()?.name || 'ID ' + teamId;
+
     batch.delete(teamRef);
 
     const playersRef = collection(db, 'players');
@@ -209,6 +245,7 @@ export const deleteTeam = async (teamId: string): Promise<void> => {
     batch.delete(standingRef);
 
     await batch.commit();
+    await addSystemLog('delete', 'team', `Eliminó el equipo ${teamName} y todos sus datos asociados.`);
 };
 
 
@@ -268,6 +305,7 @@ export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'st
     }
 
     await updateDoc(newPlayerRef, { photoUrl: photoUrl });
+    await addSystemLog('create', 'player', `Agregó al jugador ${playerData.name} al equipo ${playerData.team}.`);
 
     const finalPlayerDoc = await getDoc(newPlayerRef);
     return { id: newPlayerId, ...finalPlayerDoc.data() } as Player;
@@ -306,6 +344,8 @@ export const updatePlayerStats = async (playerId: string, statsUpdate: { goals: 
 export const updatePlayerStatus = async (playerId: string, status: 'activo' | 'inactivo') => {
     const playerRef = doc(db, 'players', playerId);
     await updateDoc(playerRef, { status: status });
+    const player = await getPlayerById(playerId);
+    await addSystemLog('update', 'player', `Cambió el estado del jugador ${player?.name} a ${status}.`);
 };
 
 // --- Standings ---
@@ -341,6 +381,7 @@ export const resetAllStandings = async (): Promise<void> => {
     }
     
     await batch.commit();
+    await addSystemLog('update', 'system', 'Se reiniciaron las tablas de posiciones.');
 };
 
 
@@ -373,6 +414,7 @@ export const getSanctions = async (): Promise<Sanction[]> => {
 export const addSanction = async (newSanction: Omit<Sanction, 'id'>): Promise<Sanction> => {
     const sanctionsCol = collection(db, 'sanctions');
     const docRef = await addDoc(sanctionsCol, newSanction);
+    await addSystemLog('create', 'player', `Sancionó al jugador ${newSanction.playerName} por: ${newSanction.reason}.`);
     return { id: docRef.id, ...newSanction };
 };
 
@@ -384,6 +426,7 @@ export const clearAllSanctions = async (): Promise<void> => {
         batch.delete(doc.ref);
     });
     await batch.commit();
+    await addSystemLog('delete', 'system', 'Se eliminaron todas las sanciones.');
 };
 
 
@@ -412,6 +455,7 @@ export const clearAllMatches = async (): Promise<void> => {
         batch.delete(doc.ref);
     });
     await batch.commit();
+    await addSystemLog('delete', 'system', 'Se eliminaron todos los partidos programados.');
 };
 
 
@@ -425,11 +469,13 @@ export const getMatchById = async (id: string): Promise<Match | undefined> => {
 export const updateMatchData = async (matchId: string, updatedData: Partial<Match>) => {
     const matchRef = doc(db, 'matches', matchId);
     await updateDoc(matchRef, updatedData);
+    await addSystemLog('update', 'match', `Actualizó los datos del partido con ID: ${matchId}.`);
 };
 
 export const setMatchAsFinished = async (matchId: string) => {
     const matchRef = doc(db, 'matches', matchId);
     await updateDoc(matchRef, { status: 'finished' });
+    await addSystemLog('update', 'match', `Finalizó el partido con ID: ${matchId}.`);
 };
 
 
@@ -443,6 +489,7 @@ export const getRequalificationRequests = async (): Promise<RequalificationReque
 export const addRequalificationRequest = async (request: Omit<RequalificationRequest, 'id'>): Promise<RequalificationRequest> => {
     const requestsCol = collection(db, 'requalificationRequests');
     const docRef = await addDoc(requestsCol, request);
+    await addSystemLog('create', 'player', `Generó una solicitud de ${request.requestType} para el equipo ${request.teamName}.`);
     return { id: docRef.id, ...request };
 };
 
