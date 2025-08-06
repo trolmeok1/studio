@@ -188,11 +188,9 @@ export const deleteTeam = async (teamId: string): Promise<void> => {
     if (!teamId) throw new Error("Team ID is required for deletion.");
     const batch = writeBatch(db);
 
-    // Delete the team itself
     const teamRef = doc(db, 'teams', teamId);
     batch.delete(teamRef);
 
-    // Find and delete all players associated with the team
     const playersRef = collection(db, 'players');
     const qPlayers = query(playersRef, where("teamId", "==", teamId));
     const playersSnapshot = await getDocs(qPlayers);
@@ -200,7 +198,6 @@ export const deleteTeam = async (teamId: string): Promise<void> => {
         batch.delete(playerDoc.ref);
     });
     
-    // Find and delete all sanctions associated with the team
     const sanctionsRef = collection(db, 'sanctions');
     const qSanctions = query(sanctionsRef, where("teamId", "==", teamId));
     const sanctionsSnapshot = await getDocs(qSanctions);
@@ -208,11 +205,9 @@ export const deleteTeam = async (teamId: string): Promise<void> => {
         batch.delete(sanctionDoc.ref);
     });
 
-    // Delete the standing for the team
     const standingRef = doc(db, 'standings', teamId);
     batch.delete(standingRef);
 
-    // Commit the batch delete
     await batch.commit();
 };
 
@@ -321,15 +316,15 @@ export const getStandings = async (): Promise<Standing[]> => {
 };
 
 export const resetAllStandings = async (): Promise<void> => {
-    const allTeams = await getTeams();
+    const teams = await getTeams();
     const batch = writeBatch(db);
 
-    for (const team of allTeams) {
+    for (const team of teams) {
         const standingRef = doc(db, 'standings', team.id);
         const standingData: Partial<Standing> = {
             teamName: team.name,
             teamLogoUrl: team.logoUrl,
-            group: team.group,
+            group: team.group || undefined,
             played: 0,
             wins: 0,
             draws: 0,
@@ -404,6 +399,17 @@ export const addMatch = async (matchData: Omit<Match, 'id'>): Promise<Match> => 
 export const deleteMatch = async (matchId: string) => {
     await deleteDoc(doc(db, "matches", matchId));
 };
+
+export const clearAllMatches = async (): Promise<void> => {
+    const matchesCol = collection(db, 'matches');
+    const matchSnapshot = await getDocs(matchesCol);
+    const batch = writeBatch(db);
+    matchSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+};
+
 
 export const getMatchById = async (id: string): Promise<Match | undefined> => {
     if (!id) return undefined;

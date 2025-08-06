@@ -1,9 +1,8 @@
 
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData, resetAllStandings, clearAllSanctions, deleteCopa } from '@/lib/mock-data';
+import { getTeamsByCategory, Team, Category, getStandings, type Standing, getTeams, addMatch, deleteMatch, getMatches, updateMatchData, resetAllStandings, clearAllSanctions, deleteCopa, clearAllMatches } from '@/lib/mock-data';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dices, RefreshCw, CalendarPlus, History, ClipboardList, Shield, Trophy, UserCheck, Filter, AlertTriangle, PartyPopper, CalendarDays, ChevronsRight, Home, Users as UsersIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -669,10 +668,7 @@ export default function SchedulePage() {
   const handleFinalizeTournament = async () => {
     setIsLoading(true);
     try {
-        const allMatches = await getMatches();
-        for (const match of allMatches) {
-            await deleteMatch(match.id);
-        }
+        await clearAllMatches();
         await resetAllStandings();
         await clearAllSanctions();
         await deleteCopa();
@@ -681,13 +677,15 @@ export default function SchedulePage() {
             title: '¡Temporada Finalizada!',
             description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.',
         });
+        
+        setGeneratedMatches([]);
+        setFinalMatches([]);
+        await loadData();
+
     } catch (error) {
         console.error("Failed to finalize tournament:", error);
         toast({ title: 'Error', description: 'No se pudo finalizar el torneo.', variant: 'destructive'});
     } finally {
-        setGeneratedMatches([]);
-        setFinalMatches([]);
-        await loadData();
         setFinalizeAlertStep(0);
         setIsLoading(false);
     }
@@ -917,4 +915,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
