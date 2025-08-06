@@ -12,16 +12,25 @@ import type { Player, Team, Category } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
-const categories: Category[] = ['Máxima', 'Primera', 'Segunda'];
+const orderedCategories: Category[] = ['Máxima', 'Primera', 'Segunda'];
 
 export function PlayerSearch({ allPlayers, allTeams }: { allPlayers: Player[], allTeams: Team[] }) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<Category>('Máxima');
 
-    const filteredData = useMemo(() => {
+    const categories = useMemo(() => {
+        const uniqueCategories = [...new Set(allTeams.map(t => t.category))].filter(c => c !== 'Copa') as Category[];
+        return uniqueCategories.sort((a,b) => orderedCategories.indexOf(a) - orderedCategories.indexOf(b));
+    }, [allTeams]);
+
+    const [activeTab, setActiveTab] = useState<Category>(categories.length > 0 ? categories[0] : 'Máxima');
+
+    const filteredTeams = useMemo(() => {
+        if (!allTeams || allTeams.length === 0) {
+            return [];
+        }
         const lowercasedFilter = searchTerm.toLowerCase();
 
-        const teamsInCategory = allTeams.filter(team => team.category === activeTab);
+        let teamsInCategory = allTeams.filter(team => team.category === activeTab);
 
         if (!searchTerm) {
             return teamsInCategory;
@@ -34,7 +43,7 @@ export function PlayerSearch({ allPlayers, allTeams }: { allPlayers: Player[], a
 
         const teamIdsWithFilteredPlayers = new Set(filteredPlayers.map(p => p.teamId));
 
-        return allTeams.filter(team => teamIdsWithFilteredPlayers.has(team.id));
+        return teamsInCategory.filter(team => teamIdsWithFilteredPlayers.has(team.id));
 
     }, [searchTerm, activeTab, allPlayers, allTeams]);
 
@@ -59,17 +68,15 @@ export function PlayerSearch({ allPlayers, allTeams }: { allPlayers: Player[], a
             </div>
              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Category)} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                    {categories.map(category => (
+                    {orderedCategories.map(category => (
                         <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
                     ))}
                 </TabsList>
 
-                {categories.map(category => (
+                {orderedCategories.map(category => (
                     <TabsContent key={category} value={category}>
                         <Accordion type="single" collapsible className="w-full">
-                            {filteredData
-                                .filter(team => team.category === category)
-                                .map(team => (
+                            {filteredTeams.map(team => (
                                 <AccordionItem value={team.id} key={team.id}>
                                     <AccordionTrigger>
                                         <div className="flex items-center gap-3">
@@ -97,7 +104,7 @@ export function PlayerSearch({ allPlayers, allTeams }: { allPlayers: Player[], a
                                 </AccordionItem>
                             ))}
                         </Accordion>
-                         {filteredData.filter(team => team.category === category).length === 0 && (
+                         {filteredTeams.length === 0 && (
                             <div className="text-center p-8 text-muted-foreground">
                                 No se encontraron jugadores o equipos que coincidan con la búsqueda en esta categoría.
                             </div>
