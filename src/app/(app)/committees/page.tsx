@@ -677,12 +677,12 @@ const DigitalMatchSheet = ({ match, onUpdateMatch, onFinishMatch }: { match: Mat
                     
                     <div className="flex items-center justify-between col-span-2">
                          <Label>Multa T. Amarillas:</Label>
-                         <p className="font-semibold">${details.yellowCardFine.toFixed(2)} ({details.yellowCardCount || 0} tarjetas)</p>
+                         <p className="font-semibold">${(details.yellowCardFine || 0).toFixed(2)} ({details.yellowCardCount || 0} tarjetas)</p>
                     </div>
 
                     <div className="flex items-center justify-between col-span-2">
                          <Label>Multa T. Rojas:</Label>
-                         <p className="font-semibold">${details.redCardFine.toFixed(2)} ({details.redCardCount || 0} tarjetas)</p>
+                         <p className="font-semibold">${(details.redCardFine || 0).toFixed(2)} ({details.redCardCount || 0} tarjetas)</p>
                     </div>
 
                     <Label className="col-span-2">Otras Multas (especificar):</Label>
