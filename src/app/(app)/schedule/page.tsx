@@ -82,6 +82,9 @@ const GeneralMatchCard = ({ match, getTeam }: { match: Match, getTeam: (id: stri
     const awayTeam = getTeam(match.teams.away.id);
     const vocalTeam = getTeam(match.vocalTeam?.id || '');
 
+    const homeDressingRoom = match.teams.home.vocalPaymentDetails?.otherFines; // Using this field as a placeholder for dressing room
+    const awayDressingRoom = match.teams.away.vocalPaymentDetails?.otherFines;
+
     return (
         <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between p-3 bg-muted/50">
@@ -95,6 +98,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: Match, getTeam: (id: stri
                     <Link href={`/teams/${homeTeam?.id}`} className="flex flex-col items-center text-center gap-2">
                         <Image src={homeTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={homeTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-semibold text-sm">{homeTeam?.name}</p>
+                        {homeDressingRoom && <Badge variant="secondary" className="text-xs">Camerino {homeDressingRoom}</Badge>}
                     </Link>
                     <div className="flex items-center justify-center">
                         <span className="font-bold text-lg text-muted-foreground">VS</span>
@@ -103,6 +107,7 @@ const GeneralMatchCard = ({ match, getTeam }: { match: Match, getTeam: (id: stri
                     <Link href={`/teams/${awayTeam?.id}`} className="flex flex-col items-center text-center gap-2">
                         <Image src={awayTeam?.logoUrl || 'https://placehold.co/100x100.png'} alt={awayTeam?.name || ''} width={48} height={48} className="rounded-full" data-ai-hint="team logo" />
                         <p className="font-semibold text-sm">{awayTeam?.name}</p>
+                        {awayDressingRoom && <Badge variant="secondary" className="text-xs">Camerino {awayDressingRoom}</Badge>}
                     </Link>
                 </div>
             </CardContent>
@@ -120,6 +125,8 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
     const [gameDays, setGameDays] = useState<number[]>([6, 0]); // Saturday, Sunday
     const [gameTimes, setGameTimes] = useState(['08:00', '10:00', '12:00', '14:00', '16:00']);
     const [numFields, setNumFields] = useState(1);
+    const [numDressingRooms, setNumDressingRooms] = useState(4);
+
 
     const handleDayToggle = (day: number) => {
         setGameDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -140,6 +147,7 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
             gameDays,
             gameTimes: gameTimes.filter(t => t).sort(), // Filter out empty time slots and sort them
             numFields,
+            numDressingRooms,
         });
     }
 
@@ -177,6 +185,10 @@ const DrawSettingsDialog = ({ onGenerate, title, description }: { onGenerate: (s
                         <div>
                             <Label htmlFor="numFields">Número de Canchas</Label>
                             <Input id="numFields" type="number" value={numFields} onChange={e => setNumFields(parseInt(e.target.value) || 1)} min="1" />
+                        </div>
+                        <div>
+                            <Label htmlFor="numDressingRooms">Número de Camerinos</Label>
+                            <Input id="numDressingRooms" type="number" value={numDressingRooms} onChange={e => setNumDressingRooms(parseInt(e.target.value) || 4)} min="4" />
                         </div>
                     </div>
                     <div>
@@ -629,24 +641,47 @@ export default function SchedulePage() {
 
     let currentDate = startOfDay(settings.startDate);
     const allTeamIdsForVocal = allTeams.map(t => t.id);
-    let scheduledMatches: Match[] = [];
-    
+    let vocalIndex = 0;
+    let matchesScheduledOnDay = 0;
+    let dressingRoomCounter = 1;
+
     for (const matchData of allMatchData) {
         let dayFound = false;
-        while(!dayFound) {
+        while (!dayFound) {
             const dayOfWeek = getDay(currentDate);
-            if(settings.gameDays.includes(dayOfWeek)) {
+            if (settings.gameDays.includes(dayOfWeek)) {
                 dayFound = true;
             } else {
                 currentDate = addDays(currentDate, 1);
+                matchesScheduledOnDay = 0; // Reset for a new day
             }
         }
-        const time = settings.gameTimes[scheduledMatches.filter(m => m.date && format(new Date(m.date), 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')).length % settings.gameTimes.length];
+
+        const time = settings.gameTimes[matchesScheduledOnDay % settings.gameTimes.length];
         const [hours, minutes] = time.split(':').map(Number);
         const matchDateTime = setMinutes(setHours(currentDate, hours), minutes);
+
+        const vocalTeamId = allTeamIdsForVocal[vocalIndex % allTeamIdsForVocal.length];
+        vocalIndex++;
+
+        // Using a temporary field in vocalPaymentDetails to store dressing room, as it's not used at this stage
+        const homeDressingRoom = dressingRoomCounter;
+        const awayDressingRoom = dressingRoomCounter + 1;
+        dressingRoomCounter = (dressingRoomCounter + 2 > settings.numDressingRooms) ? 1 : dressingRoomCounter + 2;
+
+
+        await addMatch({
+            ...matchData,
+            date: matchDateTime.toISOString(),
+            vocalTeam: { id: vocalTeamId } as Team,
+            field: (matchesScheduledOnDay % settings.numFields) + 1,
+            teams: {
+              home: { ...matchData.teams.home, vocalPaymentDetails: { otherFines: homeDressingRoom } as any },
+              away: { ...matchData.teams.away, vocalPaymentDetails: { otherFines: awayDressingRoom } as any },
+            }
+        });
         
-        const newMatch = await addMatch({ ...matchData, date: matchDateTime.toISOString() });
-        scheduledMatches.push(newMatch);
+        matchesScheduledOnDay++;
     }
 
     await loadData();
@@ -675,15 +710,15 @@ export default function SchedulePage() {
         await resetAllStandings();
         await clearAllSanctions();
         await deleteCopa();
+        
+        setGeneratedMatches([]);
+        setFinalMatches([]);
+        await loadData();
 
         toast({
             title: '¡Temporada Finalizada!',
             description: 'Se han reiniciado partidos, tablas de posiciones y sanciones.',
         });
-        
-        setGeneratedMatches([]);
-        setFinalMatches([]);
-        await loadData();
 
     } catch (error) {
         console.error("Error al finalizar el torneo:", error);
