@@ -456,7 +456,7 @@ export function TeamDetailsClient({
       <header className="flex flex-col md:flex-row gap-4 justify-between items-start">
         <div className="flex items-center gap-6">
           <Image
-            src={initialTeam.logoUrl}
+            src={initialTeam.logoUrl || 'https://placehold.co/128x128.png'}
             alt={`Logo de ${initialTeam.name}`}
             width={128}
             height={128}
