@@ -11,7 +11,7 @@ async function getTeamData(teamId: string) {
     }
   
     const players = await getPlayersByTeamId(teamId);
-    const matches = getMatchesByTeamId(teamId);
+    const matches = await getMatchesByTeamId(teamId);
     const standings = await getStandings();
     const allSanctions = await getSanctions();
     
