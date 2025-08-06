@@ -276,8 +276,8 @@ export default function AiCardsPage() {
                         <SelectValue placeholder={isLoadingData ? "Cargando..." : "Elige una categoría..."} />
                         </SelectTrigger>
                         <SelectContent>
-                        {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
+                        {categories.map((category, index) => (
+                            <SelectItem key={`${category}-${index}`} value={category}>
                             {category}
                             </SelectItem>
                         ))}
