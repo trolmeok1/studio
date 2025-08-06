@@ -573,6 +573,8 @@ export default function SchedulePage() {
   const areAllMatchesFinished = isTournamentGenerated; 
   
   const generateLeagueSchedule = async (settings: any) => {
+    setIsLoading(true);
+    
     const teamsMaxima = await getTeamsByCategory('Máxima');
     const teamsPrimera = await getTeamsByCategory('Primera');
     const teamsSegunda = await getTeamsByCategory('Segunda');
@@ -580,7 +582,7 @@ export default function SchedulePage() {
     const generateRoundRobinMatches = (teams: Team[], category: Category, group?: 'A' | 'B'): Omit<Match, 'id' | 'date'>[] => {
         let currentTeams = [...teams];
         if (currentTeams.length % 2 !== 0) {
-            currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group });
+            currentTeams.push({ id: 'dummy', name: 'Descansa', logoUrl: '', category: category, group } as Team);
         }
 
         const numTeams = currentTeams.length;
@@ -597,6 +599,7 @@ export default function SchedulePage() {
                         category, 
                         status: 'future' as const, 
                         events: [],
+                        score: { home: 0, away: 0 },
                         teams: {
                             home: { id: team1.id, name: team1.name, logoUrl: team1.logoUrl, attended: false },
                             away: { id: team2.id, name: team2.name, logoUrl: team2.logoUrl, attended: false }
@@ -642,50 +645,52 @@ export default function SchedulePage() {
     let currentDate = startOfDay(settings.startDate);
     const allTeamIdsForVocal = allTeams.map(t => t.id);
     let vocalIndex = 0;
-    let matchesScheduledOnDay = 0;
-    let dressingRoomCounter = 1;
+    
+    let matchesToSchedule = [...allMatchData];
+    
+    while(matchesToSchedule.length > 0) {
+        const dayOfWeek = getDay(currentDate);
+        if (settings.gameDays.includes(dayOfWeek)) {
+            // This day is a game day
+            let dressingRoomCounter = 1;
+            for(const time of settings.gameTimes) {
+                for(let field = 1; field <= settings.numFields; field++) {
+                     if (matchesToSchedule.length === 0) break;
+                     const matchData = matchesToSchedule.shift()!;
+                     
+                     const [hours, minutes] = time.split(':').map(Number);
+                     const matchDateTime = setMinutes(setHours(currentDate, hours), minutes);
 
-    for (const matchData of allMatchData) {
-        let dayFound = false;
-        while (!dayFound) {
-            const dayOfWeek = getDay(currentDate);
-            if (settings.gameDays.includes(dayOfWeek)) {
-                dayFound = true;
-            } else {
-                currentDate = addDays(currentDate, 1);
-                matchesScheduledOnDay = 0; // Reset for a new day
+                     const vocalTeamId = allTeamIdsForVocal[vocalIndex % allTeamIdsForVocal.length];
+                     vocalIndex++;
+                     
+                     // Use non-sequential dressing rooms
+                    const homeDressingRoom = dressingRoomCounter;
+                    const awayDressingRoom = dressingRoomCounter + 2 > settings.numDressingRooms ? 2 : dressingRoomCounter + 2;
+                    dressingRoomCounter = (dressingRoomCounter + 1 > settings.numDressingRooms) ? 1 : dressingRoomCounter + 1;
+                    if(dressingRoomCounter === 2) dressingRoomCounter = 2; // Simple logic to alternate 1-3, 2-4 for now
+                    
+
+                    await addMatch({
+                        ...matchData,
+                        date: matchDateTime.toISOString(),
+                        vocalTeam: { id: vocalTeamId } as Team,
+                        field: field,
+                        teams: {
+                          home: { ...matchData.teams.home, vocalPaymentDetails: { otherFines: homeDressingRoom } as any },
+                          away: { ...matchData.teams.away, vocalPaymentDetails: { otherFines: awayDressingRoom } as any },
+                        }
+                    });
+                }
+                 if (matchesToSchedule.length === 0) break;
             }
         }
-
-        const time = settings.gameTimes[matchesScheduledOnDay % settings.gameTimes.length];
-        const [hours, minutes] = time.split(':').map(Number);
-        const matchDateTime = setMinutes(setHours(currentDate, hours), minutes);
-
-        const vocalTeamId = allTeamIdsForVocal[vocalIndex % allTeamIdsForVocal.length];
-        vocalIndex++;
-
-        // Using a temporary field in vocalPaymentDetails to store dressing room, as it's not used at this stage
-        const homeDressingRoom = dressingRoomCounter;
-        const awayDressingRoom = dressingRoomCounter + 1;
-        dressingRoomCounter = (dressingRoomCounter + 2 > settings.numDressingRooms) ? 1 : dressingRoomCounter + 2;
-
-
-        await addMatch({
-            ...matchData,
-            date: matchDateTime.toISOString(),
-            vocalTeam: { id: vocalTeamId } as Team,
-            field: (matchesScheduledOnDay % settings.numFields) + 1,
-            teams: {
-              home: { ...matchData.teams.home, vocalPaymentDetails: { otherFines: homeDressingRoom } as any },
-              away: { ...matchData.teams.away, vocalPaymentDetails: { otherFines: awayDressingRoom } as any },
-            }
-        });
-        
-        matchesScheduledOnDay++;
+        currentDate = addDays(currentDate, 1);
     }
-
+    
     await loadData();
     setIsSuccessDialogOpen(true);
+    setIsLoading(false);
 };
 
   
@@ -711,8 +716,6 @@ export default function SchedulePage() {
         await clearAllSanctions();
         await deleteCopa();
         
-        setGeneratedMatches([]);
-        setFinalMatches([]);
         await loadData();
 
         toast({
