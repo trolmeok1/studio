@@ -247,7 +247,7 @@ const RescheduleDialog = ({ allMatches, open, onOpenChange, onReschedule, allTea
                                 <SelectValue placeholder="Elige un partido para mover..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {allMatches.map((match) => (
+                                {allMatches.filter(match => match.teams).map((match) => (
                                     <SelectItem key={match.id} value={match.id}>
                                         {getTeamName(match.teams.home.id)} vs {getTeamName(match.teams.away.id)}
                                     </SelectItem>
@@ -639,7 +639,7 @@ export default function SchedulePage() {
                 currentDate = addDays(currentDate, 1);
             }
         }
-        const time = settings.gameTimes[scheduledMatches.filter(m => format(new Date(m.date), 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')).length % settings.gameTimes.length];
+        const time = settings.gameTimes[scheduledMatches.filter(m => m.date && format(new Date(m.date), 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')).length % settings.gameTimes.length];
         const [hours, minutes] = time.split(':').map(Number);
         const matchDateTime = setMinutes(setHours(currentDate, hours), minutes);
         
