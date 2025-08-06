@@ -25,7 +25,7 @@ export default function TeamDetailsPage() {
   
     const players = await getPlayersByTeamId(teamId);
     const allMatches = await getMatches();
-    const matches = allMatches.filter(m => m.teams.home.id === teamId || m.teams.away.id === teamId);
+    const matches = allMatches.filter(m => m.teams && (m.teams.home.id === teamId || m.teams.away.id === teamId));
     const standings = await getStandings();
     const allSanctions = await getSanctions();
     
