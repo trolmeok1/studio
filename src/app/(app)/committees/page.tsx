@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -386,13 +387,19 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
             }
     
             if (changed) {
-                // We need to trigger a recalculation of totals
-                handleVocalPaymentChange(newMatchData, 'home', 'referee', newMatchData.teams.home.vocalPaymentDetails?.referee || 0);
+                setLocalMatch(prev => {
+                    if (!prev) return null;
+                    const tempUpdatedMatch = { ...prev };
+                    handleVocalPaymentChange(tempUpdatedMatch, 'home', 'referee', tempUpdatedMatch.teams.home.vocalPaymentDetails?.referee || 0, (m) => {
+                        handleVocalPaymentChange(m, 'away', 'referee', m.teams.away.vocalPaymentDetails?.referee || 0, setLocalMatch);
+                    });
+                    return prev; 
+                });
             }
         };
     
         calculateFines();
-    }, [localMatch?.events, sanctionSettings]);
+    }, [localMatch?.events.length, sanctionSettings]);
     
 
     const teamForEventSearch = localMatch?.teams.home.id === selectedTeamId ? localMatch.teams.home : localMatch?.teams.away;
@@ -510,54 +517,56 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
         }
     }, [localMatch, getPendingValue]);
     
-    const handleVocalPaymentChange = useCallback((currentMatchData: Match, teamKey: 'home' | 'away', field: keyof VocalPaymentDetailsType, value: any) => {
-        if (!currentMatchData) return;
-    
-        const teamDetails = currentMatchData.teams[teamKey];
-        if (!teamDetails.vocalPaymentDetails) return;
-    
-        let updatedPayment = { ...teamDetails.vocalPaymentDetails, [field]: value };
-    
-        const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
-            const absenceFine = !currentMatchData.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
-            const baseTotal = 
-                (Number(paymentDetails.referee) || 0) + 
-                (Number(paymentDetails.fee) || 0) + 
-                (Number(paymentDetails.yellowCardFine) || 0) + 
-                (Number(paymentDetails.redCardFine) || 0) + 
-                (Number(paymentDetails.otherFines) || 0) +
-                absenceFine;
-            
-            const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
-            
-            const totalWithPending = baseTotal + pendingAmountToAdd;
-            return totalWithPending - (Number(paymentDetails.advancePayment) || 0);
-        };
-        
-        const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
-        updatedPayment.total = calculateTotal(updatedPayment, pendingValue);
-        
-        if (!currentMatchData.teams[teamKey].attended) {
-            updatedPayment.absenceFine = sanctionSettings.absenceFine;
-        } else {
-            updatedPayment.absenceFine = 0;
-        }
-    
-        const updatedTeamDetails = {
-            ...teamDetails,
-            vocalPaymentDetails: updatedPayment
-        };
+     const handleVocalPaymentChange = useCallback((
+        currentMatchData: Match,
+        teamKey: 'home' | 'away',
+        field: keyof VocalPaymentDetailsType,
+        value: any,
+        setter: React.Dispatch<React.SetStateAction<Match | null>>
+    ) => {
+        setter(prev => {
+            if (!prev) return null;
+            const newMatchState = JSON.parse(JSON.stringify(prev)); // Deep copy
+            const teamDetails = newMatchState.teams[teamKey];
 
-        const newMatchState = {
-            ...currentMatchData,
-            teams: {
-                ...currentMatchData.teams,
-                [teamKey]: updatedTeamDetails
+            if (!teamDetails.vocalPaymentDetails) return prev;
+
+            let updatedPayment = { ...teamDetails.vocalPaymentDetails, [field]: value };
+
+            const calculateTotal = (paymentDetails: VocalPaymentDetailsType, pendingValue: number) => {
+                const absenceFine = !newMatchState.teams[teamKey].attended ? sanctionSettings.absenceFine : 0;
+                const baseTotal =
+                    (Number(paymentDetails.referee) || 0) +
+                    (Number(paymentDetails.fee) || 0) +
+                    (Number(paymentDetails.yellowCardFine) || 0) +
+                    (Number(paymentDetails.redCardFine) || 0) +
+                    (Number(paymentDetails.otherFines) || 0) +
+                    absenceFine;
+
+                const pendingAmountToAdd = paymentDetails.includePendingDebt ? pendingValue : 0;
+
+                const totalWithPending = baseTotal + pendingAmountToAdd;
+                return totalWithPending - (Number(paymentDetails.advancePayment) || 0);
+            };
+
+            const pendingValue = teamKey === 'home' ? pendingValueHome : pendingValueAway;
+            updatedPayment.total = calculateTotal(updatedPayment, pendingValue);
+
+            if (!newMatchState.teams[teamKey].attended) {
+                updatedPayment.absenceFine = sanctionSettings.absenceFine;
+            } else {
+                updatedPayment.absenceFine = 0;
             }
-        };
 
-        setLocalMatch(newMatchState);
+            teamDetails.vocalPaymentDetails = updatedPayment;
+            
+            const hasChanged = JSON.stringify(prev) !== JSON.stringify(newMatchState);
 
+            if (hasChanged) {
+                return newMatchState;
+            }
+            return prev;
+        });
     }, [sanctionSettings, pendingValueHome, pendingValueAway]);
     
     const handleSaveResult = () => {
@@ -588,8 +597,7 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
         
         useEffect(() => {
             if (localMatch) {
-                // Recalculate total whenever attendance changes for absence fine
-                handleVocalPaymentChange(localMatch, teamKey, 'referee', localMatch.teams[teamKey].vocalPaymentDetails?.referee || 0);
+                handleVocalPaymentChange(localMatch, teamKey, 'referee', localMatch.teams[teamKey].vocalPaymentDetails?.referee || 0, setLocalMatch);
             }
         }, [localMatch?.teams[teamKey].attended, teamKey]);
 
@@ -601,20 +609,20 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
 
         const handleSwitchChange = (field: keyof VocalPaymentDetailsType | 'attended', checked: boolean) => {
              if (field === 'paymentStatus') {
-                handleVocalPaymentChange(localMatch, teamKey, 'paymentStatus', checked ? 'paid' : 'pending');
+                handleVocalPaymentChange(localMatch, teamKey, 'paymentStatus', checked ? 'paid' : 'pending', setLocalMatch);
              } else if (field === 'includePendingDebt') {
-                handleVocalPaymentChange(localMatch, teamKey, 'includePendingDebt', checked);
+                handleVocalPaymentChange(localMatch, teamKey, 'includePendingDebt', checked, setLocalMatch);
              } else if (field === 'attended') {
                  setLocalMatch(prev => prev ? { ...prev, teams: {...prev.teams, [teamKey]: {...prev.teams[teamKey], attended: checked}} } : null);
              }
         }
         
         const handleInputChange = (field: keyof VocalPaymentDetailsType, value: string) => {
-            handleVocalPaymentChange(localMatch, teamKey, field, parseFloat(value) || 0);
+            handleVocalPaymentChange(localMatch, teamKey, field, parseFloat(value) || 0, setLocalMatch);
         }
 
         const handleTextareaChange = (field: keyof VocalPaymentDetailsType, value: string) => {
-            handleVocalPaymentChange(localMatch, teamKey, field, value);
+            handleVocalPaymentChange(localMatch, teamKey, field, value, setLocalMatch);
         }
 
         return (
