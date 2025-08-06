@@ -5,14 +5,18 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { players, teams, type Category } from '@/lib/mock-data';
-import { Download } from 'lucide-react';
+import { getPlayers, getTeams, type Player, type Team, type Category } from '@/lib/mock-data';
+import { Download, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useToast } from '@/hooks/use-toast';
 
 // Function to fetch image as Base64 data URI, with error handling
 const toDataURL = (url: string): Promise<string> => {
     return new Promise((resolve) => {
+        if (!url) {
+            resolve('');
+            return;
+        }
         fetch(url)
             .then(response => {
                 if (!response.ok) {
@@ -35,6 +39,10 @@ const toDataURL = (url: string): Promise<string> => {
 
 
 export default function AiCardsPage() {
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
   const [selection, setSelection] = useState<{ category: Category | null; teamId: string | null }>({
     category: null,
     teamId: null,
@@ -42,20 +50,31 @@ export default function AiCardsPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(teams.map((t) => t.category))];
-    return uniqueCategories.filter(c => c !== 'Copa') as Category[];
+  useEffect(() => {
+    const fetchData = async () => {
+        setIsLoadingData(true);
+        const [playersData, teamsData] = await Promise.all([getPlayers(), getTeams()]);
+        setAllPlayers(playersData);
+        setAllTeams(teamsData);
+        setIsLoadingData(false);
+    };
+    fetchData();
   }, []);
+
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(allTeams.map((t) => t.category))];
+    return uniqueCategories.filter(c => c !== 'Copa') as Category[];
+  }, [allTeams]);
   
   const filteredTeams = useMemo(() => {
     if (!selection.category) return [];
-    return teams.filter((team) => team.category === selection.category);
-  }, [selection.category]);
+    return allTeams.filter((team) => team.category === selection.category);
+  }, [selection.category, allTeams]);
 
   const selectedTeamPlayers = useMemo(() => {
     if (!selection.teamId) return [];
-    return players.filter((p) => p.teamId === selection.teamId);
-  }, [selection.teamId]);
+    return allPlayers.filter((p) => p.teamId === selection.teamId);
+  }, [selection.teamId, allPlayers]);
     
   const handleDownloadPdf = async () => {
     if (!selection.teamId) return;
@@ -214,7 +233,7 @@ export default function AiCardsPage() {
             pdf.text(player.jerseyNumber.toString(), jerseyX, footerY + itemSize / 2 + 4, { align: 'center' });
         }
 
-        const selectedTeamName = teams.find(t => t.id === selection.teamId)?.name || 'equipo';
+        const selectedTeamName = allTeams.find(t => t.id === selection.teamId)?.name || 'equipo';
         pdf.save(`carnets_${selectedTeamName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
         console.error("Failed to generate PDF:", error);
@@ -252,9 +271,9 @@ export default function AiCardsPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <div>
                     <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
-                    <Select onValueChange={handleCategoryChange} value={selection.category || ''}>
+                    <Select onValueChange={handleCategoryChange} value={selection.category || ''} disabled={isLoadingData}>
                         <SelectTrigger>
-                        <SelectValue placeholder="Elige una categoría..." />
+                        <SelectValue placeholder={isLoadingData ? "Cargando..." : "Elige una categoría..."} />
                         </SelectTrigger>
                         <SelectContent>
                         {categories.map((category) => (
@@ -267,9 +286,9 @@ export default function AiCardsPage() {
                 </div>
                 <div>
                     <h3 className="text-lg font-medium mb-2">2. Seleccionar Equipo</h3>
-                    <Select onValueChange={handleTeamChange} value={selection.teamId || ''} disabled={!selection.category}>
+                    <Select onValueChange={handleTeamChange} value={selection.teamId || ''} disabled={!selection.category || isLoadingData}>
                         <SelectTrigger>
-                        <SelectValue placeholder={selection.category ? "Elige un equipo..." : "Primero elige categoría"} />
+                        <SelectValue placeholder={!selection.category ? "Primero elige categoría" : "Elige un equipo..."} />
                         </SelectTrigger>
                         <SelectContent>
                         {filteredTeams.map((team) => (
@@ -285,7 +304,7 @@ export default function AiCardsPage() {
                         <>
                             <h3 className="text-lg font-medium mb-2 invisible">3. Descargar</h3>
                             <Button onClick={handleDownloadPdf} className="w-full" disabled={isGenerating}>
-                                <Download className="mr-2 h-4 w-4" />
+                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                                 {isGenerating ? 'Generando PDF...' : `Descargar PDF (${selectedTeamPlayers.length})`}
                             </Button>
                         </>
