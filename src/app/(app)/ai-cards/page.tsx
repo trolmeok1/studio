@@ -98,6 +98,14 @@ export default function AiCardsPage() {
     if (!individualSelection.teamId) return [];
     return allPlayers.filter((p) => p.teamId === individualSelection.teamId);
   }, [individualSelection.teamId, allPlayers]);
+
+  const getShortName = (fullName: string) => {
+    const parts = fullName.split(' ');
+    if (parts.length >= 3) {
+      return `${parts[0]} ${parts[2]}`;
+    }
+    return fullName;
+  };
     
   const generatePdfForPlayers = async (playersToPrint: Player[], teamNameForFile: string) => {
     if (playersToPrint.length === 0) return;
@@ -195,7 +203,8 @@ export default function AiCardsPage() {
             pdf.setFontSize(12);
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor('#FFA500');
-            pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
+            const shortName = getShortName(player.name);
+            pdf.text(shortName.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
             
             pdf.setFontSize(11);
             pdf.setTextColor('#FFFFFF');
