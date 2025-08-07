@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -119,7 +118,7 @@ export default function RequalificationRequestPage() {
         try {
             const playerOut = players.find(p => p.id === playerOutId);
             
-            const newRequestData: Omit<RequalificationRequest, 'id'> = {
+            const newRequestData: Omit<RequalificationRequest, 'id' | 'playerInPhotoUrl' | 'playerInIdCardUrl'> = {
                 teamId: selectedTeam!.id,
                 teamName: selectedTeam!.name,
                 teamLogoUrl: selectedTeam!.logoUrl,
@@ -134,15 +133,13 @@ export default function RequalificationRequestPage() {
                 playerInIdNumber,
                 playerInBirthDate,
                 playerInJerseyNumber,
-                playerInPhotoUrl: profilePhotoPreview, 
-                playerInIdCardUrl: idCardPhotoPreview,
                 
                 playerOutName: playerOut?.name || null,
                 playerOutIdNumber: playerOut?.idNumber || null,
                 reason: reason || null,
             };
 
-            const createdRequest = await addRequalificationRequest(newRequestData);
+            const createdRequest = await addRequalificationRequest(newRequestData, profilePhotoPreview, idCardPhotoPreview);
             setLastRequest(createdRequest);
 
             toast({

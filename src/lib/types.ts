@@ -1,5 +1,4 @@
 
-
 export type SanctionSettings = {
     yellowCardFine: number;
     redCardFine: number;
@@ -256,8 +255,8 @@ export interface RequalificationRequest {
     playerInIdNumber: string;
     playerInBirthDate: string;
     playerInJerseyNumber: string;
-    playerInPhotoUrl?: string | null;
-    playerInIdCardUrl?: string | null;
+    playerInPhotoUrl: string;
+    playerInIdCardUrl: string;
     
     playerOutName?: string | null;
     playerOutIdNumber?: string | null;

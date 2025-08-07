@@ -1,5 +1,4 @@
 
-
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions, SanctionSettings } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions, SanctionSettings };
 import { db, storage, auth } from './firebase';
@@ -292,12 +291,32 @@ export const getPlayers = async (): Promise<Player[]> => {
     return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
 };
 
-export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'status' | 'stats' | 'careerHistory'>, photoDataUri: string): Promise<Player> => {
+export const addPlayer = async (
+    playerData: Omit<Player, 'id' | 'photoUrl' | 'idCardUrl' | 'status' | 'stats' | 'careerHistory'>, 
+    photoDataUri: string | null,
+    idCardDataUri: string | null
+): Promise<Player> => {
     const newPlayerRef = doc(collection(db, 'players'));
+    const newPlayerId = newPlayerRef.id;
+
+    let photoUrl = 'https://placehold.co/200x200.png';
+    if (photoDataUri) {
+        const photoStorageRef = ref(storage, `player-photos/${newPlayerId}`);
+        const photoSnapshot = await uploadString(photoStorageRef, photoDataUri, 'data_url');
+        photoUrl = await getDownloadURL(photoSnapshot.ref);
+    }
     
-    const initialPlayerData: Omit<Player, 'id' | 'photoUrl'> = {
+    let idCardUrl = undefined;
+    if (idCardDataUri) {
+        const idCardStorageRef = ref(storage, `player-id-cards/${newPlayerId}`);
+        const idCardSnapshot = await uploadString(idCardStorageRef, idCardDataUri, 'data_url');
+        idCardUrl = await getDownloadURL(idCardSnapshot.ref);
+    }
+
+    const initialPlayerData: Omit<Player, 'id'> = {
         ...playerData,
-        photoUrl: '', 
+        photoUrl,
+        idCardUrl,
         status: 'activo',
         stats: { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
         careerHistory: [{
@@ -305,25 +324,10 @@ export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'st
             startDate: new Date().toISOString(),
         }]
     };
+    
     await setDoc(newPlayerRef, initialPlayerData);
-    const newPlayerId = newPlayerRef.id;
-
-    let photoUrl = 'https://placehold.co/200x200.png';
-    if (photoDataUri) {
-        try {
-            const storageRef = ref(storage, `player-photos/${newPlayerId}`);
-            const snapshot = await uploadString(storageRef, photoDataUri, 'data_url');
-            photoUrl = await getDownloadURL(snapshot.ref);
-        } catch (error) {
-            console.error("Error uploading photo, deleting player doc. Error:", error);
-            await deleteDoc(newPlayerRef);
-            throw error;
-        }
-    }
-
-    await updateDoc(newPlayerRef, { photoUrl: photoUrl });
     await addSystemLog('create', 'player', `Agregó al jugador ${playerData.name} al equipo ${playerData.team}.`);
-
+    
     const finalPlayerDoc = await getDoc(newPlayerRef);
     return { id: newPlayerId, ...finalPlayerDoc.data() } as Player;
 };
@@ -591,11 +595,38 @@ export const getRequalificationRequests = async (): Promise<RequalificationReque
     return requestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RequalificationRequest));
 };
 
-export const addRequalificationRequest = async (request: Omit<RequalificationRequest, 'id'>): Promise<RequalificationRequest> => {
-    const requestsCol = collection(db, 'requalificationRequests');
-    const docRef = await addDoc(requestsCol, request);
+export const addRequalificationRequest = async (
+    request: Omit<RequalificationRequest, 'id' | 'playerInPhotoUrl' | 'playerInIdCardUrl'>, 
+    photoDataUri: string | null,
+    idCardDataUri: string | null
+): Promise<RequalificationRequest> => {
+    const newRequestRef = doc(collection(db, 'requalificationRequests'));
+    const newRequestId = newRequestRef.id;
+
+    let photoUrl = 'https://placehold.co/200x200.png';
+    if (photoDataUri) {
+        const photoStorageRef = ref(storage, `request-photos/${newRequestId}-profile`);
+        const photoSnapshot = await uploadString(photoStorageRef, photoDataUri, 'data_url');
+        photoUrl = await getDownloadURL(photoSnapshot.ref);
+    }
+    
+    let idCardUrl = 'https://placehold.co/300x200.png';
+    if (idCardDataUri) {
+        const idCardStorageRef = ref(storage, `request-id-cards/${newRequestId}-idcard`);
+        const idCardSnapshot = await uploadString(idCardStorageRef, idCardDataUri, 'data_url');
+        idCardUrl = await getDownloadURL(idCardSnapshot.ref);
+    }
+    
+    const finalRequestData = {
+        ...request,
+        playerInPhotoUrl: photoUrl,
+        playerInIdCardUrl: idCardUrl,
+    };
+    
+    await setDoc(newRequestRef, finalRequestData);
     await addSystemLog('create', 'player', `Generó una solicitud de ${request.requestType} para el equipo ${request.teamName}.`);
-    return { id: docRef.id, ...request };
+    
+    return { id: newRequestId, ...finalRequestData };
 };
 
 export const updateRequalificationRequestStatus = async (requestId: string, status: 'approved' | 'rejected') => {
