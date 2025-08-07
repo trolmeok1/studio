@@ -123,30 +123,6 @@ export const updateUser = async (updatedUser: User) => {
     await addSystemLog('update', 'system', `Se actualizaron los permisos para el usuario ${updatedUser.name}.`);
 };
 
-export const addUser = async (newUser: Omit<User, 'id'>): Promise<User> => {
-    const usersCol = collection(db, 'users');
-    
-    // Normalize email for query
-    const userEmailLower = newUser.email.toLowerCase();
-    
-    // Check if user already exists by email to prevent duplicates in Firestore
-    const q = query(usersCol, where("email", "==", userEmailLower), limit(1));
-    const existingUserSnapshot = await getDocs(q);
-    if (!existingUserSnapshot.empty) {
-        // User already exists in Firestore, just return it.
-        const doc = existingUserSnapshot.docs[0];
-        console.log("User already exists in Firestore:", doc.id);
-        return { id: doc.id, ...doc.data() } as User;
-    }
-    
-    // User does not exist, add them.
-    console.log("Adding new user to Firestore:", userEmailLower);
-    const docRef = await addDoc(usersCol, { ...newUser, email: userEmailLower });
-    await addSystemLog('create', 'system', `Se creó un nuevo usuario: ${newUser.name}.`);
-    return { id: docRef.id, ...newUser, email: userEmailLower } as User;
-};
-
-
 // --- Expenses ---
 export const getExpenses = async (): Promise<Expense[]> => {
     const expensesCol = collection(db, 'expenses');

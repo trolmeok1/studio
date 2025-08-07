@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { updateUser } from '@/lib/mock-data';
 
 const permissionModules: { key: keyof Permissions; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
@@ -86,18 +88,26 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
     };
 
     const handleSave = () => {
+        if (!user) {
+            // Logic for creating a new user is disabled per user request
+            toast({
+                title: "Creación deshabilitada",
+                description: "La creación de nuevos usuarios no está permitida.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         const finalUser: User = {
-            id: user?.id || `user-${Date.now()}`, // Firestore will generate ID if new
+            ...user,
             name: userData.name || '',
             email: userData.email || '',
-            password: userData.password,
-            role: 'secretary', // Role can be deprecated or used for a base layer
             permissions: permissions,
-            avatarUrl: userData.avatarUrl || `https://i.pravatar.cc/150?u=${userData.email}`,
+            avatarUrl: userData.avatarUrl || user.avatarUrl,
         };
         onSave(finalUser);
         toast({
-            title: user ? "Usuario actualizado" : "Usuario creado",
+            title: "Usuario actualizado",
             description: `Se han guardado los datos para ${finalUser.name}.`,
         });
         onOpenChange(false);
@@ -109,7 +119,7 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
                 <DialogHeader>
                     <DialogTitle>{user ? `Gestionar Permisos de ${user.name}` : 'Agregar Nuevo Usuario'}</DialogTitle>
                     <DialogDescription>
-                        {user ? 'Ajusta los permisos de acceso para cada módulo.' : 'Completa los datos y asigna los permisos para el nuevo usuario.'}
+                        {user ? 'Ajusta los permisos de acceso para cada módulo.' : 'La creación de usuarios está deshabilitada.'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
@@ -117,18 +127,12 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
                         <h4 className="font-semibold">Datos del Usuario</h4>
                         <div className="space-y-2">
                             <Label htmlFor="name">Nombre</Label>
-                            <Input id="name" value={userData.name} onChange={(e) => setUserData({...userData, name: e.target.value })} />
+                            <Input id="name" value={userData.name} onChange={(e) => setUserData({...userData, name: e.target.value })} disabled={!user} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
-                             <Input id="email" type="email" value={userData.email} onChange={(e) => setUserData({...userData, email: e.target.value })} />
+                             <Input id="email" type="email" value={userData.email} onChange={(e) => setUserData({...userData, email: e.target.value })} disabled={!user} />
                         </div>
-                        {!user && (
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Contraseña</Label>
-                                <Input id="password" type="password" value={userData.password} onChange={(e) => setUserData({...userData, password: e.target.value })} placeholder="Contraseña inicial" />
-                            </div>
-                        )}
                     </div>
                     <div className="md:col-span-2 space-y-4">
                         <h4 className="font-semibold">Permisos por Módulo</h4>
@@ -143,6 +147,7 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
                                                     id={`view-${module.key}`}
                                                     checked={permissions[module.key]?.view || false}
                                                     onCheckedChange={(checked) => handleViewPermissionChange(module.key, !!checked)}
+                                                    disabled={!user}
                                                 />
                                                 <Label htmlFor={`view-${module.key}`} className="text-sm font-medium leading-none">Ver</Label>
                                             </div>
@@ -151,7 +156,7 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
                                                     id={`edit-${module.key}`}
                                                     checked={permissions[module.key]?.edit || false}
                                                     onCheckedChange={(checked) => handlePermissionChange(module.key, 'edit', !!checked)}
-                                                    disabled={!permissions[module.key]?.view}
+                                                    disabled={!permissions[module.key]?.view || !user}
                                                 />
                                                 <Label htmlFor={`edit-${module.key}`} className="text-sm font-medium leading-none">Editar</Label>
                                             </div>
@@ -164,7 +169,7 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                      <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button onClick={handleSave}>Guardar Cambios</Button>
+                    <Button onClick={handleSave} disabled={!user}>Guardar Cambios</Button>
                 </div>
             </DialogContent>
         </Dialog>
@@ -172,18 +177,18 @@ const PermissionsDialog = ({ user, onSave, children, open, onOpenChange }: { use
 };
 
 export default function RolesPage() {
-  const { user: currentUser, users, saveUser } = useAuth();
+  const { user: currentUser, users, setUsers } = useAuth();
   const isAdmin = currentUser.permissions.roles.edit;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
-  const handleSaveUser = async (userToSave: User) => {
-      await saveUser(userToSave);
-  };
+  const handleSaveUser = useCallback(async (userToSave: User) => {
+      await updateUser(userToSave);
+      setUsers(prevUsers => prevUsers.map(u => u.id === userToSave.id ? userToSave : u));
+  }, [setUsers]);
 
   const openAddDialog = () => {
-    setSelectedUser(undefined);
-    setIsDialogOpen(true);
+    // Adding new users is disabled
   };
 
   const openEditDialog = (user: User) => {
@@ -202,7 +207,7 @@ export default function RolesPage() {
             </h2>
         </div>
         {isAdmin && (
-            <Button onClick={openAddDialog}>
+            <Button onClick={openAddDialog} disabled>
                 <PlusCircle className='mr-2' />
                 Agregar Usuario
             </Button>
@@ -265,4 +270,3 @@ export default function RolesPage() {
     </div>
   );
 }
-

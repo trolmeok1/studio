@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getUsers, type User, type UserRole, type Permissions, addUser } from '@/lib/mock-data';
+import { getUsers, type User, type UserRole, type Permissions } from '@/lib/mock-data';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { ADMIN_EMAIL } from '@/lib/mock-data';
@@ -68,28 +68,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (firebaseUser && firebaseUser.email) {
                 let appUser = allUsers.find(u => u.email.toLowerCase() === firebaseUser.email!.toLowerCase());
                 
-                if (!appUser && firebaseUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-                    console.log("Admin user not found in Firestore DB, creating now...");
-                    const adminUserPayload: Omit<User, 'id'> = {
-                        name: 'Administrador Principal',
-                        email: ADMIN_EMAIL,
-                        role: 'admin',
-                        permissions: {
-                            dashboard: { view: true, edit: true }, players: { view: true, edit: true },
-                            schedule: { view: true, edit: true }, partido: { view: true, edit: true },
-                            copa: { view: true, edit: true }, aiCards: { view: true, edit: true },
-                            committees: { view: true, edit: true }, treasury: { view: true, edit: true },
-                            requests: { view: true, edit: true }, reports: { view: true, edit: true },
-                            teams: { view: true, edit: true }, roles: { view: true, edit: true },
-                            logs: { view: true, edit: true },
-                        },
-                        avatarUrl: 'https://placehold.co/100x100.png'
-                    };
-                    appUser = await addUser(adminUserPayload);
-                    allUsers = await getUsers();
-                    setUsersState(allUsers);
-                }
-                
                 if (appUser) {
                     setCurrentUser(appUser);
                 } else {
@@ -114,19 +92,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await signInWithEmailAndPassword(auth, email, password);
         return true;
     } catch (error: any) {
-        // If the admin user does not exist in Firebase Auth, create it.
-        if (error.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-            try {
-                console.log("Admin user not found in Firebase Auth, creating now...");
-                await createUserWithEmailAndPassword(auth, email, password);
-                // After creating, signIn again. The onAuthStateChanged listener will handle the rest.
-                await signInWithEmailAndPassword(auth, email, password);
-                return true;
-            } catch (creationError) {
-                console.error("Firebase admin creation error:", creationError);
-                return false;
-            }
-        }
         console.error("Firebase login error:", error);
         return false;
     }
@@ -141,16 +106,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const saveUser = useCallback(async (userToSave: User) => {
+    // This function will now only handle updates for existing users
     const userExists = users.some(u => u.id === userToSave.id);
     
     if (userExists) {
         // User update logic might be needed here if you want to update from this function
     } else {
-        if (!userToSave.password) {
-            throw new Error("Password is required to create a new user.");
-        }
-        await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password);
-        await addUser(userToSave);
+        // New user creation logic is disabled
+        throw new Error("La creación de nuevos usuarios está deshabilitada.");
     }
     
     const allUsers = await getUsers();
