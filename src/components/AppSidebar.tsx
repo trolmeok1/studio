@@ -125,13 +125,13 @@ export function AppSidebar() {
       permissions.aiCards.view && { href: '/ai-cards', icon: CreditCard, label: 'Carnets AI', tooltip: 'Carnets AI' },
       permissions.committees.view && { href: '/committees', icon: FilePen, label: 'Vocalías', tooltip: 'Vocalías' },
       permissions.treasury.view && { href: '/treasury', icon: Landmark, label: 'Tesorería', tooltip: 'Tesorería' },
-      permissions.requests.view && { href: '/requests/management', icon: UserCheck, label: 'Gestión de Jugadores', tooltip: 'Gestión de Calificación' },
+      permissions.requests.view && { href: '/requests/management', icon: UserCheck, label: 'Calificaciones', tooltip: 'Calificaciones' },
   ].filter(Boolean);
 
   const settingsNavItems = [
-      permissions.roles.view && { href: '/roles', icon: UserCog, label: 'Roles', tooltip: 'Roles' },
+      permissions.roles.view && { href: '/roles', icon: UserCog, label: 'Accesos Admins', tooltip: 'Accesos Admins' },
       permissions.logs.view && { href: '/logs', icon: FileClock, label: 'Logs', tooltip: 'Logs' },
-      user.role === 'admin' && { href: '/settings/sanctions', icon: AlertOctagon, label: 'Sanciones', tooltip: 'Sanciones' },
+      user.role === 'admin' && { href: '/settings/sanctions', icon: AlertOctagon, label: 'Penas y Sanciones', tooltip: 'Penas y Sanciones' },
       user.role === 'admin' && { href: '/settings/appearance', icon: ImageIcon, label: 'Apariencia', tooltip: 'Apariencia' },
       user.role === 'admin' && { href: '/settings/data', icon: Database, label: 'Gestión de Datos', tooltip: 'Gestión de Datos' },
   ].filter(Boolean);
