@@ -3,40 +3,40 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPlayers, getTeams, type Player, type Team, type Category } from '@/lib/mock-data';
 import { Download, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 
-// Function to fetch image as Base64 data URI via a server-side proxy
 const toDataURL = (url: string): Promise<string> => {
     return new Promise((resolve) => {
         if (!url) {
             resolve('');
             return;
         }
-        // If it's already a data URI, return it directly.
         if (url.startsWith('data:image')) {
             resolve(url);
             return;
         }
 
-        // Use the API route as a proxy to bypass CORS issues.
         fetch(`/api/image-proxy?url=${encodeURIComponent(url)}`)
             .then(response => {
                 if (!response.ok) {
-                     throw new Error(`Error del proxy: ${response.statusText}`);
+                    throw new Error(`Error del proxy: ${response.statusText}`);
                 }
-                return response.text(); // The server returns the Data URI as plain text
+                return response.text();
             })
             .then(dataUri => {
                 resolve(dataUri);
             })
             .catch(error => {
                 console.error(`Fallo al obtener la imagen desde el proxy para ${url}:`, error);
-                resolve(''); // Resolve with empty string on error
+                resolve(''); 
             });
     });
 };
@@ -47,10 +47,19 @@ export default function AiCardsPage() {
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [selection, setSelection] = useState<{ category: Category | null; teamId: string | null }>({
+  // State for team-based generation
+  const [teamSelection, setTeamSelection] = useState<{ category: Category | null; teamId: string | null }>({
     category: null,
     teamId: null,
   });
+  
+  // State for individual generation
+  const [individualSelection, setIndividualSelection] = useState<{ category: Category | null; teamId: string | null, selectedPlayers: string[] }>({
+    category: null,
+    teamId: null,
+    selectedPlayers: [],
+  });
+
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -70,18 +79,28 @@ export default function AiCardsPage() {
     return uniqueCategories.filter(c => c !== 'Copa') as Category[];
   }, [allTeams]);
   
-  const filteredTeams = useMemo(() => {
-    if (!selection.category) return [];
-    return allTeams.filter((team) => team.category === selection.category);
-  }, [selection.category, allTeams]);
+  const filteredTeamsForTeamSelection = useMemo(() => {
+    if (!teamSelection.category) return [];
+    return allTeams.filter((team) => team.category === teamSelection.category);
+  }, [teamSelection.category, allTeams]);
+  
+  const filteredTeamsForIndividualSelection = useMemo(() => {
+    if (!individualSelection.category) return [];
+    return allTeams.filter((team) => team.category === individualSelection.category);
+  }, [individualSelection.category, allTeams]);
 
-  const selectedTeamPlayers = useMemo(() => {
-    if (!selection.teamId) return [];
-    return allPlayers.filter((p) => p.teamId === selection.teamId);
-  }, [selection.teamId, allPlayers]);
+  const selectedTeamPlayersForTeamSelection = useMemo(() => {
+    if (!teamSelection.teamId) return [];
+    return allPlayers.filter((p) => p.teamId === teamSelection.teamId);
+  }, [teamSelection.teamId, allPlayers]);
+  
+  const playersForIndividualSelection = useMemo(() => {
+    if (!individualSelection.teamId) return [];
+    return allPlayers.filter((p) => p.teamId === individualSelection.teamId);
+  }, [individualSelection.teamId, allPlayers]);
     
-  const handleDownloadPdf = async () => {
-    if (!selection.teamId) return;
+  const generatePdfForPlayers = async (playersToPrint: Player[], teamNameForFile: string) => {
+    if (playersToPrint.length === 0) return;
     setIsGenerating(true);
 
     try {
@@ -91,19 +110,15 @@ export default function AiCardsPage() {
         const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
         const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
-        // --- Pre-fetch all assets ---
         const leagueLogoUrl = localStorage.getItem('league-logo') || 'https://placehold.co/100x100.png';
         const backgroundImageUrl = localStorage.getItem('card-background-image') || 'https://i.imgur.com/uP8hD5w.jpeg';
         
-        const [
-            backgroundImageBase64, 
-            leagueLogoBase64
-        ] = await Promise.all([
+        const [backgroundImageBase64, leagueLogoBase64] = await Promise.all([
             toDataURL(backgroundImageUrl),
             toDataURL(leagueLogoUrl),
         ]);
         
-        const playersWithImages = await Promise.all(selectedTeamPlayers.map(async (player) => {
+        const playersWithImages = await Promise.all(playersToPrint.map(async (player) => {
             const host = window.location.host;
             const protocol = window.location.protocol;
             const profileUrl = `${protocol}//${host}/players/${player.id}`;
@@ -129,7 +144,6 @@ export default function AiCardsPage() {
             const x = marginX * (col + 1) + col * cardWidthMM;
             const y = marginY * (row + 1) + row * cardHeightMM;
             
-            // --- Draw Card Background ---
             if (backgroundImageBase64) {
                  try {
                     const imgProps = pdf.getImageProperties(backgroundImageBase64);
@@ -140,17 +154,15 @@ export default function AiCardsPage() {
                      pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
                  }
             } else {
-                pdf.setFillColor('#1a233c'); // Dark blue background fallback
+                pdf.setFillColor('#1a233c');
                 pdf.roundedRect(x, y, cardWidthMM, cardHeightMM, 3, 3, 'F');
             }
             
-            // Overlay for better text readability
             pdf.setFillColor(0, 0, 0);
             pdf.setGState(new (pdf.GState as any)({opacity: 0.5}));
             pdf.rect(x, y, cardWidthMM, cardHeightMM, 'F');
             pdf.setGState(new (pdf.GState as any)({opacity: 1}));
 
-            // --- Header ---
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor('#FFFFFF');
@@ -158,11 +170,10 @@ export default function AiCardsPage() {
             pdf.setFontSize(10);
             pdf.text('LA LUZ', x + cardWidthMM / 2, y + 12, { align: 'center' });
 
-            // --- Player Photo ---
             const photoSize = 25;
             const photoX = x + (cardWidthMM - photoSize) / 2;
             const photoY = y + 18;
-            pdf.setDrawColor('#FFA500'); // Orange border
+            pdf.setDrawColor('#FFA500');
             pdf.setLineWidth(1);
             pdf.rect(photoX, photoY, photoSize, photoSize, 'S');
             
@@ -180,11 +191,10 @@ export default function AiCardsPage() {
                 pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
             }
 
-            // --- Player Info ---
             const infoY = photoY + photoSize + 8;
             pdf.setFontSize(12);
             pdf.setFont('helvetica', 'bold');
-            pdf.setTextColor('#FFA500'); // Orange color for name
+            pdf.setTextColor('#FFA500');
             pdf.text(player.name.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
             
             pdf.setFontSize(11);
@@ -200,11 +210,9 @@ export default function AiCardsPage() {
             pdf.text(`C.I: ${player.idNumber}`, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
             pdf.text(`F. Nac: ${player.birthDate}`, x + cardWidthMM / 2, infoY + 19, { align: 'center' });
 
-            // --- Footer Elements ---
             const footerY = y + cardHeightMM - 20;
             const itemSize = 15;
             
-            // QR Code
             if (player.qrCodeBase64) {
                  try {
                     const qrProps = pdf.getImageProperties(player.qrCodeBase64);
@@ -214,7 +222,6 @@ export default function AiCardsPage() {
                 }
             }
 
-            // League Logo
             if (leagueLogoBase64) {
                 const logoX = x + cardWidthMM - itemSize - 5;
                  try {
@@ -225,7 +232,6 @@ export default function AiCardsPage() {
                 }
             }
 
-            // Jersey Number
             const jerseyX = x + (cardWidthMM / 2);
             pdf.setFontSize(22);
             pdf.setFont('helvetica', 'bold');
@@ -233,8 +239,7 @@ export default function AiCardsPage() {
             pdf.text(player.jerseyNumber.toString(), jerseyX, footerY + itemSize / 2 + 4, { align: 'center' });
         }
 
-        const selectedTeamName = allTeams.find(t => t.id === selection.teamId)?.name || 'equipo';
-        pdf.save(`carnets_${selectedTeamName.replace(/\s+/g, '_')}.pdf`);
+        pdf.save(`carnets_${teamNameForFile.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
         console.error("Failed to generate PDF:", error);
         toast({
@@ -247,13 +252,42 @@ export default function AiCardsPage() {
     }
   };
 
-  const handleCategoryChange = (value: string) => {
-    setSelection({ category: value as Category, teamId: null }); 
+  const handleDownloadPdfByTeam = () => {
+    if (!teamSelection.teamId) return;
+    const selectedTeamName = allTeams.find(t => t.id === teamSelection.teamId)?.name || 'equipo';
+    generatePdfForPlayers(selectedTeamPlayersForTeamSelection, selectedTeamName);
   };
   
-  const handleTeamChange = (value: string) => {
-      setSelection(prev => ({ ...prev, teamId: value }));
+  const handleDownloadPdfByIndividual = () => {
+    const playersToPrint = allPlayers.filter(p => individualSelection.selectedPlayers.includes(p.id));
+    const selectedTeamName = allTeams.find(t => t.id === individualSelection.teamId)?.name || 'jugadores';
+    generatePdfForPlayers(playersToPrint, selectedTeamName);
   }
+
+  const handleCategoryChangeForTeam = (value: string) => {
+    setTeamSelection({ category: value as Category, teamId: null }); 
+  };
+  
+  const handleTeamChangeForTeam = (value: string) => {
+      setTeamSelection(prev => ({ ...prev, teamId: value }));
+  }
+  
+  const handleCategoryChangeForIndividual = (value: string) => {
+    setIndividualSelection({ category: value as Category, teamId: null, selectedPlayers: [] }); 
+  };
+  
+  const handleTeamChangeForIndividual = (value: string) => {
+    setIndividualSelection(prev => ({ ...prev, teamId: value, selectedPlayers: [] }));
+  };
+  
+  const handlePlayerCheckboxChange = (playerId: string) => {
+    setIndividualSelection(prev => {
+        const newSelectedPlayers = prev.selectedPlayers.includes(playerId)
+            ? prev.selectedPlayers.filter(id => id !== playerId)
+            : [...prev.selectedPlayers, playerId];
+        return { ...prev, selectedPlayers: newSelectedPlayers };
+    });
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -265,13 +299,16 @@ export default function AiCardsPage() {
         </h2>
       </div>
 
-      <main>
+      <main className="space-y-6">
         <Card className="lg:col-span-2">
-            <CardContent className="pt-6">
+            <CardHeader>
+                <CardTitle>Generación por Equipo Completo</CardTitle>
+            </CardHeader>
+            <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
                 <div>
                     <h3 className="text-lg font-medium mb-2">1. Seleccionar Categoría</h3>
-                    <Select onValueChange={handleCategoryChange} value={selection.category || ''} disabled={isLoadingData}>
+                    <Select onValueChange={handleCategoryChangeForTeam} value={teamSelection.category || ''} disabled={isLoadingData}>
                         <SelectTrigger>
                         <SelectValue placeholder={isLoadingData ? "Cargando..." : "Elige una categoría..."} />
                         </SelectTrigger>
@@ -286,12 +323,12 @@ export default function AiCardsPage() {
                 </div>
                 <div>
                     <h3 className="text-lg font-medium mb-2">2. Seleccionar Equipo</h3>
-                    <Select onValueChange={handleTeamChange} value={selection.teamId || ''} disabled={!selection.category || isLoadingData}>
+                    <Select onValueChange={handleTeamChangeForTeam} value={teamSelection.teamId || ''} disabled={!teamSelection.category || isLoadingData}>
                         <SelectTrigger>
-                        <SelectValue placeholder={!selection.category ? "Primero elige categoría" : "Elige un equipo..."} />
+                        <SelectValue placeholder={!teamSelection.category ? "Primero elige categoría" : "Elige un equipo..."} />
                         </SelectTrigger>
                         <SelectContent>
-                        {filteredTeams.map((team) => (
+                        {filteredTeamsForTeamSelection.map((team) => (
                             <SelectItem key={team.id} value={team.id}>
                             {team.name}
                             </SelectItem>
@@ -300,17 +337,84 @@ export default function AiCardsPage() {
                     </Select>
                 </div>
                 <div>
-                    {selection.teamId && (
+                    {teamSelection.teamId && (
                         <>
                             <h3 className="text-lg font-medium mb-2 invisible">3. Descargar</h3>
-                            <Button onClick={handleDownloadPdf} className="w-full" disabled={isGenerating}>
+                            <Button onClick={handleDownloadPdfByTeam} className="w-full" disabled={isGenerating}>
                                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                {isGenerating ? 'Generando PDF...' : `Descargar PDF (${selectedTeamPlayers.length})`}
+                                {isGenerating ? 'Generando PDF...' : `Descargar PDF (${selectedTeamPlayersForTeamSelection.length})`}
                             </Button>
                         </>
                     )}
                 </div>
             </div>
+            </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+            <CardHeader>
+                <CardTitle>Generación Individual por Jugador</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <Label>1. Seleccionar Categoría</Label>
+                        <Select onValueChange={handleCategoryChangeForIndividual} value={individualSelection.category || ''} disabled={isLoadingData}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={isLoadingData ? "Cargando..." : "Elige una categoría..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categories.map((category, index) => (
+                                    <SelectItem key={`ind-${category}-${index}`} value={category}>
+                                        {category}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <Label>2. Seleccionar Equipo</Label>
+                        <Select onValueChange={handleTeamChangeForIndividual} value={individualSelection.teamId || ''} disabled={!individualSelection.category || isLoadingData}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={!individualSelection.category ? "Primero elige categoría" : "Elige un equipo..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {filteredTeamsForIndividualSelection.map((team) => (
+                                    <SelectItem key={`ind-${team.id}`} value={team.id}>
+                                        {team.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                {playersForIndividualSelection.length > 0 && (
+                    <div className="space-y-4">
+                        <Label>3. Seleccionar Jugadores</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 border rounded-md max-h-60 overflow-y-auto">
+                            {playersForIndividualSelection.map(player => (
+                                <div key={player.id} className="flex items-center space-x-2">
+                                     <Checkbox
+                                        id={`player-${player.id}`}
+                                        checked={individualSelection.selectedPlayers.includes(player.id)}
+                                        onCheckedChange={() => handlePlayerCheckboxChange(player.id)}
+                                    />
+                                    <Label htmlFor={`player-${player.id}`} className="flex items-center gap-2 cursor-pointer">
+                                        <Image src={player.photoUrl} alt={player.name} width={24} height={24} className="rounded-full" />
+                                        {player.name}
+                                    </Label>
+                                </div>
+                            ))}
+                        </div>
+                        <Button
+                            onClick={handleDownloadPdfByIndividual}
+                            disabled={isGenerating || individualSelection.selectedPlayers.length === 0}
+                        >
+                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            {isGenerating ? 'Generando...' : `Generar PDF para Seleccionados (${individualSelection.selectedPlayers.length})`}
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
       </main>
