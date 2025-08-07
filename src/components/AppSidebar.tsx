@@ -53,7 +53,7 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
 
@@ -142,10 +142,11 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
            {leagueLogo ? (
-            <Image src={leagueLogo} alt="Logo de la Liga" width={140} height={35} className="object-contain" />
-          ) : (
-             <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
-          )}
+                <Image src={leagueLogo} alt="Logo de la Liga" width={32} height={32} className="object-contain" />
+            ) : (
+                <Trophy className="text-primary size-8" />
+            )}
+            <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
           <div className="ml-auto md:hidden">
             <SidebarTrigger />
           </div>
