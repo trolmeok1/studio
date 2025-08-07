@@ -328,6 +328,25 @@ export const addPlayer = async (playerData: Omit<Player, 'id' | 'photoUrl' | 'st
     return { id: newPlayerId, ...finalPlayerDoc.data() } as Player;
 };
 
+export const updatePlayer = async (playerId: string, playerData: Partial<Player>, photoDataUri: string | null): Promise<Player> => {
+    const playerRef = doc(db, 'players', playerId);
+    
+    const updateData: { [key: string]: any } = JSON.parse(JSON.stringify(playerData));
+    delete updateData.id;
+
+    if (photoDataUri && photoDataUri.startsWith('data:image')) {
+        const storageRef = ref(storage, `player-photos/${playerId}`);
+        const snapshot = await uploadString(storageRef, photoDataUri, 'data_url');
+        updateData.photoUrl = await getDownloadURL(snapshot.ref);
+    }
+    
+    await updateDoc(playerRef, updateData);
+    await addSystemLog('update', 'player', `Actualizó la información del jugador ${playerData.name}.`);
+    
+    const updatedDoc = await getDoc(playerRef);
+    return { id: updatedDoc.id, ...updatedDoc.data() } as Player;
+};
+
 
 export const getPlayerById = async (id: string): Promise<Player | undefined> => {
     if (!id) return undefined;
@@ -630,5 +649,7 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
+
+    
 
     
