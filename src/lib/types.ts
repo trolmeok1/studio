@@ -244,13 +244,24 @@ export interface RequalificationRequest {
     id: string;
     teamId: string;
     teamName: string;
+    teamLogoUrl: string;
     requestType: 'qualification' | 'requalification';
-    playerInName: string;
-    playerInPhotoUrl?: string | null;
-    playerInIdCardUrl?: string | null;
-    playerOutName?: string | null;
     date: string;
     status: 'pending' | 'approved' | 'rejected';
+    
+    presidentName: string;
+    presidentIdNumber: string;
+
+    playerInName: string;
+    playerInIdNumber: string;
+    playerInBirthDate: string;
+    playerInJerseyNumber: string;
+    playerInPhotoUrl?: string | null;
+    playerInIdCardUrl?: string | null;
+    
+    playerOutName?: string | null;
+    playerOutIdNumber?: string | null;
+    reason?: string | null;
 }
 
 export type UserRole = 'admin' | 'secretary' | 'guest';
