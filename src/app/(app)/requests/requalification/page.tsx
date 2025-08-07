@@ -59,10 +59,12 @@ export default function RequalificationRequestPage() {
         if (selectedTeamId) {
             getPlayersByTeamId(selectedTeamId).then(setPlayers);
             const team = teams.find(t => t.id === selectedTeamId);
-            if(team?.president) {
+            if(team?.president?.name) {
                 setPresidentName(team.president.name);
-                setPresidentIdNumber(team.president.idNumber || '');
+            } else {
+                setPresidentName('');
             }
+            setPresidentIdNumber(''); // Reset CI on team change
         } else {
             setPlayers([]);
             setPresidentName('');
@@ -342,7 +344,7 @@ export default function RequalificationRequestPage() {
                             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="presidentName">Nombre Completo del Presidente</Label>
-                                    <Input id="presidentName" value={presidentName} onChange={(e) => setPresidentName(e.target.value)} placeholder="Nombre del presidente" />
+                                    <Input id="presidentName" value={presidentName} onChange={(e) => setPresidentName(e.target.value)} placeholder="Nombre del presidente" disabled />
                                 </div>
                                 <div>
                                     <Label htmlFor="presidentIdNumber">Cédula del Presidente</Label>
