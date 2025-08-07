@@ -222,8 +222,8 @@ export default function AiCardsPage() {
             pdf.text(`C.I: ${player.idNumber}`, x + cardWidthMM / 2, detailsY + 7, { align: 'center' });
             pdf.text(`F. Nac: ${player.birthDate}`, x + cardWidthMM / 2, detailsY + 10, { align: 'center' });
 
-            const footerY = y + cardHeightMM - 16;
-            const itemSize = 15;
+            const itemSize = 12;
+            const footerY = y + cardHeightMM - itemSize - 2;
             
             if (player.qrCodeBase64) {
                  try {
