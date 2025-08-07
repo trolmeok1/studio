@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 type RequestType = 'qualification' | 'requalification';
 
@@ -314,4 +315,3 @@ export default function RequalificationRequestPage() {
         </div>
     );
 }
-
