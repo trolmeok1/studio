@@ -103,7 +103,7 @@ export default function TreasuryPage() {
                 getExpenses()
             ]);
             setMatches(matchesData);
-            setExpenses(expensesData);
+            setExpenses(expensesData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
             setLoading(false);
         }
@@ -161,8 +161,9 @@ export default function TreasuryPage() {
         }
         return pending;
     }), [filteredMatches]);
+    
+    const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0), [filteredExpenses]);
 
-    const totalSanctionIncome = 550; // Mock data for now
 
     const absentTeams = useMemo(() => filteredMatches.flatMap(match => {
         const absentees: (MatchTeam & { date: string })[] = [];
@@ -304,14 +305,14 @@ export default function TreasuryPage() {
                 <Card neon="yellow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Ingresos Totales
+                            Ingresos por Vocalías
                         </CardTitle>
                         <Landmark className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${(totalVocalIncome + totalSanctionIncome).toLocaleString('en-US')}</div>
+                        <div className="text-2xl font-bold">${totalVocalIncome.toLocaleString('en-US')}</div>
                         <p className="text-xs text-muted-foreground">
-                            Vocalías y sanciones en el período
+                            Ingresos de vocalías pagadas en el período
                         </p>
                     </CardContent>
                 </Card>
@@ -323,7 +324,7 @@ export default function TreasuryPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">-${filteredExpenses.reduce((acc, e) => acc + e.amount, 0).toLocaleString('en-US')}</div>
+                        <div className="text-2xl font-bold text-destructive">-${totalExpenses.toLocaleString('en-US')}</div>
                          <p className="text-xs text-muted-foreground">
                             Gastos registrados en el período
                         </p>
@@ -335,7 +336,7 @@ export default function TreasuryPage() {
                         <Ban className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-primary">${((totalVocalIncome + totalSanctionIncome) - filteredExpenses.reduce((acc, e) => acc + e.amount, 0)).toLocaleString('en-US')}</div>
+                        <div className="text-2xl font-bold text-primary">${(totalVocalIncome - totalExpenses).toLocaleString('en-US')}</div>
                         <p className="text-xs text-muted-foreground">
                            Ingresos menos gastos
                         </p>

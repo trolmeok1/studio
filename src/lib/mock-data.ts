@@ -1,4 +1,5 @@
 
+
 import type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions, SanctionSettings } from './types';
 export type { Player, Team, Standing, Sanction, Scorer, Achievement, DashboardStats, Category, Match, MatchData, VocalPaymentDetails, LogEntry, MatchEvent, Expense, RequalificationRequest, User, Permissions, SanctionSettings };
 import { db, storage, auth } from './firebase';
@@ -229,6 +230,7 @@ export const updateTeam = async (teamId: string, teamData: Partial<Team>, logoDa
 
     await updateDoc(teamRef, updateData);
     await addSystemLog('update', 'team', `Actualizó la información del equipo ${teamData.name}.`);
+    
     const updatedDoc = await getDoc(teamRef);
     return { id: updatedDoc.id, ...updatedDoc.data() } as Team;
 };
