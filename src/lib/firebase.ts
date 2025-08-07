@@ -17,19 +17,24 @@ const firebaseConfig: FirebaseOptions = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firestore with offline persistence
+// This check prevents re-initializing on hot reloads
 let db;
-if (typeof window !== 'undefined') {
-    try {
-        db = initializeFirestore(app, {
-            cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-            // Deprecated: enableIndexedDbPersistence: true
-        });
-    } catch (error) {
-        console.error("Error initializing Firestore with persistence:", error);
-        db = getFirestore(app); // Fallback to default initialization
+try {
+    // This will throw an error if Firestore has already been initialized,
+    // which is what we want in order to fall back to getFirestore().
+    db = initializeFirestore(app, {
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    });
+} catch (e) {
+    if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'failed-precondition') {
+        // This error means Firestore has already been initialized.
+        // We can safely ignore it and get the existing instance.
+        db = getFirestore(app);
+    } else {
+        // A different error occurred
+        console.error("Error initializing Firestore:", e);
+        db = getFirestore(app); // Fallback
     }
-} else {
-    db = getFirestore(app);
 }
 
 
