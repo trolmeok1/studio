@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DollarSign, Landmark, Ban, AlertTriangle, Printer, PlusCircle, Trash2 } from 'lucide-react';
-import { getMatches, getTeams, type Category, getExpenses, type Expense, addExpense, removeExpense, type Team, type Match } from '@/lib/mock-data';
+import { getMatches, getTeams, type Category, getExpenses, type Expense, addExpense, removeExpense, type Team, type Match, updateMatchData } from '@/lib/mock-data';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { DateRange } from "react-day-picker";
 import Link from 'next/link';
 import type { MatchTeam } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 
 const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => void }) => {
@@ -88,27 +89,29 @@ const AddExpenseDialog = ({ onAdd }: { onAdd: (expense: Omit<Expense, 'id'>) => 
 
 
 export default function TreasuryPage() {
+    const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [matches, setMatches] = useState<Match[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const loadData = useCallback(async () => {
+        setLoading(true);
+        const [matchesData, expensesData] = await Promise.all([
+            getMatches(),
+            getExpenses()
+        ]);
+        setMatches(matchesData);
+        setExpenses(expensesData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+        setLoading(false);
+    }, []);
+
     useEffect(() => {
         setIsClient(true);
-        async function loadData() {
-            setLoading(true);
-            const [matchesData, expensesData] = await Promise.all([
-                getMatches(),
-                getExpenses()
-            ]);
-            setMatches(matchesData);
-            setExpenses(expensesData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
-            setLoading(false);
-        }
         loadData();
-    }, []);
+    }, [loadData]);
     
     const handleAddExpense = useCallback(async (newExpense: Omit<Expense, 'id'>) => {
         const addedExpense = await addExpense(newExpense);
@@ -152,17 +155,37 @@ export default function TreasuryPage() {
     }, 0), [paidMatches]);
     
     const pendingPayments = useMemo(() => filteredMatches.flatMap(match => {
-        const pending: { team: MatchTeam, amount: number, date: string }[] = [];
+        const pending: { team: MatchTeam, amount: number, date: string, matchId: string }[] = [];
         if (match.teams.home.vocalPaymentDetails?.paymentStatus === 'pending' && match.teams.home.vocalPaymentDetails.total > 0) {
-            pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date});
+            pending.push({team: match.teams.home, amount: match.teams.home.vocalPaymentDetails.total, date: match.date, matchId: match.id});
         }
         if (match.teams.away.vocalPaymentDetails?.paymentStatus === 'pending' && match.teams.away.vocalPaymentDetails.total > 0) {
-            pending.push({team: match.teams.away, amount: match.teams.away.vocalPaymentDetails.total, date: match.date});
+            pending.push({team: match.teams.away, amount: match.teams.away.vocalPaymentDetails.total, date: match.date, matchId: match.id});
         }
         return pending;
     }), [filteredMatches]);
     
     const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0), [filteredExpenses]);
+
+    const handleMarkAsPaid = async (matchId: string, teamId: string) => {
+        const match = matches.find(m => m.id === matchId);
+        if (!match) return;
+
+        const updatedMatch = JSON.parse(JSON.stringify(match));
+        const teamKey = updatedMatch.teams.home.id === teamId ? 'home' : 'away';
+        
+        if (updatedMatch.teams[teamKey].vocalPaymentDetails) {
+            updatedMatch.teams[teamKey].vocalPaymentDetails.paymentStatus = 'paid';
+        }
+
+        await updateMatchData(matchId, updatedMatch);
+        await loadData(); // Recargar datos para actualizar la UI
+
+        toast({
+            title: "Pago Registrado",
+            description: `Se ha marcado como pagada la vocalía para el equipo ${updatedMatch.teams[teamKey].name}.`
+        });
+    };
 
 
     const absentTeams = useMemo(() => filteredMatches.flatMap(match => {
@@ -380,7 +403,7 @@ export default function TreasuryPage() {
                                         <TableCell className="font-medium">{p.team.name}</TableCell>
                                         <TableCell className="text-right font-semibold">${(p.amount || 0).toFixed(2)}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button size="sm">Marcar como Pagado</Button>
+                                            <Button size="sm" onClick={() => handleMarkAsPaid(p.matchId, p.team.id)}>Marcar como Pagado</Button>
                                         </TableCell>
                                     </TableRow>
                                 )) : (

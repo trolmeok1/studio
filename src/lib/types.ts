@@ -1,4 +1,5 @@
 
+
 export type SanctionSettings = {
     yellowCardFine: number;
     redCardFine: number;
