@@ -110,14 +110,15 @@ export function AppSidebar() {
       permissions.players.view && { href: '/players', icon: Users, label: 'Jugadores', tooltip: 'Jugadores' },
       permissions.schedule.view && { href: '/schedule', icon: CalendarDays, label: 'Programación', tooltip: 'Programación' },
       permissions.partido.view && { href: '/partido', icon: ClipboardList, label: 'Resultados', tooltip: 'Resultados' },
-      permissions.committees.view && { href: '/committees', icon: FilePen, label: 'Vocalías', tooltip: 'Vocalías' },
+      { href: '/requests/requalification', icon: UserCheck, label: 'Solicitudes', tooltip: 'Solicitudes de Calificación' },
       permissions.reports.view && { href: '/reports', icon: BarChart2, label: 'Reportes', tooltip: 'Reportes' },
   ].filter(Boolean);
 
   const adminNavItems = [
       permissions.aiCards.view && { href: '/ai-cards', icon: CreditCard, label: 'Carnets AI', tooltip: 'Carnets AI' },
+      permissions.committees.view && { href: '/committees', icon: FilePen, label: 'Vocalías', tooltip: 'Vocalías' },
       permissions.treasury.view && { href: '/treasury', icon: Landmark, label: 'Tesorería', tooltip: 'Tesorería' },
-      permissions.requests.view && { href: '/requests/requalification', icon: UserCheck, label: 'Calificación', tooltip: 'Calificación de Jugadores' },
+      permissions.requests.view && { href: '/roles', icon: UserCog, label: 'Gestión de Jugadores', tooltip: 'Gestión de Calificación' },
   ].filter(Boolean);
 
   const settingsNavItems = [
@@ -321,3 +322,4 @@ export function BottomNavbar() {
         </div>
     );
 }
+

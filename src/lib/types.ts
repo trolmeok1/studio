@@ -246,6 +246,8 @@ export interface RequalificationRequest {
     teamName: string;
     requestType: 'qualification' | 'requalification';
     playerInName: string;
+    playerInPhotoUrl?: string | null;
+    playerInIdCardUrl?: string | null;
     playerOutName?: string | null;
     date: string;
     status: 'pending' | 'approved' | 'rejected';
@@ -263,8 +265,6 @@ export interface Permissions {
     committees: { view: boolean; edit: boolean };
     treasury: { view: boolean; edit: boolean };
     requests: { view: boolean; edit: boolean };
-    reports: { view: boolean; edit: boolean };
-    teams: { view: boolean; edit: boolean };
     roles: { view: boolean; edit: boolean };
     logs: { view: boolean; edit: boolean };
 }
