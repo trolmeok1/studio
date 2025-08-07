@@ -42,6 +42,7 @@ export interface Player {
 export interface Person {
     name: string;
     phone?: string;
+    idNumber?: string;
 }
 
 export interface Team {
@@ -259,9 +260,12 @@ export interface RequalificationRequest {
     playerInPhotoUrl: string;
     playerInIdCardUrl: string;
     
+    playerOutId?: string | null;
     playerOutName?: string | null;
     playerOutIdNumber?: string | null;
-    reason?: string | null;
+    playerOutJerseyNumber?: string | null;
+
+    reason: string;
 }
 
 export type UserRole = 'admin' | 'secretary' | 'guest';

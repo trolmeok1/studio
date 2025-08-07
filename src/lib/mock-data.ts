@@ -610,38 +610,16 @@ export const getRequalificationRequests = async (): Promise<RequalificationReque
 };
 
 export const addRequalificationRequest = async (
-    request: Omit<RequalificationRequest, 'id' | 'playerInPhotoUrl' | 'playerInIdCardUrl'>, 
-    photoDataUri: string | null,
-    idCardDataUri: string | null
+    request: Omit<RequalificationRequest, 'id' | 'playerInPhotoUrl' | 'playerInIdCardUrl'>
 ): Promise<RequalificationRequest> => {
     const newRequestRef = doc(collection(db, 'requalificationRequests'));
-    const newRequestId = newRequestRef.id;
-
-    let photoUrl = 'https://placehold.co/200x200.png';
-    if (photoDataUri) {
-        const photoStorageRef = ref(storage, `request-photos/${newRequestId}-profile`);
-        const photoSnapshot = await uploadString(photoStorageRef, photoDataUri, 'data_url');
-        photoUrl = await getDownloadURL(photoSnapshot.ref);
-    }
     
-    let idCardUrl = 'https://placehold.co/300x200.png';
-    if (idCardDataUri) {
-        const idCardStorageRef = ref(storage, `request-id-cards/${newRequestId}-idcard`);
-        const idCardSnapshot = await uploadString(idCardStorageRef, idCardDataUri, 'data_url');
-        idCardUrl = await getDownloadURL(idCardSnapshot.ref);
-    }
-    
-    const finalRequestData = {
-        ...request,
-        playerInPhotoUrl: photoUrl,
-        playerInIdCardUrl: idCardUrl,
-    };
-    
-    await setDoc(newRequestRef, finalRequestData);
+    await setDoc(newRequestRef, request);
     await addSystemLog('create', 'player', `Generó una solicitud de ${request.requestType} para el equipo ${request.teamName}.`);
     
-    return { id: newRequestId, ...finalRequestData };
+    return { id: newRequestRef.id, ...request };
 };
+
 
 export const updateRequalificationRequestStatus = async (requestId: string, status: 'approved' | 'rejected') => {
     const requestRef = doc(db, 'requalificationRequests', requestId);
