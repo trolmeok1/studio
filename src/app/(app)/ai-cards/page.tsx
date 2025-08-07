@@ -10,7 +10,7 @@ import { Download, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useToast } from '@/hooks/use-toast';
 
-// Function to fetch image as Base64 data URI, with error handling
+// Function to fetch image as Base64 data URI via a server-side proxy
 const toDataURL = (url: string): Promise<string> => {
     return new Promise((resolve) => {
         if (!url) {
@@ -23,22 +23,20 @@ const toDataURL = (url: string): Promise<string> => {
             return;
         }
 
-        fetch(url)
+        // Use the API route as a proxy to bypass CORS issues.
+        fetch(`/api/image-proxy?url=${encodeURIComponent(url)}`)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                     throw new Error(`Error del proxy: ${response.statusText}`);
                 }
-                return response.blob();
+                return response.text(); // The server returns the Data URI as plain text
             })
-            .then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = () => resolve(''); // Resolve with empty string on reader error
-                reader.readAsDataURL(blob);
+            .then(dataUri => {
+                resolve(dataUri);
             })
             .catch(error => {
-                console.error(`Failed to fetch or convert image from ${url}:`, error);
-                resolve(''); // Resolve with empty string on fetch error
+                console.error(`Fallo al obtener la imagen desde el proxy para ${url}:`, error);
+                resolve(''); // Resolve with empty string on error
             });
     });
 };
