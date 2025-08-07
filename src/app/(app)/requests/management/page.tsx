@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
@@ -28,6 +28,9 @@ const RequestDetailsDialog = ({ request }: { request: RequalificationRequest }) 
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Detalle de la Solicitud</DialogTitle>
+                 <DialogDescription>
+                    Información completa de la solicitud de recalificación.
+                </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <p><strong>Equipo:</strong> {request.teamName}</p>
@@ -41,13 +44,17 @@ const RequestDetailsDialog = ({ request }: { request: RequalificationRequest }) 
                     {request.playerInPhotoUrl && (
                         <div>
                             <Label>Foto de Perfil</Label>
-                            <Image src={request.playerInPhotoUrl} alt="Foto de perfil" width={100} height={100} className="rounded-md border p-1" />
+                             <a href={request.playerInPhotoUrl} download={`foto_perfil_${request.playerInName}.jpg`} target="_blank" rel="noopener noreferrer">
+                                <Image src={request.playerInPhotoUrl} alt="Foto de perfil" width={100} height={100} className="rounded-md border p-1 cursor-pointer hover:opacity-80" />
+                             </a>
                         </div>
                     )}
                     {request.playerInIdCardUrl && (
                         <div>
                             <Label>Foto de Cédula</Label>
-                            <Image src={request.playerInIdCardUrl} alt="Foto de cédula" width={150} height={100} className="rounded-md border p-1 object-contain" />
+                             <a href={request.playerInIdCardUrl} download={`cedula_${request.playerInName}.jpg`} target="_blank" rel="noopener noreferrer">
+                                <Image src={request.playerInIdCardUrl} alt="Foto de cédula" width={150} height={100} className="rounded-md border p-1 object-contain cursor-pointer hover:opacity-80" />
+                            </a>
                         </div>
                     )}
                 </div>
@@ -112,15 +119,15 @@ const RequestsSection = ({ requests, onAction }: { requests: RequalificationRequ
                                     </DialogTrigger>
                                     <RequestDetailsDialog request={req} />
                                 </Dialog>
-                                {req.status === 'pending' && (
-                                    <>
-                                        <Button variant="ghost" size="icon" onClick={() => handleApprove(req)}>
-                                            <CheckCircle className="h-5 w-5 text-green-500" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleReject(req)}>
-                                            <XCircle className="h-5 w-5 text-red-500" />
-                                        </Button>
-                                    </>
+                                {req.status !== 'approved' && (
+                                    <Button variant="ghost" size="icon" onClick={() => handleApprove(req)} title="Aprobar">
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                    </Button>
+                                )}
+                                {req.status !== 'rejected' && (
+                                    <Button variant="ghost" size="icon" onClick={() => handleReject(req)} title="Rechazar">
+                                        <XCircle className="h-5 w-5 text-red-500" />
+                                    </Button>
                                 )}
                             </TableCell>
                         </TableRow>
