@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { GeneratedMatch } from '@/lib/types';
+import type { GeneratedMatch, Match } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -276,7 +276,7 @@ export default function CopaPage() {
 
     const [copaTeams, setCopaTeams] = useState<Team[]>([]);
     const [allTeams, setAllTeams] = useState<Team[]>([]);
-    const [copaMatches, setCopaMatches] = useState<GeneratedMatch[]>([]);
+    const [copaMatches, setCopaMatches] = useState<Match[]>([]);
     const [isCopaSettingsDialogOpen, setIsCopaSettingsDialogOpen] = useState(false);
     const [isDrawCopaDialogOpen, setIsDrawCopaDialogOpen] = useState(false);
 
@@ -303,7 +303,6 @@ export default function CopaPage() {
     }, [allTeams]);
 
     const scheduleCopaMatches = async (settings: any) => {
-        // Dummy scheduling logic, replace with actual logic
         const scheduled = copaMatches.filter(m => !m.date).map((match, index) => {
             const date = addDays(new Date(settings.startDate), Math.floor(index / settings.gameTimes.length));
             const time = settings.gameTimes[index % settings.gameTimes.length];
@@ -312,14 +311,13 @@ export default function CopaPage() {
 
             return {
                 ...match,
-                date: matchDateTime,
-                time: format(matchDateTime, 'HH:mm'),
+                date: matchDateTime.toISOString(),
             }
         });
         
         const updatedMatches = [...copaMatches];
         scheduled.forEach(sMatch => {
-            const index = updatedMatches.findIndex(uMatch => uMatch.home === sMatch.home && uMatch.away === sMatch.away && uMatch.leg === sMatch.leg);
+            const index = updatedMatches.findIndex(uMatch => uMatch.teams.home.id === sMatch.teams.home.id && uMatch.teams.away.id === sMatch.teams.away.id);
             if (index !== -1) {
                 updatedMatches[index] = sMatch;
             }
@@ -334,18 +332,38 @@ export default function CopaPage() {
     const handleCopaSettings = async ({ teams }: { teams: Team[] }) => {
         setCopaTeams(teams);
         let shuffledTeams = [...teams].sort(() => 0.5 - Math.random());
-
-        let matches: GeneratedMatch[] = [];
+    
+        let matches: Omit<Match, 'id'>[] = [];
         for (let i = 0; i < shuffledTeams.length; i += 2) {
             if (shuffledTeams[i + 1]) {
-                matches.push({ home: shuffledTeams[i].id, away: shuffledTeams[i + 1].id, category: 'Copa', leg: 'Ida', round: 1 } as unknown as GeneratedMatch);
-                matches.push({ home: shuffledTeams[i + 1].id, away: shuffledTeams[i].id, category: 'Copa', leg: 'Vuelta', round: 1 } as unknown as GeneratedMatch);
+                const teamA = shuffledTeams[i];
+                const teamB = shuffledTeams[i + 1];
+                
+                const createMatchObject = (home: Team, away: Team): Omit<Match, 'id'> => ({
+                    date: '', // No date initially
+                    category: 'Copa',
+                    teams: {
+                        home: { id: home.id, name: home.name, logoUrl: home.logoUrl, attended: false },
+                        away: { id: away.id, name: away.name, logoUrl: away.logoUrl, attended: false }
+                    },
+                    status: 'future',
+                    events: [],
+                });
+
+                matches.push(createMatchObject(teamA, teamB));
+                matches.push(createMatchObject(teamB, teamA));
             }
         }
-        setCopaMatches(matches);
+        
+        // This will be an array of Omit<Match, 'id'>[]
+        // We'll let the saveCopa handle adding them to DB and getting IDs.
+        // For now, we update the local state without IDs.
+        setCopaMatches(matches.map(m => ({...m, id: `temp-${Math.random()}`})));
         await saveCopa(teams, matches);
+        await loadCopaData(); // Reload to get proper data with IDs
         setIsCopaSettingsDialogOpen(false);
-    }
+    };
+    
     
     const unscheduledCopaMatches = useMemo(() => copaMatches.filter(m => !m.date).length, [copaMatches]);
 
@@ -408,11 +426,11 @@ export default function CopaPage() {
                         <div className="mt-6">
                             <h3 className="text-lg font-semibold mb-2">Partidos de Copa Programados</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                               {copaMatches.sort((a,b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)).map((match, i) => (
+                               {copaMatches.sort((a,b) => (a.date ? new Date(a.date).getTime() : 0) - (b.date ? new Date(b.date).getTime() : 0)).map((match, i) => (
                                     <Card key={i} className="p-3" neon="purple">
-                                        <p className="font-semibold">{getTeamName(match.home)} vs {getTeamName(match.away)}</p>
-                                        <p className="text-sm text-muted-foreground">{match.leg}</p>
-                                         <p className="text-xs text-muted-foreground mt-2">{match.date ? format(match.date, 'PPP p', {locale: es}) : 'Por programar'}</p>
+                                        <p className="font-semibold">{match.teams.home.name} vs {match.teams.away.name}</p>
+                                        <p className="text-sm text-muted-foreground">Ida/Vuelta</p>
+                                         <p className="text-xs text-muted-foreground mt-2">{match.date ? format(new Date(match.date), 'PPP p', {locale: es}) : 'Por programar'}</p>
                                     </Card>
                                 ))}
                             </div>

@@ -52,11 +52,19 @@ export const saveSanctionSettings = async (settings: SanctionSettings) => {
 
 
 // --- Copa ---
-export const saveCopa = async (teams: Team[], matches: Match[]) => {
+export const saveCopa = async (teams: Team[], matches: any[]) => {
     const docRef = doc(db, 'settings', 'copa');
-    await setDoc(docRef, { teams, matches });
+    
+    // Convert Dates to Firestore Timestamps before saving
+    const matchesWithTimestamps = matches.map(m => ({
+        ...m,
+        date: m.date ? Timestamp.fromDate(new Date(m.date)) : null,
+    }));
+    
+    await setDoc(docRef, { teams, matches: matchesWithTimestamps });
     await addSystemLog('update', 'system', 'Se guardó la configuración de la Copa.');
 };
+
 
 export const getCopa = async (): Promise<{ teams: Team[], matches: Match[] }> => {
     const docRef = doc(db, 'settings', 'copa');
@@ -66,7 +74,7 @@ export const getCopa = async (): Promise<{ teams: Team[], matches: Match[] }> =>
         // Firestore Timestamps need to be converted back to Dates
         const matches = (data.matches || []).map((m: any) => ({
             ...m,
-            date: m.date?.toDate ? m.date.toDate() : null,
+            date: m.date?.toDate ? m.date.toDate().toISOString() : null,
         }));
         return { teams: data.teams || [], matches };
     }
@@ -78,6 +86,22 @@ export const deleteCopa = async () => {
     await deleteDoc(docRef);
     await addSystemLog('delete', 'system', 'Se eliminaron los datos del torneo de Copa.');
 };
+
+export const getCopaVisibility = async (): Promise<boolean> => {
+    const docRef = doc(db, 'settings', 'copaVisibility');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data().isPublic;
+    }
+    return true; // Default to public
+};
+
+export const saveCopaVisibility = async (isPublic: boolean) => {
+    const docRef = doc(db, 'settings', 'copaVisibility');
+    await setDoc(docRef, { isPublic });
+    await addSystemLog('update', 'system', `Cambió la visibilidad de la copa a: ${isPublic ? 'Pública' : 'Privada'}.`);
+};
+
 
 
 // --- Settings ---
@@ -92,8 +116,20 @@ export const getCarouselImages = async (): Promise<CarouselImage[]> => {
 
 export const saveCarouselImages = async (images: CarouselImage[]) => {
     const settingsRef = doc(db, 'settings', 'carousel');
-    // We only save the src, alt, and title. The hint is for generation and not stored.
-    const imagesToSave = images.map(({ src, alt, title }) => ({ src, alt, title }));
+    
+    const uploadPromises = images.map(async (image, index) => {
+        if (image.src.startsWith('data:image')) {
+            const storageRef = ref(storage, `carousel/image-${Date.now()}-${index}`);
+            const snapshot = await uploadString(storageRef, image.src, 'data_url');
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            return { ...image, src: downloadURL };
+        }
+        return image;
+    });
+
+    const uploadedImages = await Promise.all(uploadPromises);
+    const imagesToSave = uploadedImages.map(({ src, alt, title }) => ({ src, alt, title }));
+    
     await setDoc(settingsRef, { images: imagesToSave });
     await addSystemLog('update', 'system', 'Se actualizaron las imágenes del carrusel de inicio.');
 };

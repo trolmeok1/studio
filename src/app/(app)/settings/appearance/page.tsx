@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +10,6 @@ import { Upload, Loader2, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { storage } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -64,65 +63,35 @@ export default function AppearancePage() {
   };
 
   const handleDelete = (type: AssetType) => {
-    // This only removes the preview from the UI.
-    // The actual deletion from storage and localStorage happens on save.
     setAssetPreviews(prev => ({ ...prev, [type]: null }));
+    localStorage.removeItem(type);
     if (fileInputRefs[type].current) {
         fileInputRefs[type].current!.value = "";
     }
+    toast({ title: 'Imagen Local Eliminada', description: 'La imagen ha sido eliminada. Guarda los cambios para que sea permanente.' });
   };
 
 
   const handleSave = async () => {
     setIsLoading(true);
-    toast({ title: "Guardando cambios...", description: "Subiendo imágenes a la nube. Esto puede tardar un momento." });
+    toast({ title: "Guardando cambios...", description: "Tus cambios se guardarán localmente." });
 
-    const uploadPromises = Object.entries(assetPreviews).map(async ([key, value]) => {
-        const assetKey = key as AssetType;
-        const storageRef = ref(storage, `app-appearance/${assetKey}`);
-
-        if (value && value.startsWith('data:image')) { // New base64 image to upload
-            try {
-                const snapshot = await uploadString(storageRef, value, 'data_url');
-                const downloadURL = await getDownloadURL(snapshot.ref);
-                localStorage.setItem(assetKey, downloadURL);
-                setAssetPreviews(prev => ({...prev, [assetKey]: downloadURL}));
-            } catch (error) {
-                console.error(`Failed to upload ${assetKey}:`, error);
-                throw new Error(`No se pudo subir la imagen para ${assetKey}.`);
-            }
-        } else if (!value) { // Image was cleared
-             try {
-                // Check if file exists before trying to delete
-                await getDownloadURL(storageRef);
-                await deleteObject(storageRef);
-            } catch (error: any) {
-                if (error.code !== 'storage/object-not-found') {
-                    console.error(`Failed to delete existing image for ${assetKey}:`, error);
-                    // We can choose to ignore this error and just clear localStorage
-                }
-            } finally {
-                localStorage.removeItem(assetKey);
-            }
+    Object.entries(assetPreviews).forEach(([key, value]) => {
+        if (value) {
+            localStorage.setItem(key, value);
+        } else {
+            localStorage.removeItem(key);
         }
-        // If value is a URL (not base64), do nothing, it's already saved.
     });
 
-    try {
-        await Promise.all(uploadPromises);
-        toast({
-            title: "Apariencia Guardada",
-            description: "Tus cambios han sido guardados exitosamente.",
-        });
-    } catch (error: any) {
-        toast({
-            title: "Error al guardar",
-            description: error.message || "Algunas imágenes no se pudieron guardar.",
-            variant: "destructive",
-        });
-    } finally {
-        setIsLoading(false);
-    }
+    // Simulate network delay for user feedback
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    setIsLoading(false);
+    toast({
+        title: "Apariencia Guardada Localmente",
+        description: "Tus cambios han sido guardados en este navegador.",
+    });
   };
 
   const ImageUploadCard = ({
@@ -165,7 +134,7 @@ export default function AppearancePage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esto eliminará la imagen actual. El cambio se aplicará cuando guardes.
+                            Esto eliminará la imagen actual de la vista previa. El cambio se aplicará cuando guardes.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -204,7 +173,7 @@ export default function AppearancePage() {
         <CardHeader>
           <CardTitle>Gestión de Logos y Fondos</CardTitle>
           <CardDescription>
-            Personaliza los logos y fondos que aparecen en los reportes, carnets y documentos oficiales de la liga.
+            Personaliza los logos y fondos que aparecen en los reportes, carnets y documentos oficiales de la liga. Los cambios se guardan localmente en tu navegador.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">

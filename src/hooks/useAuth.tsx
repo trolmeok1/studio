@@ -3,10 +3,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getUsers, type User, type UserRole, type Permissions } from '@/lib/mock-data';
+import { getUsers, type User, type UserRole, type Permissions, getCopaVisibility, saveCopaVisibility } from '@/lib/mock-data';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import { ADMIN_EMAIL } from '@/lib/mock-data';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 
 export type { User, UserRole, Permissions };
@@ -46,7 +45,6 @@ interface AuthContextType {
   isCopaPublic: boolean;
   setIsCopaPublic: (isPublic: boolean) => void;
   isAuthLoading: boolean;
-  saveUser: (user: User) => Promise<void>;
 }
 
 
@@ -55,7 +53,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsersState] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User>(defaultGuestUser);
-  const [isCopaPublic, setIsCopaPublic] = useState(true);
+  const [isCopaPublic, setCopaPublicState] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -63,6 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthLoading(true);
         let allUsers = await getUsers();
         setUsersState(allUsers);
+        
+        const copaVisibility = await getCopaVisibility();
+        setCopaPublicState(copaVisibility);
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser && firebaseUser.email) {
@@ -105,21 +106,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUsersState(updatedUsers);
   };
   
-  const saveUser = useCallback(async (userToSave: User) => {
-    // This function will now only handle updates for existing users
-    const userExists = users.some(u => u.id === userToSave.id);
-    
-    if (userExists) {
-        // User update logic might be needed here if you want to update from this function
-    } else {
-        // New user creation logic is disabled
-        throw new Error("La creación de nuevos usuarios está deshabilitada.");
-    }
-    
-    const allUsers = await getUsers();
-    setUsersState(allUsers);
-
-  }, [users]);
+  const setIsCopaPublic = async (isPublic: boolean) => {
+      setCopaPublicState(isPublic);
+      await saveCopaVisibility(isPublic);
+  }
 
   const value = {
     user: currentUser,
@@ -130,7 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isCopaPublic,
     setIsCopaPublic,
     isAuthLoading,
-    saveUser
   };
 
   return (
