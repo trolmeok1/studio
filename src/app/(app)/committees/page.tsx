@@ -683,6 +683,14 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
                          <Label>Multa T. Rojas:</Label>
                          <p className="font-semibold">${(details.redCardFine || 0).toFixed(2)} ({details.redCardCount || 0} tarjetas)</p>
                     </div>
+                    
+                    {pendingValue > 0 && (
+                        <div className="col-span-2 flex justify-between font-semibold text-destructive/80">
+                             <Label className="text-destructive/80">Deuda Pendiente:</Label>
+                            <p>${(pendingValue).toFixed(2)}</p>
+                        </div>
+                    )}
+
 
                     <Label className="col-span-2">Otras Multas (especificar):</Label>
                     <Textarea value={details.otherFinesDescription || ''} onChange={(e) => handleTextareaChange('otherFinesDescription', e.target.value)} placeholder="Descripción de la multa" disabled={disabled} className="col-span-2 h-16" />
