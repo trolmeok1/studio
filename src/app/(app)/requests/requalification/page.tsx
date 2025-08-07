@@ -9,14 +9,89 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getTeams, getPlayers, addPlayer, updatePlayerStatus, type Player, type Team, type PlayerPosition } from '@/lib/mock-data';
-import { UserPlus, Search } from 'lucide-react';
+import { getTeams, getPlayers, addPlayer, updatePlayerStatus, type Player, type Team, type PlayerPosition, getRequalificationRequests, type RequalificationRequest, updateRequalificationRequestStatus } from '@/lib/mock-data';
+import { UserPlus, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const PendingRequests = ({ requests, onAction }: { requests: RequalificationRequest[], onAction: () => void }) => {
+    const { toast } = useToast();
+
+    const handleApprove = async (request: RequalificationRequest) => {
+        // Here you would add the player if it's a new qualification, 
+        // or update their team/status if it's a transfer.
+        // For simplicity, we'll just update the request status.
+        await updateRequalificationRequestStatus(request.id, 'approved');
+        toast({ title: 'Solicitud Aprobada', description: `La solicitud para ${request.playerInName} ha sido aprobada.` });
+        onAction();
+    };
+
+    const handleReject = async (request: RequalificationRequest) => {
+        await updateRequalificationRequestStatus(request.id, 'rejected');
+        toast({ title: 'Solicitud Rechazada', description: `La solicitud para ${request.playerInName} ha sido rechazada.`, variant: 'destructive' });
+        onAction();
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Solicitudes de Calificación Pendientes</CardTitle>
+                <CardDescription>Aprueba o rechaza las nuevas solicitudes de calificación y recalificación de jugadores.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Equipo</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Jugador</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                         {requests.length === 0 ? (
+                             <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                    No hay solicitudes pendientes.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            requests.map(req => (
+                                <TableRow key={req.id}>
+                                    <TableCell>{format(new Date(req.date), 'dd/MM/yyyy', { locale: es })}</TableCell>
+                                    <TableCell>{req.teamName}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={req.requestType === 'qualification' ? 'default' : 'secondary'}>
+                                            {req.requestType === 'qualification' ? 'Nuevo Ingreso' : 'Recalificación'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-medium">{req.playerInName}</TableCell>
+                                    <TableCell className="text-right space-x-2">
+                                        <Button variant="ghost" size="icon" onClick={() => handleApprove(req)}>
+                                            <CheckCircle className="h-5 w-5 text-green-500" />
+                                        </Button>
+                                         <Button variant="ghost" size="icon" onClick={() => handleReject(req)}>
+                                            <XCircle className="h-5 w-5 text-red-500" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    )
+}
+
 
 const PlayerList = ({ players, onStatusChange }: { players: Player[], onStatusChange: (player: Player, newStatus: 'activo' | 'inactivo') => void }) => {
     return (
@@ -228,15 +303,21 @@ export default function RequalificationPage() {
     const { user } = useAuth();
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     const [allTeams, setAllTeams] = useState<Team[]>([]);
+    const [requests, setRequests] = useState<RequalificationRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTeamFilter, setSelectedTeamFilter] = useState('all');
     
     const loadData = useCallback(async () => {
         setLoading(true);
-        const [teamsData, playersData] = await Promise.all([getTeams(), getPlayers()]);
+        const [teamsData, playersData, requestsData] = await Promise.all([
+            getTeams(), 
+            getPlayers(),
+            getRequalificationRequests()
+        ]);
         setAllTeams(teamsData);
         setAllPlayers(playersData.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+        setRequests(requestsData.filter(r => r.status === 'pending'));
         setLoading(false);
     }, []);
 
@@ -252,7 +333,6 @@ export default function RequalificationPage() {
 
     const handleStatusChange = async (player: Player, newStatus: 'activo' | 'inactivo') => {
         const originalStatus = player.status;
-        // Optimistic UI update
         setAllPlayers(prev => prev.map(p => p.id === player.id ? { ...p, status: newStatus } : p));
         try {
             await updatePlayerStatus(player.id, newStatus);
@@ -262,7 +342,6 @@ export default function RequalificationPage() {
             });
         } catch (error) {
              toast({ title: 'Error', description: 'No se pudo actualizar el estado.', variant: 'destructive' });
-             // Revert UI change on error
              setAllPlayers(prev => prev.map(p => p.id === player.id ? { ...p, status: originalStatus } : p));
         }
     };
@@ -303,7 +382,7 @@ export default function RequalificationPage() {
     }
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
             <div className="text-center">
                  <h2 className="text-4xl font-extrabold tracking-tight">
                     <span className="bg-gradient-to-r from-teal-400 to-blue-500 text-transparent bg-clip-text">
@@ -314,6 +393,8 @@ export default function RequalificationPage() {
                     Inscribe nuevos jugadores y gestiona el estado de actividad de la plantilla.
                 </p>
             </div>
+
+            {user.permissions.requests.edit && <PendingRequests requests={requests} onAction={loadData} />}
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
                 <div className="lg:col-span-3">
@@ -348,6 +429,3 @@ export default function RequalificationPage() {
         </div>
     );
 }
-
-
-

@@ -598,6 +598,11 @@ export const addRequalificationRequest = async (request: Omit<RequalificationReq
     return { id: docRef.id, ...request };
 };
 
+export const updateRequalificationRequestStatus = async (requestId: string, status: 'approved' | 'rejected') => {
+    const requestRef = doc(db, 'requalificationRequests', requestId);
+    await updateDoc(requestRef, { status: status });
+};
+
 
 // --- Logs ---
 export const getSystemLogs = async (): Promise<LogEntry[]> => {
@@ -649,7 +654,3 @@ export let upcomingMatches: Match[] = [];
 export const achievements: Achievement[] = [];
 export const matchData: MatchData | {} = {};
 export let expenses: Expense[] = [];
-
-    
-
-    
