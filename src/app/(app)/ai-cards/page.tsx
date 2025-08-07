@@ -102,8 +102,10 @@ export default function AiCardsPage() {
   const getShortName = (fullName: string) => {
     const parts = fullName.split(' ');
     if (parts.length >= 3) {
+      // JHOEL ALEJANDRO ESPIN TORRES -> JHOEL ESPIN
       return `${parts[0]} ${parts[2]}`;
     }
+    // LIONEL MESSI -> LIONEL MESSI
     return fullName;
   };
     
@@ -113,8 +115,8 @@ export default function AiCardsPage() {
 
     try {
         const pdf = new jsPDF('portrait', 'mm', 'a4');
-        const cardWidthMM = 63;
-        const cardHeightMM = 95;
+        const cardWidthMM = 55;
+        const cardHeightMM = 75;
         const marginX = (pdf.internal.pageSize.getWidth() - (3 * cardWidthMM)) / 4;
         const marginY = (pdf.internal.pageSize.getHeight() - (3 * cardHeightMM)) / 4;
 
