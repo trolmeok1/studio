@@ -117,7 +117,7 @@ export function AppSidebar() {
   const adminNavItems = [
       permissions.aiCards.view && { href: '/ai-cards', icon: CreditCard, label: 'Carnets AI', tooltip: 'Carnets AI' },
       permissions.treasury.view && { href: '/treasury', icon: Landmark, label: 'Tesorería', tooltip: 'Tesorería' },
-      permissions.requests.view && { href: '/requests/requalification', icon: UserCheck, label: 'Solicitudes', tooltip: 'Solicitudes' },
+      permissions.requests.view && { href: '/requests/requalification', icon: UserCheck, label: 'Calificación', tooltip: 'Calificación de Jugadores' },
   ].filter(Boolean);
 
   const settingsNavItems = [
