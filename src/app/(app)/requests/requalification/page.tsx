@@ -49,7 +49,7 @@ const PlayerList = ({ players, onStatusChange }: { players: Player[], onStatusCh
                                         <div className="flex items-center gap-3">
                                             <Avatar>
                                                 <AvatarImage src={player.photoUrl} alt={player.name} />
-                                                <AvatarFallback>{player.name.substring(0,2)}</AvatarFallback>
+                                                <AvatarFallback>{player.name?.substring(0,2) || '??'}</AvatarFallback>
                                             </Avatar>
                                             <span className="font-medium">{player.name}</span>
                                         </div>
@@ -236,7 +236,7 @@ export default function RequalificationPage() {
         setLoading(true);
         const [teamsData, playersData] = await Promise.all([getTeams(), getPlayers()]);
         setAllTeams(teamsData);
-        setAllPlayers(playersData.sort((a,b) => a.name.localeCompare(b.name)));
+        setAllPlayers(playersData.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
         setLoading(false);
     }, []);
 
@@ -247,7 +247,7 @@ export default function RequalificationPage() {
     }, [user, loadData]);
 
     const handlePlayerAdded = useCallback((newPlayer: Player) => {
-        setAllPlayers(prev => [newPlayer, ...prev].sort((a,b) => a.name.localeCompare(b.name)));
+        setAllPlayers(prev => [newPlayer, ...prev].sort((a, b) => (a.name || '').localeCompare(b.name || '')));
     }, []);
 
     const handleStatusChange = async (player: Player, newStatus: 'activo' | 'inactivo') => {
@@ -269,7 +269,7 @@ export default function RequalificationPage() {
 
     const filteredPlayers = useMemo(() => {
         return allPlayers.filter(player => {
-            const matchesSearch = searchTerm === '' || player.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = searchTerm === '' || (player.name && player.name.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesTeam = selectedTeamFilter === 'all' || player.teamId === selectedTeamFilter;
             return matchesSearch && matchesTeam;
         });
@@ -348,4 +348,5 @@ export default function RequalificationPage() {
         </div>
     );
 }
+
 
