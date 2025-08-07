@@ -87,7 +87,7 @@ const AddPlayerDialog = ({ team, onPlayerAdded }: { team: Team, onPlayerAdded: (
                 category: team.category,
             };
 
-            const newPlayer = await addPlayer(newPlayerData, photoPreview);
+            const newPlayer = await addPlayer(newPlayerData, photoPreview, null);
 
             toast({
                 title: 'Jugador Agregado',

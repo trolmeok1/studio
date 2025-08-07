@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getTeams, getPlayers, addPlayer, updatePlayerStatus, type Player, type Team, type PlayerPosition, getRequalificationRequests, type RequalificationRequest, updateRequalificationRequestStatus, updateTeam, type Category } from '@/lib/mock-data';
-import { UserPlus, Search, CheckCircle, XCircle, FileUp, Eye, User as UserIcon, Download } from 'lucide-react';
+import { UserPlus, Search, CheckCircle, XCircle, FileUp, Eye, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,25 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const RequestDetailsDialog = ({ request }: { request: RequalificationRequest }) => {
-    
-    const handleDownload = async (url: string, filename: string) => {
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-            console.error("Error al descargar la imagen:", error);
-            // You could show a toast message here if you have a toast system
-        }
-    };
-    
     return (
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -58,21 +39,15 @@ const RequestDetailsDialog = ({ request }: { request: RequalificationRequest }) 
                 {request.reason && <p><strong>Motivo:</strong> {request.reason}</p>}
                 <div className="flex gap-4">
                     {request.playerInPhotoUrl && (
-                        <div className="flex flex-col gap-2">
+                        <div>
                             <Label>Foto de Perfil</Label>
                             <Image src={request.playerInPhotoUrl} alt="Foto de perfil" width={100} height={100} className="rounded-md border p-1" />
-                            <Button variant="outline" size="sm" onClick={() => handleDownload(request.playerInPhotoUrl!, `${request.playerInName}_perfil.jpg`)}>
-                                <Download className="mr-2 h-3 w-3" /> Descargar
-                            </Button>
                         </div>
                     )}
                     {request.playerInIdCardUrl && (
-                        <div className="flex flex-col gap-2">
+                        <div>
                             <Label>Foto de Cédula</Label>
                             <Image src={request.playerInIdCardUrl} alt="Foto de cédula" width={150} height={100} className="rounded-md border p-1 object-contain" />
-                             <Button variant="outline" size="sm" onClick={() => handleDownload(request.playerInIdCardUrl!, `${request.playerInName}_cedula.jpg`)}>
-                                <Download className="mr-2 h-3 w-3" /> Descargar
-                            </Button>
                         </div>
                     )}
                 </div>
@@ -387,3 +362,5 @@ export default function PlayerManagementPage() {
         </div>
     );
 }
+
+    

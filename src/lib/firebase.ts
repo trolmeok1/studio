@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { getStorage } from "firebase/storage";
 import { getAuth } from 'firebase/auth';
 
@@ -15,25 +15,26 @@ const firebaseConfig: FirebaseOptions = {
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
 
-// Enable offline persistence
+// Initialize Firestore with offline persistence
+let db;
 if (typeof window !== 'undefined') {
     try {
-        enableIndexedDbPersistence(db)
-            .catch((err) => {
-                if (err.code == 'failed-precondition') {
-                    console.warn('Firestore: Multiple tabs open, persistence can only be enabled in one tab at a time.');
-                } else if (err.code == 'unimplemented') {
-                    console.warn('Firestore: The current browser does not support all of the features required to enable persistence.');
-                }
-            });
+        db = initializeFirestore(app, {
+            cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+            // Deprecated: enableIndexedDbPersistence: true
+        });
     } catch (error) {
-        console.error("Error enabling Firestore persistence:", error);
+        console.error("Error initializing Firestore with persistence:", error);
+        db = getFirestore(app); // Fallback to default initialization
     }
+} else {
+    db = getFirestore(app);
 }
+
+
+const storage = getStorage(app);
+const auth = getAuth(app);
 
 
 export { app, db, storage, auth };

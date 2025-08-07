@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -19,34 +20,18 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const RequestDetailsDialog = ({ request }: { request: RequalificationRequest }) => {
-    
-    const handleDownload = async (url: string, filename: string) => {
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-            console.error("Error al descargar la imagen:", error);
-            // You could show a toast message here if you have a toast system
-        }
-    };
-    
     return (
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Detalle de la Solicitud</DialogTitle>
+                <DialogDescription>
+                    Revisa la información enviada por el equipo para la solicitud.
+                </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <p><strong>Equipo:</strong> {request.teamName}</p>
@@ -56,23 +41,23 @@ const RequestDetailsDialog = ({ request }: { request: RequalificationRequest }) 
                 <p><strong>Fecha Nac. Entrante:</strong> {request.playerInBirthDate}</p>
                 {request.playerOutName && <p><strong>Jugador Saliente:</strong> {request.playerOutName}</p>}
                 {request.reason && <p><strong>Motivo:</strong> {request.reason}</p>}
-                <div className="flex gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     {request.playerInPhotoUrl && (
-                        <div className="flex flex-col gap-2">
+                        <div className="space-y-2">
                             <Label>Foto de Perfil</Label>
                             <Image src={request.playerInPhotoUrl} alt="Foto de perfil" width={100} height={100} className="rounded-md border p-1" />
-                            <Button variant="outline" size="sm" onClick={() => handleDownload(request.playerInPhotoUrl!, `${request.playerInName}_perfil.jpg`)}>
-                                <Download className="mr-2 h-3 w-3" /> Descargar
-                            </Button>
+                             <a href={request.playerInPhotoUrl} download={`foto_perfil_${request.playerInName}.jpg`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>
+                                <Download className="mr-2 h-4 w-4" /> Descargar
+                            </a>
                         </div>
                     )}
                     {request.playerInIdCardUrl && (
-                        <div className="flex flex-col gap-2">
+                        <div className="space-y-2">
                             <Label>Foto de Cédula</Label>
                             <Image src={request.playerInIdCardUrl} alt="Foto de cédula" width={150} height={100} className="rounded-md border p-1 object-contain" />
-                             <Button variant="outline" size="sm" onClick={() => handleDownload(request.playerInIdCardUrl!, `${request.playerInName}_cedula.jpg`)}>
-                                <Download className="mr-2 h-3 w-3" /> Descargar
-                            </Button>
+                             <a href={request.playerInIdCardUrl} download={`cedula_${request.playerInName}.jpg`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>
+                                <Download className="mr-2 h-4 w-4" /> Descargar
+                            </a>
                         </div>
                     )}
                 </div>

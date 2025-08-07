@@ -888,11 +888,12 @@ export default function SchedulePage() {
             <Card className="h-96 flex flex-col items-center justify-center text-center">
                 <CardHeader>
                     <CardTitle className="text-2xl">Torneo en Preparación</CardTitle>
+                    <CardDescription>
+                        El calendario aún no ha sido generado. <br/> ¡Mantente atento para futuras actualizaciones!
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">
-                        El calendario aún no ha sido generado. <br/> ¡Mantente atento para futuras actualizaciones!
-                    </p>
+                    
                 </CardContent>
             </Card>
         ) : (
@@ -982,4 +983,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
