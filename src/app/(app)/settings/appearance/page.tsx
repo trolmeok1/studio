@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { storage } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '@/hooks/useAuth';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 type AssetType = 'league-logo' | 'city-logo' | 'card-background-image' | 'standard-flyer-bg' | 'semifinal-flyer-bg' | 'final-flyer-bg' | 'schedule-report-bg';
@@ -62,30 +63,56 @@ export default function AppearancePage() {
     }
   };
 
+  const handleDelete = (type: AssetType) => {
+    // This only removes the preview from the UI.
+    // The actual deletion from storage and localStorage happens on save.
+    setAssetPreviews(prev => ({ ...prev, [type]: null }));
+    if (fileInputRefs[type].current) {
+        fileInputRefs[type].current!.value = "";
+    }
+  };
+
+
   const handleSave = async () => {
     setIsLoading(true);
     toast({ title: "Guardando cambios...", description: "Subiendo imágenes a la nube. Esto puede tardar un momento." });
 
-    const uploadPromises = Object.entries(assetPreviews)
-        .filter(([key, value]) => value && value.startsWith('data:image')) // Only upload new base64 images
-        .map(async ([key, value]) => {
-            const storageRef = ref(storage, `app-appearance/${key}`);
+    const uploadPromises = Object.entries(assetPreviews).map(async ([key, value]) => {
+        const assetKey = key as AssetType;
+        const storageRef = ref(storage, `app-appearance/${assetKey}`);
+
+        if (value && value.startsWith('data:image')) { // New base64 image to upload
             try {
-                const snapshot = await uploadString(storageRef, value!, 'data_url');
+                const snapshot = await uploadString(storageRef, value, 'data_url');
                 const downloadURL = await getDownloadURL(snapshot.ref);
-                localStorage.setItem(key as AssetType, downloadURL); // Save the cloud URL
-                setAssetPreviews(prev => ({...prev, [key]: downloadURL})); // Update state with cloud URL
+                localStorage.setItem(assetKey, downloadURL);
+                setAssetPreviews(prev => ({...prev, [assetKey]: downloadURL}));
             } catch (error) {
-                console.error(`Failed to upload ${key}:`, error);
-                throw new Error(`No se pudo subir la imagen para ${key}.`);
+                console.error(`Failed to upload ${assetKey}:`, error);
+                throw new Error(`No se pudo subir la imagen para ${assetKey}.`);
             }
-        });
+        } else if (!value) { // Image was cleared
+             try {
+                // Check if file exists before trying to delete
+                await getDownloadURL(storageRef);
+                await deleteObject(storageRef);
+            } catch (error: any) {
+                if (error.code !== 'storage/object-not-found') {
+                    console.error(`Failed to delete existing image for ${assetKey}:`, error);
+                    // We can choose to ignore this error and just clear localStorage
+                }
+            } finally {
+                localStorage.removeItem(assetKey);
+            }
+        }
+        // If value is a URL (not base64), do nothing, it's already saved.
+    });
 
     try {
         await Promise.all(uploadPromises);
         toast({
             title: "Apariencia Guardada",
-            description: "Tus cambios han sido guardados exitosamente en la nube.",
+            description: "Tus cambios han sido guardados exitosamente.",
         });
     } catch (error: any) {
         toast({
@@ -127,6 +154,27 @@ export default function AppearancePage() {
             <Upload className="h-5 w-5 mr-2" />
             Seleccionar Imagen
           </Button>
+           {assetPreviews[type] && (
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="icon">
+                        <Trash2 className="h-5 w-5" />
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esto eliminará la imagen actual. El cambio se aplicará cuando guardes.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(type)}>Eliminar</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+           )}
         </div>
       </div>
       <div className="flex justify-center">
