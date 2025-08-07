@@ -173,16 +173,16 @@ export default function AiCardsPage() {
             pdf.rect(x, y, cardWidthMM, cardHeightMM, 'F');
             pdf.setGState(new (pdf.GState as any)({opacity: 1}));
 
-            pdf.setFontSize(8);
+            pdf.setFontSize(7);
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor('#FFFFFF');
-            pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 7, { align: 'center' });
-            pdf.setFontSize(10);
-            pdf.text('LA LUZ', x + cardWidthMM / 2, y + 12, { align: 'center' });
+            pdf.text('LIGA DEPORTIVA BARRIAL', x + cardWidthMM / 2, y + 5, { align: 'center' });
+            pdf.setFontSize(9);
+            pdf.text('LA LUZ', x + cardWidthMM / 2, y + 9, { align: 'center' });
 
             const photoSize = 25;
             const photoX = x + (cardWidthMM - photoSize) / 2;
-            const photoY = y + 18;
+            const photoY = y + 13;
             pdf.setDrawColor('#FFA500');
             pdf.setLineWidth(1);
             pdf.rect(photoX, photoY, photoSize, photoSize, 'S');
@@ -201,27 +201,28 @@ export default function AiCardsPage() {
                 pdf.rect(photoX, photoY, photoSize, photoSize, 'F');
             }
 
-            const infoY = photoY + photoSize + 8;
-            pdf.setFontSize(12);
+            const infoY = photoY + photoSize + 6;
+            pdf.setFontSize(10);
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor('#FFA500');
             const shortName = getShortName(player.name);
             pdf.text(shortName.toUpperCase(), x + cardWidthMM / 2, infoY, { align: 'center', maxWidth: cardWidthMM - 10 });
             
-            pdf.setFontSize(11);
+            const detailsY = infoY + 5;
+            pdf.setFontSize(9);
             pdf.setTextColor('#FFFFFF');
-            pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, infoY + 6, { align: 'center' });
+            pdf.text(player.team.toUpperCase(), x + cardWidthMM / 2, detailsY, { align: 'center' });
             
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(10);
-            pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, infoY + 11, { align: 'center' });
-            
             pdf.setFontSize(8);
+            pdf.text(player.category.toUpperCase(), x + cardWidthMM / 2, detailsY + 4, { align: 'center' });
+            
+            pdf.setFontSize(7);
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`C.I: ${player.idNumber}`, x + cardWidthMM / 2, infoY + 15, { align: 'center' });
-            pdf.text(`F. Nac: ${player.birthDate}`, x + cardWidthMM / 2, infoY + 19, { align: 'center' });
+            pdf.text(`C.I: ${player.idNumber}`, x + cardWidthMM / 2, detailsY + 7, { align: 'center' });
+            pdf.text(`F. Nac: ${player.birthDate}`, x + cardWidthMM / 2, detailsY + 10, { align: 'center' });
 
-            const footerY = y + cardHeightMM - 20;
+            const footerY = y + cardHeightMM - 16;
             const itemSize = 15;
             
             if (player.qrCodeBase64) {
