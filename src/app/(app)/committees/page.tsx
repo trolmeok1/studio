@@ -684,11 +684,11 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
                          <p className="font-semibold">${(details.redCardFine || 0).toFixed(2)} ({details.redCardCount || 0} tarjetas)</p>
                     </div>
                     
-                    {pendingValue > 0 && (
-                        <div className="col-span-2 flex justify-between font-semibold text-destructive/80">
-                             <Label className="text-destructive/80">Deuda Pendiente:</Label>
-                            <p>${(pendingValue).toFixed(2)}</p>
-                        </div>
+                    {pendingValue > 0 && details.includePendingDebt && (
+                        <>
+                            <Label className="font-bold text-destructive/80">Deuda Pendiente Incluida:</Label>
+                            <p className="font-bold text-destructive/80 text-right pr-2">${(pendingValue).toFixed(2)}</p>
+                        </>
                     )}
 
 
