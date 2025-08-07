@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { Metadata } from 'next';
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <title>TeamLink Hub</title>
+        <title>LIGA LA LUZ</title>
         <meta name="description" content="Gestiona tus equipos, jugadores y torneos con facilidad." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

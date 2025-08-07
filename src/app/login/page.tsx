@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -51,7 +52,7 @@ export default function LoginPage() {
                 <Trophy className="h-10 w-10 text-primary" />
             </div>
             <CardTitle className="text-3xl font-bold mt-4 font-headline">
-                TeamLink Hub
+                LIGA LA LUZ
             </CardTitle>
             <CardDescription>Inicio de sesión para administradores</CardDescription>
         </CardHeader>

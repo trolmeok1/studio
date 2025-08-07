@@ -77,7 +77,7 @@ export function AppSidebar() {
             <SidebarHeader>
                  <div className="flex items-center gap-2">
                     <Trophy className="text-primary size-8" />
-                    <h1 className="text-xl font-bold font-headline">TeamLink Hub</h1>
+                    <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
                 </div>
             </SidebarHeader>
             <SidebarContent>
@@ -135,7 +135,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <Trophy className="text-primary size-8" />
-          <h1 className="text-xl font-bold font-headline">TeamLink Hub</h1>
+          <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
           <div className="ml-auto md:hidden">
             <SidebarTrigger />
           </div>
@@ -322,4 +322,3 @@ export function BottomNavbar() {
         </div>
     );
 }
-
