@@ -2,188 +2,78 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getTeams, getPlayers, addPlayer, updatePlayerStatus, type Player, type Team, type PlayerPosition, getRequalificationRequests, type RequalificationRequest, updateRequalificationRequestStatus } from '@/lib/mock-data';
-import { UserPlus, Search, CheckCircle, XCircle } from 'lucide-react';
+import { getTeams, getPlayersByTeamId, type Player, type Team, type RequalificationRequest, addRequalificationRequest } from '@/lib/mock-data';
+import { UserPlus, Printer, FileUp, User, Repeat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const PendingRequests = ({ requests, onAction }: { requests: RequalificationRequest[], onAction: () => void }) => {
+
+type RequestType = 'qualification' | 'requalification';
+
+export default function RequalificationRequestPage() {
     const { toast } = useToast();
+    const { user } = useAuth();
 
-    const handleApprove = async (request: RequalificationRequest) => {
-        // Here you would add the player if it's a new qualification, 
-        // or update their team/status if it's a transfer.
-        // For simplicity, we'll just update the request status.
-        await updateRequalificationRequestStatus(request.id, 'approved');
-        toast({ title: 'Solicitud Aprobada', description: `La solicitud para ${request.playerInName} ha sido aprobada.` });
-        onAction();
-    };
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [selectedTeamId, setSelectedTeamId] = useState('');
+    const [requestType, setRequestType] = useState<RequestType | ''>('');
+    
+    // Form fields
+    const [playerInName, setPlayerInName] = useState('');
+    const [playerOutId, setPlayerOutId] = useState<string | null>(null);
+    const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+    const [idCardPhoto, setIdCardPhoto] = useState<File | null>(null);
+    const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+    const [idCardPhotoPreview, setIdCardPhotoPreview] = useState<string | null>(null);
 
-    const handleReject = async (request: RequalificationRequest) => {
-        await updateRequalificationRequestStatus(request.id, 'rejected');
-        toast({ title: 'Solicitud Rechazada', description: `La solicitud para ${request.playerInName} ha sido rechazada.`, variant: 'destructive' });
-        onAction();
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Solicitudes de Calificación Pendientes</CardTitle>
-                <CardDescription>Aprueba o rechaza las nuevas solicitudes de calificación y recalificación de jugadores.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Fecha</TableHead>
-                            <TableHead>Equipo</TableHead>
-                            <TableHead>Tipo</TableHead>
-                            <TableHead>Jugador</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                         {requests.length === 0 ? (
-                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No hay solicitudes pendientes.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            requests.map(req => (
-                                <TableRow key={req.id}>
-                                    <TableCell>{format(new Date(req.date), 'dd/MM/yyyy', { locale: es })}</TableCell>
-                                    <TableCell>{req.teamName}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={req.requestType === 'qualification' ? 'default' : 'secondary'}>
-                                            {req.requestType === 'qualification' ? 'Nuevo Ingreso' : 'Recalificación'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="font-medium">{req.playerInName}</TableCell>
-                                    <TableCell className="text-right space-x-2">
-                                        <Button variant="ghost" size="icon" onClick={() => handleApprove(req)}>
-                                            <CheckCircle className="h-5 w-5 text-green-500" />
-                                        </Button>
-                                         <Button variant="ghost" size="icon" onClick={() => handleReject(req)}>
-                                            <XCircle className="h-5 w-5 text-red-500" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    )
-}
-
-
-const PlayerList = ({ players, onStatusChange }: { players: Player[], onStatusChange: (player: Player, newStatus: 'activo' | 'inactivo') => void }) => {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Jugadores Registrados</CardTitle>
-                <CardDescription>Gestiona el estado de actividad de los jugadores.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Jugador</TableHead>
-                            <TableHead>Equipo</TableHead>
-                            <TableHead>Cédula</TableHead>
-                            <TableHead className="text-right">Estado</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {players.length === 0 ? (
-                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
-                                    No se encontraron jugadores.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            players.map(player => (
-                                <TableRow key={player.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarImage src={player.photoUrl} alt={player.name} />
-                                                <AvatarFallback>{player.name?.substring(0,2) || '??'}</AvatarFallback>
-                                            </Avatar>
-                                            <span className="font-medium">{player.name || '(Jugador sin nombre)'}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{player.team}</TableCell>
-                                    <TableCell>{player.idNumber}</TableCell>
-                                    <TableCell className="text-right">
-                                         <div className="flex items-center justify-end gap-2">
-                                            <Label htmlFor={`status-${player.id}`} className={cn(player.status === 'activo' ? 'text-green-500' : 'text-red-500')}>
-                                                {player.status === 'activo' ? 'Activo' : 'Inactivo'}
-                                            </Label>
-                                            <Switch 
-                                                id={`status-${player.id}`} 
-                                                checked={player.status === 'activo'} 
-                                                onCheckedChange={(checked) => onStatusChange(player, checked ? 'activo' : 'inactivo')}
-                                            />
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    );
-};
-
-const AddPlayerForm = ({ teams, onPlayerAdded }: { teams: Team[], onPlayerAdded: (newPlayer: Player) => void }) => {
-    const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [lastRequest, setLastRequest] = useState<RequalificationRequest | null>(null);
 
-    const [teamId, setTeamId] = useState<string>('');
-    const [name, setName] = useState('');
-    const [idNumber, setIdNumber] = useState('');
-    const [birthDate, setBirthDate] = useState('');
-    const [jerseyNumber, setJerseyNumber] = useState('');
-    const [position, setPosition] = useState<PlayerPosition | ''>('');
-    const [photo, setPhoto] = useState<File | null>(null);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    useEffect(() => {
+        getTeams().then(setTeams);
+    }, []);
+
+    useEffect(() => {
+        if (selectedTeamId) {
+            getPlayersByTeamId(selectedTeamId).then(setPlayers);
+        } else {
+            setPlayers([]);
+        }
+    }, [selectedTeamId]);
 
     const resetForm = () => {
-        setTeamId('');
-        setName('');
-        setIdNumber('');
-        setBirthDate('');
-        setJerseyNumber('');
-        setPosition('');
-        setPhoto(null);
-        setPhotoPreview(null);
+        setPlayerInName('');
+        setPlayerOutId(null);
+        setProfilePhoto(null);
+        setIdCardPhoto(null);
+        setProfilePhotoPreview(null);
+        setIdCardPhotoPreview(null);
+        setRequestType('');
     };
-
-    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'id') => {
         const file = e.target.files?.[0];
         if (file) {
-            setPhoto(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPhotoPreview(reader.result as string);
+                if (type === 'profile') {
+                    setProfilePhoto(file);
+                    setProfilePhotoPreview(reader.result as string);
+                } else {
+                    setIdCardPhoto(file);
+                    setIdCardPhotoPreview(reader.result as string);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -191,10 +81,22 @@ const AddPlayerForm = ({ teams, onPlayerAdded }: { teams: Team[], onPlayerAdded:
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!teamId || !name || !idNumber || !birthDate || !jerseyNumber || !position || !photo) {
+        
+        let hasError = false;
+        if (!selectedTeamId || !requestType || !playerInName) {
+            hasError = true;
+        }
+        if (requestType === 'requalification' && !playerOutId) {
+            hasError = true;
+        }
+        if (requestType === 'qualification' && (!profilePhoto || !idCardPhoto)) {
+            hasError = true;
+        }
+
+        if (hasError) {
             toast({
                 title: 'Campos incompletos',
-                description: 'Por favor, llena todos los campos y sube una foto.',
+                description: 'Por favor, completa todos los campos requeridos para el tipo de solicitud.',
                 variant: 'destructive',
             });
             return;
@@ -202,183 +104,113 @@ const AddPlayerForm = ({ teams, onPlayerAdded }: { teams: Team[], onPlayerAdded:
 
         setIsLoading(true);
 
-        const reader = new FileReader();
-        reader.readAsDataURL(photo);
-        reader.onload = async () => {
-            try {
-                const photoDataUri = reader.result as string;
-                const team = teams.find(t => t.id === teamId)!;
-                const newPlayer = await addPlayer({
-                    name, idNumber, birthDate,
-                    jerseyNumber: parseInt(jerseyNumber),
-                    position, teamId: team.id, team: team.name, category: team.category
-                }, photoDataUri);
-                onPlayerAdded(newPlayer);
-                toast({ title: 'Jugador Agregado', description: `${name} ha sido añadido al equipo ${team.name}.` });
-                resetForm();
-            } catch (error) {
-                 toast({ title: 'Error', description: 'No se pudo agregar el jugador.', variant: 'destructive' });
-            } finally {
-                setIsLoading(false);
+        const team = teams.find(t => t.id === selectedTeamId)!;
+
+        try {
+            // In a real app, you would upload photos and get URLs first
+            const newRequestData: Omit<RequalificationRequest, 'id'> = {
+                teamId: team.id,
+                teamName: team.name,
+                requestType: requestType as RequestType,
+                playerInName,
+                playerOutName: requestType === 'requalification' ? players.find(p => p.id === playerOutId)?.name || null : null,
+                date: new Date().toISOString(),
+                status: 'pending',
+                // Mock URLs
+                playerInPhotoUrl: profilePhotoPreview, 
+                playerInIdCardUrl: idCardPhotoPreview,
+            };
+
+            const createdRequest = await addRequalificationRequest(newRequestData);
+            setLastRequest(createdRequest);
+
+            toast({
+                title: 'Solicitud Enviada',
+                description: `Tu solicitud de ${requestType === 'qualification' ? 'nuevo ingreso' : 'recalificación'} ha sido enviada para aprobación.`,
+            });
+            resetForm();
+            setSelectedTeamId('');
+
+        } catch (error) {
+             toast({ title: 'Error', description: 'No se pudo enviar la solicitud.', variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const PrintSection = ({ request }: { request: RequalificationRequest | null }) => {
+        const printRef = useRef<HTMLDivElement>(null);
+        
+        const handlePrint = () => {
+            const printContent = printRef.current;
+            if (printContent) {
+                const printWindow = window.open('', '', 'height=600,width=800');
+                if (printWindow) {
+                    printWindow.document.write('<html><head><title>Comprobante de Solicitud</title>');
+                    printWindow.document.write('<style>body{font-family:sans-serif;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f2f2f2;}</style>');
+                    printWindow.document.write('</head><body>');
+                    printWindow.document.write(printContent.innerHTML);
+                    printWindow.document.write('</body></html>');
+                    printWindow.document.close();
+                    printWindow.print();
+                }
             }
         };
-        reader.onerror = () => {
-            toast({ title: 'Error de Lectura', description: 'No se pudo leer el archivo de imagen.', variant: 'destructive' });
-            setIsLoading(false);
-        };
-    };
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Registro Rápido de Jugador</CardTitle>
-                <CardDescription>Añade un nuevo jugador a cualquier equipo del sistema.</CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4">
-                    <div>
-                        <Label htmlFor="team">Equipo</Label>
-                        <Select onValueChange={setTeamId} value={teamId}>
-                            <SelectTrigger id="team"><SelectValue placeholder="Selecciona un equipo" /></SelectTrigger>
-                            <SelectContent>{teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}</SelectContent>
-                        </Select>
+        if (!request) return null;
+
+        return (
+            <Card className="mt-8 border-primary">
+                <CardHeader>
+                    <CardTitle>Solicitud Enviada Exitosamente</CardTitle>
+                    <CardDescription>Guarda o imprime este comprobante de tu solicitud.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div ref={printRef}>
+                        <h3>Detalles de la Solicitud</h3>
+                        <table>
+                            <tbody>
+                                <tr><th>Equipo</th><td>{request.teamName}</td></tr>
+                                <tr><th>Fecha</th><td>{format(new Date(request.date), 'PPpp', { locale: es })}</td></tr>
+                                <tr><th>Tipo</th><td>{request.requestType}</td></tr>
+                                <tr><th>Jugador Entrante</th><td>{request.playerInName}</td></tr>
+                                {request.requestType === 'requalification' && (
+                                    <tr><th>Jugador Saliente</th><td>{request.playerOutName}</td></tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-1">
-                            <Label htmlFor="name">Nombre Completo</Label>
-                            <Input id="name" value={name} onChange={e => setName(e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="idNumber">N° de Cédula</Label>
-                            <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                            <Input id="birthDate" type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="jerseyNumber">Número de Camiseta</Label>
-                            <Input id="jerseyNumber" type="number" value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)} />
-                        </div>
-                    </div>
-                     <div className="space-y-1">
-                        <Label htmlFor="position">Posición</Label>
-                        <Select onValueChange={(v) => setPosition(v as PlayerPosition)} value={position}>
-                            <SelectTrigger id="position"><SelectValue placeholder="Selecciona una posición..." /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Portero">Portero</SelectItem>
-                                <SelectItem value="Defensa">Defensa</SelectItem>
-                                <SelectItem value="Mediocampista">Mediocampista</SelectItem>
-                                <SelectItem value="Delantero">Delantero</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <Label>Foto del Jugador</Label>
-                        <div className="flex items-center gap-4">
-                            <Avatar className="w-20 h-20">
-                                <AvatarImage src={photoPreview || ''} alt="Vista previa"/>
-                                <AvatarFallback>Foto</AvatarFallback>
-                            </Avatar>
-                            <Input type="file" accept="image/*" onChange={handlePhotoChange} />
-                        </div>
-                    </div>
+                    {request.requestType === 'qualification' && (
+                         <div className="flex gap-4 mt-4">
+                            {request.playerInPhotoUrl && (
+                                <div>
+                                    <Label>Foto de Perfil</Label>
+                                    <Image src={request.playerInPhotoUrl} alt="Foto de perfil" width={100} height={100} className="rounded-md border p-1" />
+                                </div>
+                            )}
+                             {request.playerInIdCardUrl && (
+                                <div>
+                                    <Label>Foto de Cédula</Label>
+                                    <Image src={request.playerInIdCardUrl} alt="Foto de cédula" width={150} height={100} className="rounded-md border p-1 object-contain" />
+                                </div>
+                            )}
+                         </div>
+                    )}
                 </CardContent>
-                <CardFooter>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                        <UserPlus className="mr-2" />
-                        {isLoading ? 'Guardando...' : 'Agregar Jugador'}
-                    </Button>
+                <CardFooter className="justify-end gap-2">
+                    <Button variant="outline" onClick={() => setLastRequest(null)}>Cerrar</Button>
+                    <Button onClick={handlePrint}><Printer className="mr-2"/>Imprimir Comprobante</Button>
                 </CardFooter>
-            </form>
-        </Card>
-    );
-};
-
-
-export default function RequalificationPage() {
-    const { toast } = useToast();
-    const { user } = useAuth();
-    const [allPlayers, setAllPlayers] = useState<Player[]>([]);
-    const [allTeams, setAllTeams] = useState<Team[]>([]);
-    const [requests, setRequests] = useState<RequalificationRequest[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedTeamFilter, setSelectedTeamFilter] = useState('all');
-    
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        const [teamsData, playersData, requestsData] = await Promise.all([
-            getTeams(), 
-            getPlayers(),
-            getRequalificationRequests()
-        ]);
-        setAllTeams(teamsData);
-        setAllPlayers(playersData.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
-        setRequests(requestsData.filter(r => r.status === 'pending'));
-        setLoading(false);
-    }, []);
-
-    useEffect(() => {
-        if(user.permissions.requests.view) {
-             loadData();
-        }
-    }, [user, loadData]);
-
-    const handlePlayerAdded = useCallback((newPlayer: Player) => {
-        setAllPlayers(prev => [newPlayer, ...prev].sort((a, b) => (a.name || '').localeCompare(b.name || '')));
-    }, []);
-
-    const handleStatusChange = async (player: Player, newStatus: 'activo' | 'inactivo') => {
-        const originalStatus = player.status;
-        setAllPlayers(prev => prev.map(p => p.id === player.id ? { ...p, status: newStatus } : p));
-        try {
-            await updatePlayerStatus(player.id, newStatus);
-            toast({
-                title: 'Estado Actualizado',
-                description: `El estado de ${player.name} ha sido cambiado a ${newStatus}.`
-            });
-        } catch (error) {
-             toast({ title: 'Error', description: 'No se pudo actualizar el estado.', variant: 'destructive' });
-             setAllPlayers(prev => prev.map(p => p.id === player.id ? { ...p, status: originalStatus } : p));
-        }
-    };
-
-    const filteredPlayers = useMemo(() => {
-        return allPlayers.filter(player => {
-            const matchesSearch = searchTerm === '' || (player.name && player.name.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesTeam = selectedTeamFilter === 'all' || player.teamId === selectedTeamFilter;
-            return matchesSearch && matchesTeam;
-        });
-    }, [allPlayers, searchTerm, selectedTeamFilter]);
-
-    if (!user.permissions.requests.view) {
-        return (
-            <div className="flex-1 p-8 text-center">
-                <p>No tienes permiso para ver esta página.</p>
-            </div>
-        )
+            </Card>
+        );
     }
-    
-    if (loading) {
+
+    if (lastRequest) {
         return (
-            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-                 <div className="space-y-2 text-center">
-                    <Skeleton className="h-10 w-3/4 mx-auto" />
-                    <Skeleton className="h-4 w-1/2 mx-auto" />
-                </div>
-                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
-                     <div className="lg:col-span-3">
-                         <Skeleton className="h-96" />
-                     </div>
-                     <div className="lg:col-span-2">
-                         <Skeleton className="h-96" />
-                     </div>
-                 </div>
+            <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
+                <PrintSection request={lastRequest} />
             </div>
-        )
+        );
     }
 
     return (
@@ -386,46 +218,102 @@ export default function RequalificationPage() {
             <div className="text-center">
                  <h2 className="text-4xl font-extrabold tracking-tight">
                     <span className="bg-gradient-to-r from-teal-400 to-blue-500 text-transparent bg-clip-text">
-                       Gestión de Calificación
+                       Solicitud de Calificación
                     </span>
                 </h2>
                 <p className="text-lg text-muted-foreground mt-2">
-                    Inscribe nuevos jugadores y gestiona el estado de actividad de la plantilla.
+                    Genera una nueva solicitud de ingreso o recalificación de jugador para tu equipo.
                 </p>
             </div>
-
-            {user.permissions.requests.edit && <PendingRequests requests={requests} onAction={loadData} />}
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-8">
-                <div className="lg:col-span-3">
-                     <div className="flex gap-4 mb-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                                placeholder="Buscar por nombre de jugador..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-8"
-                            />
+            
+            <Card className="max-w-2xl mx-auto">
+                <form onSubmit={handleSubmit}>
+                    <CardHeader>
+                        <CardTitle>Formulario de Solicitud</CardTitle>
+                        <CardDescription>Completa todos los campos para generar la solicitud. Será revisada por la directiva.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                             <div>
+                                <Label htmlFor="team">Tu Equipo</Label>
+                                <Select onValueChange={setSelectedTeamId} value={selectedTeamId}>
+                                    <SelectTrigger id="team"><SelectValue placeholder="Selecciona tu equipo" /></SelectTrigger>
+                                    <SelectContent>{teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="requestType">Tipo de Solicitud</Label>
+                                <Select onValueChange={(v) => setRequestType(v as RequestType)} value={requestType} disabled={!selectedTeamId}>
+                                    <SelectTrigger id="requestType"><SelectValue placeholder="Selecciona el tipo..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="qualification"><UserPlus className="mr-2" />Nuevo Ingreso</SelectItem>
+                                        <SelectItem value="requalification"><Repeat className="mr-2" />Recalificación</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                        <Select value={selectedTeamFilter} onValueChange={setSelectedTeamFilter}>
-                            <SelectTrigger className="w-[280px]">
-                                <SelectValue placeholder="Filtrar por equipo..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos los equipos</SelectItem>
-                                {allTeams.map(team => (
-                                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <PlayerList players={filteredPlayers} onStatusChange={handleStatusChange} />
-                </div>
-                <div className="lg:col-span-2">
-                    <AddPlayerForm teams={allTeams} onPlayerAdded={handlePlayerAdded} />
-                </div>
-            </div>
+
+                        {requestType && (
+                            <>
+                                 <div className="space-y-1">
+                                    <Label htmlFor="playerInName">Nombre del Jugador Entrante</Label>
+                                    <Input id="playerInName" value={playerInName} onChange={(e) => setPlayerInName(e.target.value)} placeholder="Nombre completo del nuevo jugador" />
+                                </div>
+                                {requestType === 'requalification' && (
+                                     <div className="space-y-1">
+                                        <Label htmlFor="playerOut">Jugador Saliente</Label>
+                                        <Select onValueChange={setPlayerOutId} value={playerOutId || ''} disabled={players.length === 0}>
+                                            <SelectTrigger id="playerOut"><SelectValue placeholder="Selecciona el jugador a dar de baja..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {players.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                 {requestType === 'qualification' && (
+                                    <div className="grid grid-cols-2 gap-4 pt-4">
+                                        <div className="space-y-2">
+                                            <Label>Foto de Perfil (Tipo Carnet)</Label>
+                                            <div className="flex items-center gap-4">
+                                                <Avatar className="w-20 h-20">
+                                                    {profilePhotoPreview ? <AvatarImage src={profilePhotoPreview} /> : null}
+                                                    <AvatarFallback><User /></AvatarFallback>
+                                                </Avatar>
+                                                <Button asChild variant="outline">
+                                                    <label htmlFor="profile-photo" className="cursor-pointer">
+                                                        <FileUp className="mr-2" /> Subir
+                                                        <input id="profile-photo" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'profile')} />
+                                                    </label>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label>Foto de Cédula (Frontal)</Label>
+                                            <div className="flex items-center gap-4">
+                                                 <div className="w-32 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                                    {idCardPhotoPreview ? <Image src={idCardPhotoPreview} alt="Cédula" width={128} height={80} className="object-contain" /> : <FileUp className="text-muted-foreground" />}
+                                                 </div>
+                                                <Button asChild variant="outline">
+                                                    <label htmlFor="id-card-photo" className="cursor-pointer">
+                                                        <FileUp className="mr-2" /> Subir
+                                                        <input id="id-card-photo" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'id')} />
+                                                    </label>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                 )}
+                            </>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" className="w-full" disabled={isLoading || !requestType}>
+                            <UserPlus className="mr-2" />
+                            {isLoading ? 'Enviando...' : 'Enviar Solicitud'}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Card>
         </div>
     );
 }
