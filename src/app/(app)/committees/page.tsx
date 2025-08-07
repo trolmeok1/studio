@@ -360,6 +360,9 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
     const [playerNumber, setPlayerNumber] = useState('');
     const [searchResults, setSearchResults] = useState<Player[]>([]);
 
+    const [pendingValueHome, setPendingValueHome] = useState(0);
+    const [pendingValueAway, setPendingValueAway] = useState(0);
+
     const handleVocalPaymentChange = useCallback((
         currentMatchData: Match,
         teamKey: 'home' | 'away',
@@ -429,8 +432,8 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
         }
     
         if (changed) {
-            const updatedWithHome = handleVocalPaymentChange(newMatchData, 'home', 'referee', newMatchData.teams.home.vocalPaymentDetails?.referee || 0);
-            const updatedWithAway = handleVocalPaymentChange(updatedWithHome, 'away', 'referee', newMatchData.teams.away.vocalPaymentDetails?.referee || 0);
+            let updatedWithHome = handleVocalPaymentChange(newMatchData, 'home', 'referee', newMatchData.teams.home.vocalPaymentDetails?.referee || 0);
+            let updatedWithAway = handleVocalPaymentChange(updatedWithHome, 'away', 'referee', newMatchData.teams.away.vocalPaymentDetails?.referee || 0);
             
             if (JSON.stringify(localMatch) !== JSON.stringify(updatedWithAway)) {
                  setLocalMatch(updatedWithAway);
@@ -528,9 +531,6 @@ const DigitalMatchSheet = ({ match, onFinishMatch }: { match: Match | null, onFi
         };
         handleMatchDataChange('score', updatedScore);
     }
-
-    const [pendingValueHome, setPendingValueHome] = useState(0);
-    const [pendingValueAway, setPendingValueAway] = useState(0);
 
     const getPendingValue = useCallback(async (teamId: string, currentMatchId: string) => {
         const pastMatches = allMatches.filter(m => m.id !== currentMatchId && isPast(new Date(m.date)));
