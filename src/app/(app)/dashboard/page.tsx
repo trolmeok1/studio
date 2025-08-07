@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -65,7 +66,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -399,18 +400,18 @@ function BestTeamsCard() {
     const [standings, setStandings] = useState<Standing[]>([]);
 
     useEffect(() => {
-        async function loadData() {
+        const loadData = async () => {
             const [teamsData, standingsData] = await Promise.all([
                 getTeams(),
                 getStandings()
             ]);
             setTeams(teamsData);
             setStandings(standingsData);
-        }
+        };
         loadData();
     }, []);
 
-    const getTopTeams = (category: Category) => {
+    const getTopTeams = useCallback((category: Category) => {
         const categoryTeams = teams.filter(t => t.category === category);
         const categoryStandings = standings
             .filter(s => categoryTeams.some(t => t.id === s.teamId))
@@ -421,7 +422,7 @@ function BestTeamsCard() {
             ...s,
             teamLogoUrl: teams.find(t => t.id === s.teamId)?.logoUrl || 'https://placehold.co/100x100.png'
         }));
-    };
+    }, [teams, standings]);
     
     const renderTeam = (team: Standing, rank: number) => (
         <div key={team.teamId} className={cn("flex flex-col items-center gap-2 p-3 text-center", rank === 1 ? "scale-105" : "")}>
@@ -460,14 +461,14 @@ export default function DashboardPage() {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
     useEffect(() => {
-        async function loadData() {
+        const loadData = async () => {
             const [requestsData, statsData] = await Promise.all([
                 getRequalificationRequests(),
                 getDashboardStats()
             ]);
             setPendingRequests(requestsData.filter(r => r.status === 'pending'));
             setDashboardStats(statsData);
-        }
+        };
         loadData();
     }, []);
   

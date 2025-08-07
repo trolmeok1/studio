@@ -53,7 +53,8 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 
 export function AppSidebar() {
@@ -61,6 +62,12 @@ export function AppSidebar() {
   const { user, isCopaPublic, isAuthLoading, logout } = useAuth();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
+  const [leagueLogo, setLeagueLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Client-side only
+    setLeagueLogo(localStorage.getItem('league-logo'));
+  }, []);
 
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(`${path}/`);
@@ -77,7 +84,7 @@ export function AppSidebar() {
             <SidebarHeader>
                  <div className="flex items-center gap-2">
                     <Trophy className="text-primary size-8" />
-                    <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
+                     <div className="h-6 w-32 bg-muted rounded animate-pulse" />
                 </div>
             </SidebarHeader>
             <SidebarContent>
@@ -134,8 +141,11 @@ export function AppSidebar() {
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <Trophy className="text-primary size-8" />
-          <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
+           {leagueLogo ? (
+            <Image src={leagueLogo} alt="Logo de la Liga" width={140} height={35} className="object-contain" />
+          ) : (
+             <h1 className="text-xl font-bold font-headline">LIGA LA LUZ</h1>
+          )}
           <div className="ml-auto md:hidden">
             <SidebarTrigger />
           </div>
