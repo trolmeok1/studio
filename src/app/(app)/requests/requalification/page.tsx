@@ -51,7 +51,7 @@ const PlayerList = ({ players, onStatusChange }: { players: Player[], onStatusCh
                                                 <AvatarImage src={player.photoUrl} alt={player.name} />
                                                 <AvatarFallback>{player.name?.substring(0,2) || '??'}</AvatarFallback>
                                             </Avatar>
-                                            <span className="font-medium">{player.name}</span>
+                                            <span className="font-medium">{player.name || '(Jugador sin nombre)'}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>{player.team}</TableCell>
@@ -348,5 +348,6 @@ export default function RequalificationPage() {
         </div>
     );
 }
+
 
 
