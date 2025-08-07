@@ -17,6 +17,12 @@ const toDataURL = (url: string): Promise<string> => {
             resolve('');
             return;
         }
+        // If it's already a data URI, return it directly.
+        if (url.startsWith('data:image')) {
+            resolve(url);
+            return;
+        }
+
         fetch(url)
             .then(response => {
                 if (!response.ok) {
@@ -89,17 +95,13 @@ export default function AiCardsPage() {
 
         // --- Pre-fetch all assets ---
         const leagueLogoUrl = localStorage.getItem('league-logo') || 'https://placehold.co/100x100.png';
-        const defaultBackgroundImageUrl = 'https://i.imgur.com/uP8hD5w.jpeg';
+        const backgroundImageUrl = localStorage.getItem('card-background-image') || 'https://i.imgur.com/uP8hD5w.jpeg';
         
-        let backgroundImageBase64 = localStorage.getItem('card-background-image');
-        if (backgroundImageBase64 && !backgroundImageBase64.startsWith('data:image')) {
-            // It's a URL from Firebase, convert it to data URI
-            backgroundImageBase64 = await toDataURL(backgroundImageBase64);
-        } else if (!backgroundImageBase64) {
-            backgroundImageBase64 = await toDataURL(defaultBackgroundImageUrl);
-        }
-
-        const [leagueLogoBase64] = await Promise.all([
+        const [
+            backgroundImageBase64, 
+            leagueLogoBase64
+        ] = await Promise.all([
+            toDataURL(backgroundImageUrl),
             toDataURL(leagueLogoUrl),
         ]);
         
